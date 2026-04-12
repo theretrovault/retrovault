@@ -1,4 +1,23 @@
 "use client";
+/**
+ * Vault Inventory Page
+ *
+ * @todo This file is large (~1400 lines) and is a known refactoring target.
+ *       The following sub-components should be extracted in future PRs:
+ *
+ *       - VaultTable         — the game table with sort/filter/pagination
+ *       - VaultFilters       — search bar, platform/filter dropdowns
+ *       - CriticsManager     — "The Critics" people manager modal
+ *       - CrudModal          — edit/add copy modal
+ *       - VaultCodex         — the Codex help modal
+ *
+ *       Custom hooks to extract:
+ *       - useInventory()     — data fetching (see src/hooks/useInventory.ts)
+ *       - useCritics()       — critics data (see src/hooks/useCritics.ts)
+ *       - useVaultScores()   — buy/sell score computation
+ *
+ *       See CONTRIBUTING.md for coding conventions.
+ */
 
 import { useEffect, useState } from "react";
 import { PriceDetailModal } from "@/components/PriceDetailModal";

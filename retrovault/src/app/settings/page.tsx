@@ -1,4 +1,12 @@
 "use client";
+/**
+ * Settings Page
+ *
+ * @todo Extract each <Section> into its own component file:
+ *       - ThemeSettings, LocalizationSettings, DeploymentSettings,
+ *         PlexSettings, ScraperSettings, PlatformSettings,
+ *         FeaturesSettings, BugReportingSettings, AuthSettings
+ */
 import { useEffect, useState } from "react";
 import { useTheme } from "@/components/ThemeProvider";
 import { COLOR_PALETTES, STYLE_THEMES } from "@/data/themes";
