@@ -1,251 +1,179 @@
 # 👾 RetroVault
 
-> **Your retro gaming collection engine.**  
-> Track what you own. Know what it's worth. Hunt smarter. Play more.
+**You've got a spreadsheet. You hate your spreadsheet.**
 
-[![Version](https://img.shields.io/badge/version-2.0.0-22c55e?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHRleHQgeT0iMjAiIGZvbnQtc2l6ZT0iMjAiPvCfm608L3RleHQ+PC9zdmc+)](CHANGELOG.md)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square)](https://nextjs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square)](https://typescriptlang.org)
-[![License](https://img.shields.io/badge/license-private-red?style=flat-square)]()
+It doesn't know what your Earthbound CIB is worth today. It can't tell you if the PS1 game at the garage sale tomorrow is on your want list. It has no idea you already own three copies of Madden '95.
+
+RetroVault is the tool that spreadsheet could never be.
 
 ---
 
-RetroVault is a self-hosted, full-stack web app built for serious retro game collectors and flippers. It combines a personal game library manager with real market data, business analytics, field hunting tools, and a social layer — all wrapped in a custom 8-bit green phosphor aesthetic.
+## What it does
 
-Built to run on your local network. No cloud required. No subscriptions. Your data stays on your machine.
+RetroVault is a self-hosted retro game collection manager built for people who take their collection seriously. Whether you're hunting for deals, tracking your flips, or just trying to remember what you actually own — this is the command center for your retro gaming operation.
 
----
+**Know your collection.**  
+Every game you own, across every platform, with condition tracking, purchase history, and real market prices pulled automatically from PriceCharting. Your total collection value, updated daily. Duplicate alerts so you stop buying games you already have.
 
-## ✨ What It Does
+**Hunt smarter.**  
+Field Mode is your in-the-wild price checker — open it at a garage sale, type a title, and instantly see the market value, whether it's on your want list, and whether you should buy it or walk away. Dupe alert included. No fumbling with browser tabs.
 
-### 🕹️ Collection Management
-- Full game vault with per-copy tracking (condition, box, manual, cost, purchase date, source)
-- 26,000+ title catalog across 14 retro platforms from NES to Switch
-- Condition grades, digital flag, and CIB tracking
-- Mobile card view and table view with sort, search, and filter
-- Import from CSV — compatible with spreadsheets, CLZ Games, and custom exports
-- Duplicate Detector: scan for multi-copy games and see their sellable value
+**Know when to sell.**  
+Hot List surfaces your best flip opportunities right now, ranked by ROI × market trend × copy count. Flip Calculator shows you exactly what you'll net after eBay's 13.25% cut and shipping. Because "selling for $80" and "making $80" are very different numbers.
 
-### 💰 Business & Flipping
-- **P&L Ledger** — log every buy and sell, track realized profit
-- **Buy/Sell Scores** (1–100) on every game based on PriceCharting market data
-- **Hot List** — auto-ranked flip opportunities by ROI × trend × multi-copy bonus
-- **Flip Calculator** — net profit after eBay/Mercari/local fees and shipping
-- **Target Radar** — watchlist with buy-below price alerts
-- **Sourcing Analytics** — ROI breakdown by where you buy (Garage Sale vs eBay vs Convention, etc.)
-- **Platform Market Report** — which platforms are trending up or down this month
-- **Seasonal Calendar** — historically best months to buy and sell by platform
+**Track the hunt.**  
+Convention Tracker keeps your event budget in check in real time. Negotiation Helper gives you an offer ladder before you walk up to the dealer table. The Field Guide has 60+ principles from experienced hunters — everything from "eBay sold listings are the truth, active listings are fiction" to exactly what to say when you want to haggle.
 
-### 🔦 Field Tools
-- **Field Mode** — mobile-optimized price checker with instant dupe alert and "Should I Buy?" decision engine
-- **Negotiation Helper** — offer ladder with scenario presets (garage sale, convention, Facebook Marketplace, 1:1 deal)
-- **Lot Calculator** — proportional cost allocation for bulk purchases
-- **Convention Tracker** — real-time budget meter with per-purchase logging per event
-- **eBay Listing Quality Checker** — 12-point checklist to maximize sale price
-
-### 📊 Analytics & Insights
-- Collection value dashboard with platform breakdown
-- 30-day price history and trend analysis per game
-- **Value History** — daily snapshot graph showing collection growth over time
-- Insurance Valuation Report — printable document for insurance purposes
-- Price alerts when watchlist items hit your target
-
-### 🎮 Personal & Play
-- **Play Log** — Currently Playing / Beaten / Backlog / Want to Play / Gave Up with 1–5 star ratings
-- **Holy Grail Tracker** — priority-ranked wish list; mark items as FOUND when you score them
-- **Collection Randomizer** — "What should I play tonight?" with animated picker
-- **Completion Tiers** — Bronze → Platinum badges per platform based on % of catalog owned
-- **Collection Milestones** — 25+ auto-computed achievements (first game, century club, etc.)
-- **Achievement Codex** — 100+ achievements across 9 categories with rarity tiers
-
-### 👥 Social & Critics
-- Add critics (friends/co-collectors) who can favorite ⭐ and rate 👎 games
-- VIBE column shows group consensus at a glance
-- **Tags** — add metadata labels to any game or platform, searchable across the vault
-- **@ Mentions** — send critic-specific notes on games they might care about
-- **Friends Mode** — each critic gets a personalized view of the collection
-- Critic Profile modal with stats, platform breakdown, and mention history
-
-### 🌐 Discovery & Hunting
-- **Gaming Events Calendar** — Eventbrite scraper + manual add; mark events as attending
-- **Whatnot Tracker** — follow sellers, log scheduled streams with countdown
-- **Local Deals** — Craigslist scraper matched against your watchlist and grail list
-- **Reddit Alerts** — r/gameswap monitor for watchlist items being offered for sale/trade
-- **Field Guide** — 8 chapters, 60+ principles from the retro hunting community (Chase After The Right Price, r/gamecollecting, and beyond)
-- **Quote Banner** — 200+ quotes from game designers and hunting wisdom
-
-### ⚙️ Platform
-- **Scraper Control Center** — manage all scrapers from the UI (run, schedule, view logs)
-- 8 scraper scripts: PriceCharting prices, Events, Reddit, Craigslist, PriceCharting trending, eBay sold, Whatnot, value snapshots
-- **Standalone mode** — deploy as RetroVault with its own nav, or embed in Mission Control
-- **Theme system** — 8 color palettes × 5 style themes, all live-switchable
-- **Feature flags** — enable/disable entire feature groups; nav updates instantly
-- **PWA support** — install to your phone home screen; Field Mode becomes a native-feel app
-- **Global search** — search across all pages, games, grails, watchlist, and events
-- **Keyboard shortcuts** — `?` for help, `/` to search, `g v` for Vault, etc.
-- Optional password authentication with HMAC-signed sessions
-- Public shareable collection URL with QR code generator
-- Changelog at `/changelog`, auto-commit to GitHub on schedule
+**Your data. Your machine.**  
+RetroVault is self-hosted. Your collection data lives in plain files on your own computer — no cloud, no subscription, no company that can shut down and take your data with it. Back up by copying a folder. *That's it.*
 
 ---
 
-## 🚀 Getting Started
+## Features at a glance
 
-### Prerequisites
+| Category | What's included |
+|---|---|
+| 🕹️ **Collection** | Vault inventory · Showcase gallery · Platform completion tiers · Milestones · Achievement Codex (100+) · Decade timeline · Value history graph |
+| 💰 **Business** | P&L ledger · Hot List · Flip Calculator · Target Radar watchlist · Sourcing analytics · Platform market report · Seasonal buy/sell calendar · eBay listing checklist |
+| 🔦 **Field Tools** | Field Mode · Negotiation Helper · Lot Calculator · Convention Tracker · Condition Grader · Insurance valuation report |
+| 🎮 **Personal** | Play Log · Holy Grail Tracker · Collection Randomizer · Duplicate Detector |
+| 👥 **Social** | Critics & VIBE system · Tags & @mentions · Friends Mode |
+| 🌐 **Discovery** | Gaming Events calendar · Whatnot seller tracker · Local Deals (Craigslist + Reddit r/gameswap) · Field Guide |
+| ⚙️ **Platform** | 8 color themes · 5 style themes · Feature flags · Global search · Keyboard shortcuts · PWA · CSV import · Shareable collection URL + QR code |
+
+**35 platforms supported** — from Atari 2600 to Xbox Series X. Default to retro; unlock everything in Settings.
+
+---
+
+## Getting started
+
+### Requirements
 - Node.js 22+
 - Git
 
-### Install & Run
+### Install
 
 ```bash
 git clone git@github.com:apesch85/retrovault.git
-cd retrovault/second-brain
+cd retrovault/retrovault
+cp data/sample/app.config.sample.json data/app.config.json
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) and start adding games.
 
-### Configuration
+### Build your game database
 
-Edit `data/app.config.json` or use the in-app Settings page (`/settings`) to configure:
+RetroVault can pull the full game catalog for any platform from PriceCharting:
 
-| Setting | Default | Notes |
-|---|---|---|
-| `appName` | `RetroVault` | Displayed in nav/header |
-| `standaloneMode` | `true` | `false` = Mission Control mode |
-| `currency` | `$` | Any symbol |
-| `plex.url` | — | Plex server URL for media integration |
-| `scrapers.craigslistCity` | `portland` | City slug for Craigslist scraper |
-| `auth.enabled` | `false` | Enable password protection |
-| `features.*` | all `true` | Toggle feature groups on/off |
+```bash
+# Scrape specific platforms
+node scripts/scrape-catalog.mjs --platforms=NES,SNES,N64
+
+# Scrape everything (takes a while — run overnight)
+node scripts/scrape-catalog.mjs
+```
+
+### Set up price fetching
+
+Prices are pulled automatically from PriceCharting. Register the nightly cron:
+
+```bash
+# Add to crontab (runs at midnight)
+(crontab -l; echo "0 0 * * * node $(pwd)/scripts/bg-fetch.mjs >> $(pwd)/logs/bg-fetch.log 2>&1") | crontab -
+```
 
 ---
 
-## 📋 Scripts
+## Your data
+
+All your collection data lives in `data/` on your machine. **None of it is committed to git.**
+
+```
+data/
+├── app.config.json      ← your settings
+├── inventory.json       ← your game catalog + prices
+├── sales.json           ← P&L transaction log
+├── goals.json           ← platform completion goals
+├── grails.json          ← holy grail wish list
+├── playlog.json         ← what you've played/beaten
+└── ...
+```
+
+To back up your collection: `cp -r data/ ~/my-retrovault-backup/`  
+To migrate to a new machine: copy the `data/` folder and run `npm install`.
+
+No database server. No migrations. No lock-in.
+
+---
+
+## Production deployment
+
+RetroVault runs well on a Raspberry Pi, a spare box on your LAN, or any Linux server:
+
+```bash
+# Install pm2 for process management
+npm install -g pm2
+
+# Build and start
+npm run build
+pm2 start ecosystem.config.js
+
+# Optional: nginx reverse proxy
+# See nginx.conf.example for a ready-to-go config
+```
+
+PWA-ready — add it to your phone's home screen for a native-feeling Field Mode experience.
+
+---
+
+## Scripts
 
 | Script | What it does |
 |---|---|
-| `npm run dev` | Start dev server (port 3000) |
-| `npm run build` | Production build |
-| `node scripts/bg-fetch.mjs` | Fetch PriceCharting prices for all owned games |
-| `node scripts/scrape-events.mjs` | Scrape gaming events from Eventbrite |
-| `node scripts/scrape-reddit.mjs` | Check r/gameswap for watchlist/grail matches |
-| `node scripts/scrape-craigslist.mjs` | Scan local Craigslist for retro game deals |
-| `node scripts/scrape-trending.mjs` | Fetch PriceCharting trending games |
-| `node scripts/snapshot-value.mjs` | Record daily collection value snapshot |
-| `node scripts/git-sync.mjs` | Commit and push any changes to GitHub |
-
-### Recommended crontab
-
-```cron
-0 0 * * *    node /path/to/scripts/bg-fetch.mjs >> logs/bg-fetch.log 2>&1
-0 1 * * *    node /path/to/scripts/snapshot-value.mjs >> logs/snapshot.log 2>&1
-0 6 * * 1    node /path/to/scripts/scrape-events.mjs >> logs/events-scraper.log 2>&1
-0 2 * * *    node /path/to/scripts/scrape-craigslist.mjs >> logs/craigslist-scraper.log 2>&1
-0 */1 * * *  node /path/to/scripts/scrape-reddit.mjs >> logs/reddit-scraper.log 2>&1
-0 */6 * * *  node /path/to/scripts/git-sync.mjs >> logs/git-sync.log 2>&1
-```
+| `scripts/bg-fetch.mjs` | Fetch PriceCharting prices for all owned games (run nightly) |
+| `scripts/scrape-catalog.mjs` | Build game database for any platform |
+| `scripts/scrape-events.mjs` | Pull gaming events from Eventbrite |
+| `scripts/scrape-craigslist.mjs` | Local Craigslist game deal alerts |
+| `scripts/scrape-reddit.mjs` | r/gameswap alerts for your watchlist |
+| `scripts/snapshot-value.mjs` | Record daily collection value (run daily) |
+| `scripts/deploy.sh` | Pull → build → reload pm2 in one command |
 
 ---
 
-## 🗂️ Data Files
+## The field guide
 
-All data lives in `data/` and is excluded from version control (except structure files):
+RetroVault includes an in-app **Field Guide** (`/guide`) with 8 chapters and 60+ principles sourced from experienced retro hunters:
 
-| File | Contents |
-|---|---|
-| `inventory.json` | Full game catalog + market prices |
-| `sales.json` / `acquisitions.json` | P&L transaction history |
-| `watchlist.json` | Target Radar items |
-| `grails.json` | Holy Grail wish list |
-| `playlog.json` | Play Log entries |
-| `favorites.json` | Critics + favorites/regrets |
-| `tags.json` | Game/platform tags + @mentions |
-| `events.json` | Gaming events calendar |
-| `whatnot.json` | Whatnot sellers + streams |
-| `app.config.json` | App-wide configuration |
-| `value-history.json` | Daily collection value snapshots |
-| `achievements-unlocked.json` | Manually unlocked achievements |
+> *"eBay SOLD listings are the truth. Asking price is just a dream."*
+
+> *"Never buy what you can't sell. Always sell what you don't love."*
+
+> *"The flea market at 6am is worth every minute of lost sleep."*
+
+Topics covered: hunter's mindset · pricing mechanics · buying smart at garage sales vs conventions vs thrift stores · negotiation tactics · selling for maximum return · spotting fakes · building a collection with intent.
 
 ---
 
-## 🏗️ Architecture
+## Acknowledgments
 
-```
-second-brain/
-├── src/
-│   ├── app/                    # Next.js App Router pages (50+ routes)
-│   │   ├── api/                # REST API routes
-│   │   └── [page]/page.tsx     # Page components
-│   ├── components/             # Shared UI components
-│   └── data/                   # Static data (achievements, quotes, themes, etc.)
-├── scripts/                    # Node.js scraper + utility scripts
-├── data/                       # Runtime data files (gitignored)
-├── logs/                       # Script logs (gitignored)
-└── public/                     # Static assets + PWA manifest
-```
-
-**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind CSS · Recharts · Node.js scrapers
+Knowledge drawn from the retro game collecting community — r/gamecollecting, r/gameswap, Chase After The Right Price (YouTube), Metal Jesus Rocks, and the countless collectors who've shared what they know.
 
 ---
 
-## 📱 PWA Installation
+## License
 
-RetroVault ships as a Progressive Web App. To install:
-
-- **iOS**: Safari → Share → Add to Home Screen
-- **Android**: Chrome → ⋮ → Add to Home Screen
-
-Once installed, Field Mode works as a full-screen native-feeling app — perfect for garage sale hunting.
-
-App shortcuts are pre-configured: **Field Mode**, **Vault**, and **Negotiate**.
+MIT — use it, fork it, build on it.
 
 ---
 
-## 📖 Field Guide
+## Support
 
-The built-in Field Guide (`/guide`) contains 60+ principles from experienced retro hunters covering:
+If RetroVault saves you money on a deal, consider buying a coffee:
 
-- The Hunter's Mindset
-- Understanding Pricing (eBay sold vs listed)  
-- Buying Smart by scenario (garage sale, thrift, convention, 1:1)
-- Negotiation tactics and offer ladders
-- Selling for maximum return
-- Spotting fakes and condition grading
-- Building a collection with intent
-- Essential community resources
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20the%20project-FF5E5B?style=flat-square&logo=kofi)](https://ko-fi.com)
 
 ---
 
-## 🏆 Achievements
-
-100+ achievements across 9 categories with 5 rarity tiers:
-
-`Common` → `Uncommon` → `Rare` → `Epic` → `Legendary`
-
-Categories: Collection · Business · Hunting · Platform · Personal · Social · Grind · Secret · Milestone
-
-Secret achievements are hidden until unlocked through specific behaviors.
-
----
-
-## 📋 Changelog
-
-See [the full changelog](/src/data/changelog.ts) or browse `/changelog` in the app.
-
-Current version: **v2.0.0** — 10 releases since initial launch covering 100+ features.
-
----
-
-## 🤝 Contributing
-
-This is a private project. If you've been given access and want to contribute:
-
-1. Branch from `master`
-2. Make your changes
-3. `node scripts/git-sync.mjs` or `git commit && git push`
-
----
-
-*Built with 👾 by [apesch85](https://github.com/apesch85) and Neo*
+*Built for hunters, collectors, and everyone who's ever walked out of a garage sale with a cardboard box full of someone else's childhood.*

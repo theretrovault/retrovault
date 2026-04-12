@@ -1,25 +1,17 @@
 # 👾 RetroVault
 
-> **Your retro gaming collection engine.**  
-> Track what you own. Know what it's worth. Hunt smarter. Play more.
+**You've got a spreadsheet. You hate your spreadsheet.**
 
-The app lives in the [`retrovault/`](./retrovault/) directory.
+The app lives in [`retrovault/`](./retrovault/).
 
-👉 **[View the full README →](./retrovault/README.md)**
+👉 **[Full README, features, and setup →](./retrovault/README.md)**
 
 ---
-
-## Quick Start
 
 ```bash
 cd retrovault
 cp data/sample/app.config.sample.json data/app.config.json
-npm install
-npm run dev
+npm install && npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
-
----
-
-*Built with Next.js 16 · TypeScript · Tailwind CSS*
+*Built for hunters, collectors, and everyone who's ever walked out of a garage sale with a cardboard box full of someone else's childhood.*
