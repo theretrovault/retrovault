@@ -535,6 +535,24 @@ export default function InventoryPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newItem),
     });
+
+    // Auto-enable platform if it's not in the current enabled list
+    if (data.platform && enabledPlatforms && enabledPlatforms.length > 0 && !enabledPlatforms.includes(data.platform)) {
+      const configRes = await fetch("/api/config").then(r => r.json()).catch(() => ({}));
+      const updatedPlatforms = [...new Set([...(configRes.platforms || enabledPlatforms), data.platform])];
+      await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...configRes, platforms: updatedPlatforms })
+      }).catch(() => {});
+      // Show a toast-style notification
+      const toast = document.createElement('div');
+      toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[500] bg-yellow-950 border-2 border-yellow-600 px-6 py-3 font-terminal text-yellow-300 text-sm shadow-lg';
+      toast.textContent = `📺 Platform enabled: ${data.platform} — games from this system now appear in your Vault.`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 5000);
+    }
+
     setShowAddModal(false);
     fetchInventory();
   };
