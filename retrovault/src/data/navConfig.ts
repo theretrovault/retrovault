@@ -133,17 +133,14 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "media",
     label: "Media",
     icon: "🎬",
-    description: "Browse your Plex media library alongside your game collection.",
+    description: "Optional media server integration for browsing your library alongside games.",
     benefits: [
-      "Movies, TV shows, and music from your Plex server",
-      "Direct links to IMDb and Last.fm for each item",
-      "Searchable and filterable media browser",
-      "Keeps all your entertainment in one place",
+      "Connect a media server to browse movies, TV, and music",
+      "Direct links to IMDb and streaming services",
+      "Disabled by default — enable if you want media integration",
     ],
     alwaysOn: false,
-    items: [
-      { href: "/plex", label: "Plex Media", icon: "🎬", feature: "media" },
-    ],
+    items: [],
   },
 ];
 
