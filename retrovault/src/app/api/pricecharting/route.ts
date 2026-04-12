@@ -206,10 +206,23 @@ export async function GET(request: Request) {
           });
           
           // Fallback: try standard price IDs on the product page
+          // PriceCharting uses: used_price, complete_price (NOT cib_price), new_price
           if (!loose) {
-            loose = $d('#used_price .price').text().replace('$','').trim() || null;
-            cib   = $d('#cib_price .price').text().replace('$','').trim() || null;
-            newPrice = $d('#new_price .price').text().replace('$','').trim() || null;
+            // Try multiple selector patterns for robustness
+            const priceSelectors = ['.price', 'span[data-price]', '.js-item-price'];
+            const getPrice = (id: string) => {
+              for (const sel of priceSelectors) {
+                const val = $d(`#${id} ${sel}`).first().text().replace(/[$,]/g,'').trim();
+                if (val && !isNaN(parseFloat(val))) return val;
+              }
+              // Also try the span directly inside the td
+              const direct = $d(`#${id}`).first().text().replace(/[$,]/g,'').trim().split('\n')[0];
+              if (direct && !isNaN(parseFloat(direct))) return direct;
+              return null;
+            };
+            loose    = getPrice('used_price');
+            cib      = getPrice('complete_price');  // PriceCharting uses complete_price, not cib_price
+            newPrice = getPrice('new_price');
           }
           
           if (loose || cib) {
@@ -237,10 +250,17 @@ export async function GET(request: Request) {
     const $ = cheerio.load(html);
 
     // Check if we landed on a direct product page
-    let loosePrice = $('#used_price .price').text().trim() || null;
-    let cibPrice = $('#cib_price .price').text().trim() || null;
-    let newPrice = $('#new_price .price').text().trim() || null;
-    let gradedPrice = $('#graded_price .price').text().trim() || null;
+    // PriceCharting uses complete_price not cib_price
+    const extractPrice = ($el: any, id: string) => {
+      const val = $el(`#${id} .price`).first().text().replace(/[$,]/g,'').trim();
+      if (val && !isNaN(parseFloat(val))) return val;
+      const fallback = $el(`#${id}`).first().text().replace(/[$,]/g,'').trim().split('\n')[0];
+      return (fallback && !isNaN(parseFloat(fallback))) ? fallback : null;
+    };
+    let loosePrice = extractPrice($, 'used_price');
+    let cibPrice = extractPrice($, 'complete_price');
+    let newPrice = extractPrice($, 'new_price');
+    let gradedPrice = extractPrice($, 'graded_price');
     let matchedTitle = $('h1').first().text().trim();
 
     if (!loosePrice) {
