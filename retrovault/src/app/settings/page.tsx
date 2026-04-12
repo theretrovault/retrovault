@@ -182,7 +182,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      <Section title="Plex Integration" icon="🎬">
+      <Section title="Media Server (Optional)" icon="🎬">
         <div>
           <label className="block text-zinc-400 font-terminal text-sm mb-1 uppercase">Plex Server URL</label>
           <input type="text" className="w-full bg-black border-2 border-green-800 text-green-300 p-2 font-terminal text-xl focus:outline-none focus:border-green-400"
@@ -195,6 +195,7 @@ export default function SettingsPage() {
             placeholder="Your X-Plex-Token" value={config.plex?.token || ""}
             onChange={e => setConfig({ ...config, plex: { ...config.plex, token: e.target.value } })} />
         </div>
+        <p className="text-zinc-600 font-terminal text-xs">Optional: connect a Plex media server to enable the Media feature group. Leave blank if not using media integration.</p>
       </Section>
 
       <Section title="Price Data" icon="📊">
