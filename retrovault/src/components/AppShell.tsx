@@ -13,6 +13,7 @@ import { QuoteBanner } from "@/components/QuoteBanner";
 import { NAV_GROUPS, SYSTEM_ITEMS, getEnabledGroups, type NavGroup } from "@/data/navConfig";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { BugReportModal } from "@/components/BugReportModal";
 
 function LogoutButton({ logout }: { logout: () => void }) {
   const [authEnabled, setAuthEnabled] = useState(false);
@@ -86,6 +87,7 @@ function NavGroup({ group, collapsed }: { group: NavGroup; collapsed: boolean })
 function MCLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [bugOpen, setBugOpen] = useState(false);
   const pathname = usePathname();
   const { start: startDemo } = useDemoMode();
   const { enabled: tooltipsEnabled, toggle: toggleTooltips } = useTooltips();
@@ -150,6 +152,10 @@ function MCLayout({ children }: { children: React.ReactNode }) {
                 className="w-full text-left px-3 py-1 font-terminal text-xs text-green-700 hover:text-green-400 hover:bg-green-900/10 transition-colors uppercase">
                 🔍 SEARCH <span className='opacity-40 ml-1'>/</span>
               </button>
+              <button onClick={() => setBugOpen(true)}
+                className="w-full text-left px-3 py-1 font-terminal text-xs text-orange-700 hover:text-orange-500 hover:bg-orange-900/10 transition-colors uppercase">
+                🐛 REPORT ISSUE
+              </button>
               <button onClick={startDemo}
                 className="w-full text-left px-3 py-1 font-terminal text-xs text-yellow-600 hover:text-yellow-400 hover:bg-yellow-900/10 transition-colors uppercase">
                 ▶ DEMO MODE
@@ -191,6 +197,7 @@ function MCLayout({ children }: { children: React.ReactNode }) {
       </main>
       <KeyboardShortcuts onSearch={() => setSearchOpen(true)} />
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+      {bugOpen && <BugReportModal onClose={() => setBugOpen(false)} />}
     </div>
   );
 }
