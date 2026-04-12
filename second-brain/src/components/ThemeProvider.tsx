@@ -16,23 +16,28 @@ const ThemeContext = createContext<ThemeContextType>({
 export const useTheme = () => useContext(ThemeContext);
 
 function applyTheme(colorId: string, styleId: string) {
-  const palette = COLOR_PALETTES.find(p => p.id === colorId) || COLOR_PALETTES[0];
-  const root = document.documentElement;
+  const html = document.documentElement;
 
-  root.style.setProperty("--color-primary", palette.primary);
-  root.style.setProperty("--color-primary-dark", palette.primaryDark);
-  root.style.setProperty("--color-primary-glow", palette.primaryGlow);
-  root.style.setProperty("--color-primary-bg", palette.primaryBg);
-  root.style.setProperty("--color-text", palette.text);
-  root.style.setProperty("--color-text-muted", palette.textMuted);
-  root.style.setProperty("--color-border", palette.border);
-  root.style.setProperty("--color-bg-base", palette.bgBase);
-  root.style.setProperty("--color-bg-card", palette.bgCard);
+  // Set data-color attribute on <html> — CSS in globals.css maps this to vars
+  html.setAttribute('data-color', colorId === 'green' ? '' : colorId);
+  if (colorId === 'green') html.removeAttribute('data-color');
 
-  // Remove all style theme classes
+  // Remove all style theme classes from body, add the new one
   STYLE_THEMES.forEach(t => document.body.classList.remove(t.cssClass));
-  // Add the selected style class
   document.body.classList.add(`theme-${styleId}`);
+
+  // Also patch the background grid lines color for non-green themes
+  const palette = COLOR_PALETTES.find(p => p.id === colorId) || COLOR_PALETTES[0];
+  const gridColor = palette.primary.replace('#', '%23');
+  if (styleId === 'terminal' || styleId === 'scanline') {
+    document.body.style.backgroundImage = `
+      linear-gradient(${palette.primaryBg} 1px, transparent 1px),
+      linear-gradient(90deg, ${palette.primaryBg} 1px, transparent 1px)
+    `;
+  } else {
+    // Other themes handle their own background in CSS
+    document.body.style.backgroundImage = '';
+  }
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
