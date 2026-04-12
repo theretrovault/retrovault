@@ -996,16 +996,65 @@ export default function InventoryPage() {
                     "THE CRITICS toggles — ⭐/👎 per person directly from the menu.",
                   ]
                 }, {
-                  icon: "🎮", title: "OTHER PAGES",
+                  icon: "🎮", title: "COLLECTION TOOLS",
                   content: [
-                    "ANALYTICS — KPI cards, charts, top 10 tables, Favorites & Regrets analytics by brand/platform.",
-                    "P&L LEDGER — log sales & purchases; track realized profit, margins, and net cash position.",
-                    "TARGET RADAR — set buy-below price targets; 🟢 BUY NOW alert when market drops below threshold.",
-                    "SHOWCASE — visual card gallery; rate 1-5 stars, set rarity, track completion (Never Played/Beaten/100%).",
-                    "GOALS — per-platform progress bars for catalog coverage and full library completion %.",
-                    "LOT CALC — paste what you paid for a bulk lot; allocates cost per game proportionally to market value.",
-                    "PLEX MEDIA — browse your Plex library (Movies, TV, Music) with sort, filter, and IMDb links.",
-                    "MEMORY BANK — daily journal entries from Neo; expandable by date.",
+                    "ANALYTICS (/analytics) — KPI cards, platform charts, top 10 tables, achievement panel.",
+                    "SHOWCASE (/showcase) — visual gallery with 1-5 stars, rarity, and completion tracking.",
+                    "GOALS (/goals) — per-platform progress bars for catalog coverage.",
+                    "COMPLETION TIERS (/tiers) — Bronze/Silver/Gold/Platinum badges per platform.",
+                    "MILESTONES (/milestones) — 25+ auto-computed collection achievements.",
+                    "ACHIEVEMENT CODEX (/achievements) — 100+ achievements across 9 categories and 5 rarity tiers.",
+                    "DECADE TIMELINE (/timeline) — visual history of your collection by release year.",
+                    "COLLECTION RANDOMIZER (/random) — animated game picker for 'what should I play tonight?'.",
+                    "DUPLICATE DETECTOR (/dupes) — finds multi-copy games and their sellable market value.",
+                    "VALUE HISTORY (/value-history) — daily collection value graph over time.",
+                  ]
+                }, {
+                  icon: "💰", title: "BUSINESS TOOLS",
+                  content: [
+                    "P&L LEDGER (/sales) — log every buy and sell; tracks realized profit and margins.",
+                    "HOT LIST (/hotlist) — auto-ranked flip opportunities by ROI × trend × copy count.",
+                    "FLIP CALCULATOR (/flip) — net profit after eBay/Mercari fees, with break-even targets.",
+                    "TARGET RADAR (/watchlist) — buy-below price alerts; 🟢 BUY NOW when market drops below your target.",
+                    "SOURCING ANALYTICS (/sourcing) — ROI breakdown by where you buy (garage sale vs eBay etc.).",
+                    "PLATFORM MARKET REPORT (/market) — which platforms are trending up or down this month.",
+                    "SEASONAL CALENDAR (/seasonal) — historically best months to buy and sell by platform.",
+                    "LISTING CHECKER (/listing) — 12-point eBay listing quality checklist with tips.",
+                  ]
+                }, {
+                  icon: "🔦", title: "FIELD & HUNTING TOOLS",
+                  content: [
+                    "FIELD MODE (/field) — price check + dupe alert + Should I Buy? decision engine.",
+                    "NEGOTIATION HELPER (/negotiate) — offer ladder with scenario presets and suggested opening lines.",
+                    "LOT CALCULATOR (/lot) — proportional cost allocation for bulk lot purchases.",
+                    "CONVENTION TRACKER (/convention) — real-time budget meter with purchase log per event.",
+                    "CONDITION GRADER (/condition) — step-by-step condition checklist for NES/SNES/GBA/disc/console.",
+                    "INSURANCE REPORT (/insurance) — printable collection valuation document.",
+                  ]
+                }, {
+                  icon: "🌐", title: "DISCOVERY & SOCIAL",
+                  content: [
+                    "PLAY LOG (/playlog) — Currently Playing/Beaten/Backlog/Want/Gave Up with 1-5 star ratings.",
+                    "GRAIL LIST (/grails) — priority-ranked wish list; mark items as FOUND when you score them.",
+                    "EVENTS (/events) — gaming convention calendar with Eventbrite scraper and attending tracking.",
+                    "LOCAL DEALS (/deals) — Craigslist and Reddit r/gameswap alerts matched to your watchlist.",
+                    "WHATNOT (/whatnot) — follow sellers and log their scheduled streams.",
+                    "FIELD GUIDE (/guide) — 8 chapters, 60+ hunter principles and resource links.",
+                    "FRIENDS MODE (/friends) — per-critic profiles with mentions, favorites, and regrets.",
+                    "SCRAPER CENTER (/scrapers) — manage all data scrapers (run, schedule, view logs).",
+                  ]
+                }, {
+                  icon: "⚙️", title: "PLATFORM & SETTINGS",
+                  content: [
+                    "SETTINGS (/settings) — theme, color, app name, auth, Plex, feature flags, city config.",
+                    "FEATURE FLAGS — enable/disable entire feature groups; nav updates instantly.",
+                    "THEME SYSTEM — 8 color palettes × 5 style themes (Terminal, CRT Scanline, Arcade, Cartridge, Galaxy).",
+                    "GLOBAL SEARCH — press / or click 🔍 to search pages, games, grails, watchlist, events.",
+                    "KEYBOARD SHORTCUTS — press ? for full list; g+v for Vault, g+f for Field Mode, etc.",
+                    "PWA SUPPORT — installable on iPhone/Android from the browser; Field Mode works as a native app.",
+                    "CSV IMPORT (/import) — import game lists from spreadsheets or CLZ Games.",
+                    "SHARE COLLECTION (/share) — generate a read-only public URL + QR code for conventions.",
+                    "CHANGELOG (/changelog) — full version history since v1.0.0.",
                   ]
                 }].map(section => (
                   <div key={section.title} className="bg-zinc-900 border border-zinc-700 rounded-sm p-4">
@@ -1077,22 +1126,32 @@ export default function InventoryPage() {
                 }, {
                   icon: "🎙️", title: "API ROUTES",
                   content: [
-                    "/api/inventory — CRUD for the game database. force-dynamic, no-cache headers.",
+                    "/api/inventory — CRUD for the game database.",
                     "/api/favorites — CRUD for people, favorites, and regrets.",
-                    "/api/pricecharting — The scraper proxy endpoint. Called per game, returns all 4 price tiers.",
+                    "/api/pricecharting — PriceCharting scraper proxy (all 4 price tiers).",
                     "/api/fetchlock — Acquire/release the UI fetch lock.",
-                    "/api/sales — Handles sales log, acquisitions, and watchlist via a ?type= query param.",
-                    "/api/plex/library — Proxies the local Plex server at YYY.YYY.YYY.YYY:PPPPP.",
+                    "/api/sales — Sales log, acquisitions, and watchlist.",
+                    "/api/tags — Game/platform tags + @mention CRUD.",
+                    "/api/config — App configuration read/write.",
+                    "/api/auth — Session login, logout, and status check.",
+                    "/api/achievements — Context builder + auto-evaluation of all achievements.",
+                    "/api/alerts — Real-time watchlist price alerts + hot flip notifications.",
+                    "/api/events — Gaming events CRUD (attending, interested, notes).",
+                    "/api/deals — Craigslist and Reddit deal management (dismiss, restore).",
+                    "/api/scrapers — Scraper status, run, schedule, log viewer.",
+                    "/api/value-history — Daily collection value snapshots.",
                   ]
                 }, {
                   icon: "🏠", title: "INFRASTRUCTURE",
                   content: [
-                    "Next.js 16 app in /workspace/second-brain.",
-                    "Dev server runs on 0.0.0.0:3000 so it's accessible from other LAN devices.",
-                    "allowedDevOrigins includes ZZZ.ZZZ.ZZZ.ZZZ so HMR works across the network.",
-                    "Data files live in data/ (not public/) to prevent static asset caching issues.",
-                    "Background cron registered in the system crontab: 0 0 * * * runs at midnight.",
-                    "Second app: w8df-redesign (Ham Radio site mockup) runs separately on port 3001.",
+                    "Next.js 16 app in /workspace/second-brain. Production managed by pm2.",
+                    "Dev: npm run dev (port 3000). Production: pm2 start ecosystem.config.js.",
+                    "nginx reverse proxy config at nginx.conf.example — copy to sites-available and enable.",
+                    "Data files live in data/ (gitignored except structure files).",
+                    "8 scraper scripts in scripts/. Cron schedules managed via Scraper Control Center (/scrapers).",
+                    "Auto-commit to GitHub via scripts/git-sync.mjs (cron: every 6 hours).",
+                    "PWA manifest at public/manifest.json. SSH key at ~/.ssh/id_github_retrovault.",
+                    "GitHub repo: github.com/apesch85/retrovault (private). Deploy: bash scripts/deploy.sh.",
                   ]
                 }].map(section => (
                   <div key={section.title} className="bg-zinc-900 border border-zinc-700 rounded-sm p-4">
