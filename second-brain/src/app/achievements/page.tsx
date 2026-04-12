@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { ACHIEVEMENTS, RARITIES, CATEGORY_LABELS, getTotalPoints, type AchievementCategory, type Achievement } from "@/data/achievements";
-import { AchievementModal } from "@/components/AchievementModal";
+import { AchievementCard } from "@/components/AchievementCard";
 
 type AchievementData = { unlockedIds: string[]; context: any; autoCount: number };
 
@@ -14,7 +14,6 @@ export default function AchievementsPage() {
   const [rarityFilter, setRarityFilter] = useState<string>("all");
   const [showLocked, setShowLocked] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
 
   useEffect(() => {
     fetch("/api/achievements").then(r => r.json()).then(d => { setData(d); setLoading(false); });
@@ -116,54 +115,19 @@ export default function AchievementsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.map(achievement => {
           const unlocked = unlockedIds.includes(achievement.id);
-          const cfg = RARITIES[achievement.rarity];
-          const catCfg = CATEGORY_LABELS[achievement.category];
           return (
-            <button key={achievement.id}
-              onClick={() => setSelectedAchievement(achievement)}
-              className={`text-left border-2 p-4 transition-all hover:scale-[1.01] cursor-pointer ${
-                unlocked
-                  ? `${cfg.border} ${cfg.bg} shadow-sm`
-                  : "border-zinc-800 opacity-50 grayscale"
-              }`}>
-              <div className="flex items-start gap-3">
-                <div className={`text-3xl shrink-0 ${!unlocked ? "opacity-30" : ""}`}>{achievement.icon}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                    <span className={`font-terminal text-base ${unlocked ? cfg.color : "text-zinc-500"}`}>{achievement.name}</span>
-                    {unlocked && <span className="text-zinc-500 text-xs">✓</span>}
-                  </div>
-                  <p className="text-zinc-600 font-terminal text-xs mb-2">{achievement.secret && !unlocked ? "???" : achievement.description}</p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`font-terminal text-xs px-1.5 py-0.5 border ${cfg.color} ${cfg.border}`}>
-                      {cfg.label}
-                    </span>
-                    <span className="text-zinc-700 font-terminal text-xs">{catCfg.icon} {catCfg.label}</span>
-                    <span className={`font-terminal text-xs ml-auto ${unlocked ? cfg.color : "text-zinc-700"}`}>
-                      +{achievement.points}pts
-                    </span>
-                  </div>
-                  {!unlocked && !achievement.secret && (
-                    <p className="text-zinc-700 font-terminal text-xs mt-1 italic">{achievement.condition}</p>
-                  )}
-                </div>
-              </div>
-            </button>
+            <AchievementCard
+              key={achievement.id}
+              achievement={achievement}
+              unlocked={unlocked}
+              context={data?.context}
+            />
           );
         })}
       </div>
 
       {filtered.length === 0 && (
         <div className="text-center py-12 text-zinc-700 font-terminal text-xl">No achievements match your filters.</div>
-      )}
-
-      {selectedAchievement && (
-        <AchievementModal
-          achievement={selectedAchievement}
-          unlocked={data?.unlockedIds.includes(selectedAchievement.id) ?? false}
-          context={data?.context}
-          onClose={() => setSelectedAchievement(null)}
-        />
       )}
     </div>
   );
