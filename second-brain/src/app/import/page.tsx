@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef } from "react";
+import Link from "next/link";
 
 type ParsedRow = {
   title: string; platform: string; condition: string; price: string;
@@ -85,6 +86,7 @@ export default function ImportPage() {
   const [importing, setImporting] = useState(false);
   const [importDone, setImportDone] = useState(false);
   const [importCount, setImportCount] = useState(0);
+  const [newlyEnabledPlatforms, setNewlyEnabledPlatforms] = useState<string[]>([]);
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -110,6 +112,23 @@ export default function ImportPage() {
     setImporting(true);
     let count = 0;
     const readyRows = rows.filter(r => r.status === "ready");
+
+    // Detect platforms in the import that aren't currently enabled
+    const configRes = await fetch("/api/config").then(r => r.json()).catch(() => ({}));
+    const currentPlatforms: string[] = configRes.platforms || [];
+    const importPlatforms = [...new Set(readyRows.map(r => r.platform).filter(Boolean))];
+    const newPlatforms = importPlatforms.filter(p => p && !currentPlatforms.includes(p));
+
+    // Auto-enable new platforms
+    if (newPlatforms.length > 0) {
+      const updatedPlatforms = [...new Set([...currentPlatforms, ...newPlatforms])];
+      await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...configRes, platforms: updatedPlatforms })
+      }).catch(() => {});
+      setNewlyEnabledPlatforms(newPlatforms);
+    }
 
     for (const row of readyRows) {
       try {
@@ -252,18 +271,49 @@ export default function ImportPage() {
       )}
 
       {importDone && (
-        <div className="text-center py-12 border-2 border-emerald-700 bg-emerald-950/20">
-          <div className="text-5xl mb-4">🎉</div>
-          <p className="text-emerald-400 font-terminal text-2xl mb-2">Import Complete!</p>
-          <p className="text-zinc-400 font-terminal text-lg mb-4">{importCount} games added to your vault.</p>
-          <div className="flex gap-3 justify-center">
-            <a href="/inventory" className="px-6 py-2 bg-green-700 hover:bg-green-600 text-black font-terminal text-base font-bold border border-green-500">
-              VIEW VAULT →
-            </a>
-            <button onClick={() => { setRows([]); setImportDone(false); }}
-              className="px-6 py-2 font-terminal text-base text-zinc-400 border border-zinc-700 hover:border-zinc-500">
-              Import More
-            </button>
+        <div className="space-y-4">
+          {/* Newly enabled platforms notification */}
+          {newlyEnabledPlatforms.length > 0 && (
+            <div className="border-2 border-yellow-600 bg-yellow-950/20 p-5">
+              <div className="flex items-start gap-3">
+                <span className="text-3xl shrink-0">📺</span>
+                <div className="flex-1">
+                  <p className="text-yellow-400 font-terminal text-lg font-bold mb-1">
+                    New Platform{newlyEnabledPlatforms.length > 1 ? 's' : ''} Enabled!
+                  </p>
+                  <p className="text-zinc-300 font-terminal text-sm mb-3">
+                    Your import included games from platform{newlyEnabledPlatforms.length > 1 ? 's' : ''} that weren't previously active.
+                    We automatically enabled {newlyEnabledPlatforms.length > 1 ? 'them' : 'it'} so your games appear in the Vault.
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {newlyEnabledPlatforms.map(p => (
+                      <span key={p} className="px-3 py-1 bg-yellow-900/40 border border-yellow-700 text-yellow-300 font-terminal text-sm">
+                        ✅ {p}
+                      </span>
+                    ))}
+                  </div>
+                  <Link href="/settings#platforms" className="text-blue-400 hover:text-blue-300 font-terminal text-xs transition-colors">
+                    Manage enabled platforms in Settings →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Success card */}
+          <div className="text-center py-12 border-2 border-emerald-700 bg-emerald-950/20">
+            <div className="text-5xl mb-4">🎉</div>
+            <p className="text-emerald-400 font-terminal text-2xl mb-2">Import Complete!</p>
+            <p className="text-zinc-400 font-terminal text-lg mb-4">{importCount} games added to your vault.</p>
+            <div className="flex gap-3 justify-center">
+              <Link href="/inventory" className="px-6 py-2 bg-green-700 hover:bg-green-600 text-black font-terminal text-base font-bold border border-green-500">
+                VIEW VAULT →
+              </Link>
+              <button onClick={() => { setRows([]); setImportDone(false); setNewlyEnabledPlatforms([]); }}
+                className="px-6 py-2 font-terminal text-base text-zinc-400 border border-zinc-700 hover:border-zinc-500">
+                Import More
+              </button>
+            </div>
           </div>
         </div>
       )}
