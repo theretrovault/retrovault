@@ -7,16 +7,64 @@
 }
 
 :root {
-  --color-primary: #4ade80;
-  --color-primary-dark: #166534;
-  --color-primary-glow: rgba(34,197,94,0.4);
-  --color-primary-bg: rgba(34,197,94,0.05);
-  --color-text: #86efac;
-  --color-text-muted: #166534;
-  --color-border: #166534;
-  --color-bg-base: #09090b;
-  --color-bg-card: #18181b;
+  --p: #4ade80;       /* primary accent */
+  --pd: #166534;      /* primary dark / border */
+  --pg: rgba(34,197,94,0.4); /* glow */
+  --pbg: #09090b;     /* page bg */
+  --cbg: #18181b;     /* card bg */
 }
+
+/* ── Color palette overrides via [data-color] on <html> ── */
+[data-color="blue"]    { --p:#60a5fa; --pd:#1e3a8a; --pg:rgba(59,130,246,0.4); --pbg:#03050e; --cbg:#0a0f1e; }
+[data-color="purple"]  { --p:#c084fc; --pd:#581c87; --pg:rgba(168,85,247,0.4); --pbg:#08030f; --cbg:#120520; }
+[data-color="amber"]   { --p:#fbbf24; --pd:#78350f; --pg:rgba(245,158,11,0.4); --pbg:#0a0800; --cbg:#18130a; }
+[data-color="magenta"] { --p:#f472b6; --pd:#831843; --pg:rgba(236,72,153,0.4); --pbg:#0d0008; --cbg:#1a000f; }
+[data-color="cyan"]    { --p:#22d3ee; --pd:#164e63; --pg:rgba(6,182,212,0.4);  --pbg:#00080a; --cbg:#00121a; }
+[data-color="red"]     { --p:#f87171; --pd:#7f1d1d; --pg:rgba(239,68,68,0.4);  --pbg:#0a0000; --cbg:#180000; }
+[data-color="gold"]    { --p:#f59e0b; --pd:#713f12; --pg:rgba(234,179,8,0.4);  --pbg:#0a0800; --cbg:#1a1200; }
+
+/* ── Map CSS vars to Tailwind-compatible custom properties ── */
+/* Key UI elements use these vars so themes apply everywhere */
+:root, [data-color] {
+  --color-primary: var(--p);
+  --color-primary-dark: var(--pd);
+  --color-primary-glow: var(--pg);
+  --color-bg-base: var(--pbg);
+  --color-bg-card: var(--cbg);
+}
+
+/* ── Global color application ── */
+body {
+  background-color: var(--pbg) !important;
+  color: var(--p);
+}
+
+/* Borders that should follow the theme color */
+.theme-border { border-color: var(--pd) !important; }
+.theme-text   { color: var(--p) !important; }
+.theme-glow   { box-shadow: 0 0 15px var(--pg) !important; }
+
+/* Sidebar, nav borders */
+aside { border-color: var(--pd) !important; }
+header { border-color: var(--pd) !important; }
+
+/* Key interactive border classes — override Tailwind's hardcoded green */
+.border-green-500 { border-color: var(--p) !important; }
+.border-green-800 { border-color: var(--pd) !important; }
+.border-green-900 { border-color: var(--pd) !important; }
+.border-green-700 { border-color: var(--pd) !important; }
+.text-green-400   { color: var(--p) !important; }
+.text-green-500   { color: var(--p) !important; }
+.text-green-300   { color: var(--p) !important; }
+.bg-green-500     { background-color: var(--p) !important; }
+.bg-green-600     { background-color: color-mix(in srgb, var(--p) 80%, black) !important; }
+.bg-green-700     { background-color: color-mix(in srgb, var(--p) 60%, black) !important; }
+.bg-green-900\/20 { background-color: color-mix(in srgb, var(--p) 10%, transparent) !important; }
+.shadow-\[0_0_15px_rgba\(34\,197\,94\,0\.3\)\] { box-shadow: 0 0 15px var(--pg) !important; }
+.shadow-\[0_0_10px_rgba\(34\,197\,94\,0\.3\)\] { box-shadow: 0 0 10px var(--pg) !important; }
+.drop-shadow-\[0_0_8px_rgba\(34\,197\,94\,0\.6\)\] { filter: drop-shadow(0 0 8px var(--p)) !important; }
+.drop-shadow-\[0_2px_2px_rgba\(0\,255\,0\,0\.8\)\] { filter: drop-shadow(0 2px 2px var(--p)) !important; }
+.animate-pulse.bg-green-500 { background-color: var(--p) !important; }
 
 /* Style Theme: CRT Scanline */
 body.theme-scanline {
