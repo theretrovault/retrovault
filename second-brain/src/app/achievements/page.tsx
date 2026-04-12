@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ACHIEVEMENTS, RARITIES, CATEGORY_LABELS, getTotalPoints, type AchievementCategory } from "@/data/achievements";
+import { ACHIEVEMENTS, RARITIES, CATEGORY_LABELS, getTotalPoints, type AchievementCategory, type Achievement } from "@/data/achievements";
+import { AchievementModal } from "@/components/AchievementModal";
 
 type AchievementData = { unlockedIds: string[]; context: any; autoCount: number };
 
@@ -13,6 +14,7 @@ export default function AchievementsPage() {
   const [rarityFilter, setRarityFilter] = useState<string>("all");
   const [showLocked, setShowLocked] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
 
   useEffect(() => {
     fetch("/api/achievements").then(r => r.json()).then(d => { setData(d); setLoading(false); });
@@ -117,8 +119,9 @@ export default function AchievementsPage() {
           const cfg = RARITIES[achievement.rarity];
           const catCfg = CATEGORY_LABELS[achievement.category];
           return (
-            <div key={achievement.id}
-              className={`border-2 p-4 transition-all ${
+            <button key={achievement.id}
+              onClick={() => setSelectedAchievement(achievement)}
+              className={`text-left border-2 p-4 transition-all hover:scale-[1.01] cursor-pointer ${
                 unlocked
                   ? `${cfg.border} ${cfg.bg} shadow-sm`
                   : "border-zinc-800 opacity-50 grayscale"
@@ -145,13 +148,22 @@ export default function AchievementsPage() {
                   )}
                 </div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
 
       {filtered.length === 0 && (
         <div className="text-center py-12 text-zinc-700 font-terminal text-xl">No achievements match your filters.</div>
+      )}
+
+      {selectedAchievement && (
+        <AchievementModal
+          achievement={selectedAchievement}
+          unlocked={data?.unlockedIds.includes(selectedAchievement.id) ?? false}
+          context={data?.context}
+          onClose={() => setSelectedAchievement(null)}
+        />
       )}
     </div>
   );

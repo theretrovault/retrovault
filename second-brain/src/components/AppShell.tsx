@@ -155,6 +155,7 @@ function MCLayout({ children }: { children: React.ReactNode }) {
                 ▶ DEMO MODE
               </button>
               <button onClick={toggleTooltips}
+                title={tooltipsEnabled ? "Tooltips are ON — hover elements to see hints. Click to disable." : "Tooltips are OFF — click to enable hover hints throughout the app."}
                 className={`w-full text-left px-3 py-1 font-terminal text-xs transition-colors uppercase ${
                   tooltipsEnabled ? "text-blue-400 hover:text-blue-200" : "text-zinc-600 hover:text-zinc-400"
                 }`}>
