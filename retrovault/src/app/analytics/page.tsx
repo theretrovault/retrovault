@@ -1,4 +1,13 @@
 "use client";
+/**
+ * Analytics Dashboard
+ *
+ * @todo Extract sub-components:
+ *       - PlatformChart      — pie/bar chart sections
+ *       - TopGamesTable      — top 10 most valuable / best ROI tables
+ *       - CriticBreakdown    — favorites/regrets by brand section
+ *       - AchievementsPanel  — recent achievements widget (candidate for shared component)
+ */
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
