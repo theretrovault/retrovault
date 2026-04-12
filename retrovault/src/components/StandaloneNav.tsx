@@ -7,6 +7,7 @@ import { useAppConfig } from "@/components/AppConfig";
 import { useDemoMode } from "@/components/DemoMode";
 import { useTooltips } from "@/components/Tooltip";
 import { useLogout } from "@/components/AuthGuard";
+import { BugReportModal } from "@/components/BugReportModal";
 import { QuoteBanner } from "@/components/QuoteBanner";
 import { NAV_GROUPS, SYSTEM_ITEMS, getEnabledGroups } from "@/data/navConfig";
 
@@ -19,6 +20,7 @@ export function StandaloneNav({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [authEnabled, setAuthEnabled] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [bugOpen, setBugOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth").then(r => r.json()).then(d => setAuthEnabled(d.authEnabled)).catch(() => {});
@@ -100,6 +102,11 @@ export function StandaloneNav({ children }: { children: React.ReactNode }) {
               }`}>
               💡
             </button>
+            <button onClick={() => setBugOpen(true)}
+              title="Report a bug or suggest a feature"
+              className="hidden md:flex px-3 py-2 font-terminal text-sm text-orange-700 hover:text-orange-500 border border-orange-900/50 rounded-sm transition-colors">
+              🐛
+            </button>
             {authEnabled && (
               <button onClick={logout}
                 className="hidden md:flex px-3 py-2 font-terminal text-sm text-red-700 hover:text-red-500 border border-red-900/50 rounded-sm transition-colors">
@@ -167,6 +174,7 @@ export function StandaloneNav({ children }: { children: React.ReactNode }) {
           </span>
         </div>
       </footer>
+    {bugOpen && <BugReportModal onClose={() => setBugOpen(false)} />}
     </div>
   );
 }
