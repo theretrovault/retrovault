@@ -66,62 +66,152 @@ header { border-color: var(--pd) !important; }
 .drop-shadow-\[0_2px_2px_rgba\(0\,255\,0\,0\.8\)\] { filter: drop-shadow(0 2px 2px var(--p)) !important; }
 .animate-pulse.bg-green-500 { background-color: var(--p) !important; }
 
-/* Style Theme: CRT Scanline */
+/* ══════════════════════════════════════════════
+   STYLE THEMES — applied via body class
+   These must come AFTER @layer base to win
+   ══════════════════════════════════════════════ */
+
+/* Terminal (default) — subtle grid on dark bg */
+body.theme-terminal {
+  background-color: var(--pbg) !important;
+  background-image:
+    linear-gradient(rgba(74,222,128,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74,222,128,0.04) 1px, transparent 1px) !important;
+  background-size: 24px 24px !important;
+}
+
+/* CRT Scanline — visible horizontal scanlines + vignette */
 body.theme-scanline {
+  background-color: var(--pbg) !important;
   background-image:
     repeating-linear-gradient(
       0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,0.15) 2px,
-      rgba(0,0,0,0.15) 4px
-    ),
-    linear-gradient(rgba(0, 255, 0, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 0, 0.03) 1px, transparent 1px) !important;
-  background-size: auto, 20px 20px, 20px 20px !important;
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 3px,
+      rgba(0,0,0,0.45) 3px,
+      rgba(0,0,0,0.45) 4px
+    ) !important;
+  background-size: 100% 4px !important;
+  background-attachment: fixed !important;
+}
+body.theme-scanline::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.6) 100%);
+}
+body.theme-scanline * {
+  text-shadow: 0 0 2px var(--p);
 }
 
-/* Style Theme: Arcade Cabinet */
+/* Arcade Cabinet — bold borders, neon marquee feel */
 body.theme-arcade {
-  background-image: none !important;
-  background-color: #0a0a0a !important;
-}
-body.theme-arcade header, body.theme-arcade aside {
-  border-width: 4px !important;
-  box-shadow: 0 0 30px var(--color-primary-glow) !important;
-}
-
-/* Style Theme: Cartridge */
-body.theme-cartridge {
-  background-color: #1c1917 !important;
-  background-image: none !important;
-}
-
-/* Style Theme: Galaxy */
-body.theme-galaxy {
+  background-color: #0d0d0d !important;
   background-image:
-    radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.05) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 20%, rgba(168,85,247,0.05) 0%, transparent 50%),
-    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.3) 0%, transparent 100%),
-    radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
-    radial-gradient(1px 1px at 50% 50%, rgba(255,255,255,0.2) 0%, transparent 100%),
-    radial-gradient(1px 1px at 30% 70%, rgba(255,255,255,0.2) 0%, transparent 100%),
-    radial-gradient(1px 1px at 70% 30%, rgba(255,255,255,0.2) 0%, transparent 100%) !important;
-  background-color: #020617 !important;
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px) !important;
+  background-size: 40px 40px !important;
+}
+body.theme-arcade aside {
+  border-right-width: 6px !important;
+  box-shadow: 4px 0 20px var(--pg), inset -2px 0 10px rgba(0,0,0,0.5) !important;
+  background: linear-gradient(180deg, #0a0a0a 0%, #111 100%) !important;
+}
+body.theme-arcade header {
+  border-bottom-width: 6px !important;
+  box-shadow: 0 4px 20px var(--pg) !important;
+}
+body.theme-arcade .bg-black,
+body.theme-arcade .bg-zinc-950 {
+  background: linear-gradient(135deg, #0a0a0a 0%, #141414 100%) !important;
+}
+body.theme-arcade .border-4 {
+  box-shadow: 0 0 12px var(--pg) !important;
+}
+
+/* Cartridge — warm beige/tan plastic aesthetic */
+body.theme-cartridge {
+  background-color: #1a1510 !important;
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      rgba(255,255,255,0.01) 0px,
+      rgba(255,255,255,0.01) 1px,
+      transparent 1px,
+      transparent 8px
+    ) !important;
+  filter: none;
+}
+body.theme-cartridge aside {
+  background: linear-gradient(180deg, #1c1410 0%, #231a10 100%) !important;
+  border-color: #5c4a2a !important;
+}
+body.theme-cartridge header {
+  background: linear-gradient(90deg, #1c1410 0%, #231a10 100%) !important;
+  border-color: #5c4a2a !important;
+}
+body.theme-cartridge .bg-zinc-950 {
+  background-color: #1a1510 !important;
+}
+body.theme-cartridge .bg-black {
+  background-color: #120e0a !important;
+}
+body.theme-cartridge .border-green-500,
+body.theme-cartridge .border-green-800 {
+  border-color: #8b6914 !important;
+}
+body.theme-cartridge .text-green-400,
+body.theme-cartridge .text-green-500 {
+  color: #d4a843 !important;
+}
+
+/* Dark Galaxy — deep space with star field */
+body.theme-galaxy {
+  background-color: #020408 !important;
+  background-image:
+    radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 65% 80%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 80% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25% 70%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 55% 55%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 10% 90%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 75% 65%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 35% 45%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50% 30%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(ellipse at 30% 60%, rgba(99,102,241,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 20%, rgba(168,85,247,0.06) 0%, transparent 40%) !important;
   background-size: auto !important;
+  background-attachment: fixed !important;
+}
+body.theme-galaxy aside {
+  background: linear-gradient(180deg, #030609 0%, #04080f 100%) !important;
+  border-color: #1e2a4a !important;
+  box-shadow: 4px 0 20px rgba(99,102,241,0.15) !important;
+}
+body.theme-galaxy .bg-zinc-950 {
+  background-color: #030609 !important;
+}
+body.theme-galaxy .bg-black {
+  background-color: #020408 !important;
 }
 
 @layer base {
   body {
-    background-color: var(--color-bg-base);
-    color: var(--color-primary);
+    /* Base styles — style themes override background via their own classes */
+    color: var(--p);
     font-family: var(--font-pixel);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-image: 
-      linear-gradient(rgba(0, 255, 0, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 255, 0, 0.03) 1px, transparent 1px);
-    background-size: 20px 20px;
+    /* Default terminal grid — theme-terminal class applies a similar one */
+    background-color: var(--pbg);
+    background-image:
+      linear-gradient(rgba(74,222,128,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,222,128,0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
   }
 }
 

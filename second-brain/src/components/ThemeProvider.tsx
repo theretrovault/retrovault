@@ -26,18 +26,9 @@ function applyTheme(colorId: string, styleId: string) {
   STYLE_THEMES.forEach(t => document.body.classList.remove(t.cssClass));
   document.body.classList.add(`theme-${styleId}`);
 
-  // Also patch the background grid lines color for non-green themes
-  const palette = COLOR_PALETTES.find(p => p.id === colorId) || COLOR_PALETTES[0];
-  const gridColor = palette.primary.replace('#', '%23');
-  if (styleId === 'terminal' || styleId === 'scanline') {
-    document.body.style.backgroundImage = `
-      linear-gradient(${palette.primaryBg} 1px, transparent 1px),
-      linear-gradient(90deg, ${palette.primaryBg} 1px, transparent 1px)
-    `;
-  } else {
-    // Other themes handle their own background in CSS
-    document.body.style.backgroundImage = '';
-  }
+  // Clear any inline style overrides — let CSS classes handle everything
+  document.body.style.backgroundImage = '';
+  document.body.style.backgroundColor = '';
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
