@@ -1,82 +1,77 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
 
 export type DemoStep = {
   id: string;
   title: string;
   description: string;
-  targetSelector?: string; // CSS selector of element to spotlight
+  targetSelector?: string;
   position?: "top" | "bottom" | "left" | "right" | "center";
-  navigateTo?: string; // path to navigate to before showing this step
+  navigateTo?: string;
 };
 
 const DEMO_STEPS: DemoStep[] = [
   {
     id: "welcome",
-    title: "Welcome to M1SS10N C0NTR0L",
+    title: "Welcome to RetroVault",
     description: "This is your retro gaming empire's command center. We've built a comprehensive suite of tools to help you track, analyze, and grow your collection. Let's take a quick tour of the key features.",
-    targetSelector: undefined,
     position: "center",
-    navigateTo: "/inventory",
+    navigateTo: "/",
   },
   {
-    id: "vault-filters",
-    title: "🔍 The Vault — Filter & Search",
-    description: "The Vault is your game database. It contains 26,000+ titles across all your platforms. Use FILTER: OWNED to see your collection, FILTER: TARGETS for games you want to acquire, or ACTION: SELL (DUPS) to find flip candidates. The SYSTEM filter narrows to a single platform.",
-    targetSelector: ".vault-filters",
-    position: "bottom",
+    id: "vault",
+    title: "🕹️ The Vault",
+    description: "Your game database — 26,000+ titles across 14 platforms. Filter to OWNED to see your collection, TARGETS for games you want, or SELL for flip candidates. The platform dropdown narrows to a single system.",
+    position: "center",
     navigateTo: "/inventory",
   },
   {
     id: "buy-sell-scores",
     title: "📊 Buy & Sell Scores",
-    description: "Every game gets a Buy Score and Sell Score from 1-100. These are normalized across your entire catalog and factor in both current price position AND 30-day price trends. A green dot means strong signal — click the column header to rank your best opportunities.",
-    targetSelector: ".score-columns",
-    position: "top",
-    navigateTo: "/inventory",
-  },
-  {
-    id: "price-modal",
-    title: "💬 Game Detail Modal",
-    description: "Click any game title to see full market pricing (Loose, CIB, New, Graded), what you paid per copy, 7-day and 30-day trends, and who in your critics circle has favorited or regretted this game.",
-    targetSelector: ".vault-table",
+    description: "Every game gets a Buy Score and Sell Score from 1–100. These factor in current price position AND 30-day price trends. Click a column header to rank your best opportunities. Green = strong signal.",
     position: "center",
     navigateTo: "/inventory",
   },
   {
+    id: "field-mode",
+    title: "🔦 Field Mode",
+    description: "Your in-the-wild tool. Type any game title and instantly see its market price, whether you already own it (dupe alert!), and a BUY / PASS / NEGOTIATE verdict based on your asking price.",
+    position: "center",
+    navigateTo: "/field",
+  },
+  {
     id: "analytics",
     title: "📈 Analytics Dashboard",
-    description: "The Analytics tab gives you KPI cards, platform distribution charts, Top 10 Most Valuable, and Top 10 Best ROI tables. If you've added Critics, you'll also see Favorites & Regrets breakdowns by brand and platform.",
-    targetSelector: ".analytics-header",
-    position: "bottom",
+    description: "KPI cards, platform distribution charts, top 10 most valuable, and best ROI tables. Also shows your achievement count and recent unlocks. The full picture of your collection health.",
+    position: "center",
     navigateTo: "/analytics",
+  },
+  {
+    id: "hotlist",
+    title: "🔥 Hot List",
+    description: "Auto-ranked flip opportunities right now. Scored by ROI × 30-day price trend × copy count. Filter by minimum ROI and platform. Your top flips are always front and center.",
+    position: "center",
+    navigateTo: "/hotlist",
   },
   {
     id: "pl-ledger",
     title: "💰 P&L Ledger",
-    description: "Track every game you buy and sell. The ledger calculates your realized profit, COGS, average margin, and net cash position. Adding a purchase here also syncs it to your Vault Inventory automatically.",
-    targetSelector: ".pl-header",
-    position: "bottom",
+    description: "Track every buy and sell. The ledger calculates realized profit, COGS, average margin, and net cash position. Log a purchase here and it syncs to your Vault automatically.",
+    position: "center",
     navigateTo: "/sales",
   },
   {
-    id: "target-radar",
-    title: "🎯 Target Radar",
-    description: "Set buy-below price targets for games you want to acquire. The system cross-references your targets against live market prices and fires a green BUY NOW alert when a game's price drops to or below your threshold.",
-    targetSelector: ".radar-header",
-    position: "bottom",
-    navigateTo: "/watchlist",
-  },
-  {
-    id: "goals",
-    title: "🏆 Collection Goals",
-    description: "Track your completion progress per platform with color-coded progress bars. Set priority levels (1/2/3) to sort your most important collections to the top. Click any platform name for CPU specs, release year, and daily trivia facts.",
-    targetSelector: ".goals-header",
-    position: "bottom",
-    navigateTo: "/goals",
+    id: "achievements",
+    title: "🏆 Achievement Codex",
+    description: "100+ achievements across 9 categories — from Collection milestones to Secret easter eggs. They unlock automatically as you use the app. Common → Uncommon → Rare → Epic → Legendary.",
+    position: "center",
+    navigateTo: "/achievements",
   },
 ];
+
+const STORAGE_KEY = "rv-demo-state";
 
 type DemoContextType = {
   isActive: boolean;
@@ -99,18 +94,69 @@ export const useDemoMode = () => useContext(DemoContext);
 export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const router = useRouter();
+  const pathname = usePathname();
+  // Prevent double-navigation race condition
+  const navigating = useRef(false);
 
   const step = isActive && currentStep < DEMO_STEPS.length ? DEMO_STEPS[currentStep] : null;
 
-  const start = useCallback(() => {
-    setCurrentStep(0);
-    setIsActive(true);
+  // Restore state from sessionStorage on mount (survives soft nav & hard nav)
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const { active, stepIndex } = JSON.parse(saved);
+        if (active && stepIndex < DEMO_STEPS.length) {
+          setIsActive(true);
+          setCurrentStep(stepIndex);
+        }
+      }
+    } catch { /* ignore */ }
   }, []);
+
+  // Persist state to sessionStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (isActive) {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ active: true, stepIndex: currentStep }));
+      } else {
+        sessionStorage.removeItem(STORAGE_KEY);
+      }
+    } catch { /* ignore */ }
+  }, [isActive, currentStep]);
 
   const exit = useCallback(() => {
     setIsActive(false);
     setCurrentStep(0);
+    navigating.current = false;
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   }, []);
+
+  const start = useCallback(() => {
+    setCurrentStep(0);
+    setIsActive(true);
+    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ active: true, stepIndex: 0 })); } catch { /* ignore */ }
+  }, []);
+
+  // Handle navigation when step changes
+  useEffect(() => {
+    if (!isActive || !step?.navigateTo) return;
+    if (pathname === step.navigateTo) {
+      navigating.current = false;
+      return;
+    }
+    if (navigating.current) return;
+    navigating.current = true;
+    router.push(step.navigateTo);
+  }, [isActive, step, pathname, router]);
+
+  // Clear navigating flag when pathname matches current step
+  useEffect(() => {
+    if (step?.navigateTo && pathname === step.navigateTo) {
+      navigating.current = false;
+    }
+  }, [pathname, step]);
 
   const next = useCallback(() => {
     if (currentStep < DEMO_STEPS.length - 1) {
@@ -132,16 +178,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", handler);
   }, [isActive, exit]);
 
-  // Navigate when step changes
-  useEffect(() => {
-    if (!step?.navigateTo) return;
-    const currentPath = window.location.pathname;
-    if (currentPath !== step.navigateTo) {
-      window.location.href = step.navigateTo + "?demo=true&step=" + currentStep;
-    }
-  }, [step, currentStep]);
-
-  const pct = Math.round(((currentStep) / DEMO_STEPS.length) * 100);
+  const pct = Math.round((currentStep / DEMO_STEPS.length) * 100);
 
   return (
     <DemoContext.Provider value={{ isActive, currentStep, totalSteps: DEMO_STEPS.length, step, start, exit, next, prev }}>
@@ -164,7 +201,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
           {/* Step counter */}
           <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[120] bg-black border-2 border-green-700 font-terminal text-green-400 text-lg px-4 py-1">
-            DEMO MODE — STEP {currentStep + 1} / {DEMO_STEPS.length}
+            DEMO — STEP {currentStep + 1} / {DEMO_STEPS.length}
           </div>
 
           {/* Demo popup */}
@@ -176,7 +213,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               {/* Progress dots */}
               <div className="flex justify-center gap-2 mb-4">
                 {DEMO_STEPS.map((_, i) => (
-                  <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === currentStep ? "bg-green-400 w-4" : i < currentStep ? "bg-green-800" : "bg-zinc-700"}`} />
+                  <div key={i} className={`h-2 rounded-full transition-all ${i === currentStep ? "bg-green-400 w-4" : i < currentStep ? "bg-green-800 w-2" : "bg-zinc-700 w-2"}`} />
                 ))}
               </div>
 
@@ -185,7 +222,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
                   className="px-4 py-2 font-terminal text-xl text-zinc-400 hover:text-white disabled:opacity-30 transition-colors">
                   ◀ PREV
                 </button>
-                <div className="text-zinc-600 font-terminal text-sm">Press ESC to exit at any time</div>
+                <div className="text-zinc-600 font-terminal text-sm">Press ESC to exit</div>
                 <button onClick={next}
                   className="px-6 py-2 font-terminal text-xl bg-green-600 hover:bg-green-500 text-black font-bold transition-colors shadow-[0_0_10px_rgba(34,197,94,0.4)]">
                   {currentStep === DEMO_STEPS.length - 1 ? "FINISH ✓" : "NEXT ▶"}
