@@ -94,6 +94,7 @@ export function StandaloneNav({ children }: { children: React.ReactNode }) {
               ▶ DEMO
             </button>
             <button onClick={toggleTooltips}
+              title={tooltipsEnabled ? "Tooltips are ON — hover elements to see hints. Click to disable." : "Tooltips are OFF — click to enable hover hints throughout the app."}
               className={`hidden md:flex px-3 py-2 font-terminal text-sm border rounded-sm transition-colors ${
                 tooltipsEnabled ? "text-blue-400 border-blue-800" : "text-zinc-700 border-zinc-800 hover:text-zinc-500"
               }`}>
