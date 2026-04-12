@@ -14,6 +14,9 @@ import { NAV_GROUPS, SYSTEM_ITEMS, getEnabledGroups, type NavGroup } from "@/dat
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { BugReportModal } from "@/components/BugReportModal";
+import { ToastProvider } from "@/components/Toast";
+import { WhatsNew } from "@/components/WhatsNew";
+import { Onboarding } from "@/components/Onboarding";
 
 function LogoutButton({ logout }: { logout: () => void }) {
   const [authEnabled, setAuthEnabled] = useState(false);
@@ -198,6 +201,8 @@ function MCLayout({ children }: { children: React.ReactNode }) {
       <KeyboardShortcuts onSearch={() => setSearchOpen(true)} />
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       {bugOpen && <BugReportModal onClose={() => setBugOpen(false)} />}
+      <WhatsNew />
+      <Onboarding />
     </div>
   );
 }
@@ -210,16 +215,18 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider>
-      <AppConfigProvider>
-        <DemoProvider>
-          <TooltipProvider>
-            <AuthGuard>
-              <Shell>{children}</Shell>
-            </AuthGuard>
-          </TooltipProvider>
-        </DemoProvider>
-      </AppConfigProvider>
-    </ThemeProvider>
+    <ToastProvider>
+      <ThemeProvider>
+        <AppConfigProvider>
+          <DemoProvider>
+            <TooltipProvider>
+              <AuthGuard>
+                <Shell>{children}</Shell>
+              </AuthGuard>
+            </TooltipProvider>
+          </DemoProvider>
+        </AppConfigProvider>
+      </ThemeProvider>
+    </ToastProvider>
   );
 }
