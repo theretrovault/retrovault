@@ -2,6 +2,7 @@
 
 import { getConsoleData, getDailyFacts } from "@/data/consoles";
 import { TagsPanel } from "@/components/TagsPanel";
+import { YouTubePanel } from "@/components/YouTubePanel";
 
 export function PlatformButton({
   platform,
@@ -133,6 +134,8 @@ export function ConsoleModal({
             ))}
           </div>
         </div>
+
+        <YouTubePanel game={platform} platform={platform} type="trailer" />
 
         <TagsPanel
           entityId={`platform-${platform.toLowerCase().replace(/\s+/g, '-')}`}

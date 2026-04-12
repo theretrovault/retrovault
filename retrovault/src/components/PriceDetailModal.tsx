@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { TagsPanel } from "@/components/TagsPanel";
+import { YouTubePanel } from "@/components/YouTubePanel";
 
 type GameCopy = {
   id: string;
@@ -376,6 +377,8 @@ export function PriceDetailModal({
           entityName={item.title}
           people={allPeople}
         />
+
+        <YouTubePanel game={item.title} platform={item.platform} />
 
         <div className="mt-6 flex justify-between items-center">
           <a

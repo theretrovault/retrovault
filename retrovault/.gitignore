@@ -40,3 +40,4 @@ data/scrapers.json
 # Plex integration (personal, optional feature — keep locally but don't publish)
 src/app/plex/
 src/app/api/plex/
+data/youtube-cache.json
