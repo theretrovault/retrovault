@@ -17,10 +17,67 @@ type Config = {
   currency: string; dateFormat: string; region: string; publicUrl: string; standaloneMode: boolean;
   auth: { enabled: boolean; passwordHash: string };
   fetchScheduleHour: number; priceDataSource: string;
+  githubRepo: string;
   features: Features;
 };
 
 const THEME_COLORS = ["green","blue","purple","orange","cyan","yellow","pink"];
+
+function BugReportingSettings({ config, setConfig }: { config: any; setConfig: (c: any) => void }) {
+  const [bugStatus, setBugStatus] = useState<{ configured: boolean; issuesUrl: string } | null>(null);
+  useEffect(() => {
+    fetch('/api/bug-report').then(r => r.json()).then(setBugStatus).catch(() => {});
+  }, []);
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-zinc-400 font-terminal text-sm uppercase mb-1">GitHub Issues URL</label>
+        <div className="flex gap-2 items-start">
+          <input type="text"
+            className="flex-1 bg-black border-2 border-zinc-800 text-zinc-300 p-2 font-terminal text-base focus:outline-none focus:border-green-600"
+            placeholder="apesch85/retrovault"
+            value={config.githubRepo || ''}
+            onChange={e => setConfig({ ...config, githubRepo: e.target.value })}
+          />
+          {config.githubRepo && (
+            <a href={`https://github.com/${config.githubRepo}/issues`} target="_blank" rel="noopener noreferrer"
+              className="px-3 py-2 font-terminal text-xs text-blue-400 border border-blue-800 hover:bg-blue-900/20 whitespace-nowrap">
+              View Issues ↗
+            </a>
+          )}
+        </div>
+        <p className="text-zinc-600 font-terminal text-xs mt-1">The GitHub repo where bug reports will be filed (e.g. <code className="bg-zinc-900 px-1">yourname/retrovault</code>)</p>
+      </div>
+
+      <div className={`border-2 p-4 ${bugStatus?.configured ? 'border-green-800 bg-green-950/10' : 'border-zinc-800'}`}>
+        <div className="flex items-center gap-3 mb-2">
+          <span className={`text-2xl`}>{bugStatus?.configured ? '✅' : '⚠️'}</span>
+          <div>
+            <div className={`font-terminal text-base ${bugStatus?.configured ? 'text-green-400' : 'text-zinc-400'}`}>
+              {bugStatus?.configured ? 'GitHub token configured — in-app reporting active' : 'GitHub token not configured — links to GitHub directly'}
+            </div>
+            <p className="text-zinc-600 font-terminal text-xs mt-0.5">
+              {bugStatus?.configured
+                ? 'Bug reports go directly to GitHub with duplicate detection and rate limiting.'
+                : 'Add GITHUB_ISSUES_TOKEN to .env.local to enable in-app reporting.'}
+            </p>
+          </div>
+        </div>
+        {!bugStatus?.configured && (
+          <div className="bg-zinc-900 border border-zinc-700 p-3 font-mono text-xs text-zinc-400 mt-2">
+            <p className="text-zinc-500 mb-1"># Add to .env.local:</p>
+            <p>GITHUB_ISSUES_TOKEN=github_pat_your_token_here</p>
+          </div>
+        )}
+        <p className="text-zinc-600 font-terminal text-xs mt-2">
+          Create a Fine-Grained token at github.com → Settings → Developer Settings → Fine-grained tokens.
+          Set <strong>Issues: Write</strong> on your repo only. No other permissions needed.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -364,6 +421,10 @@ export default function SettingsPage() {
             );
           })}
         </div>
+      </Section>
+
+      <Section title="Bug Reporting" icon="🐛">
+        <BugReportingSettings config={config} setConfig={setConfig} />
       </Section>
 
       <Section title="Authentication" icon="🔒">
