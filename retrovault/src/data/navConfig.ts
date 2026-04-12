@@ -141,6 +141,7 @@ export const SYSTEM_ITEMS: NavItem[] = [
   { href: "/deals", label: "Local Deals", icon: "🏠", feature: "collection" },
   { href: "/events", label: "Events", icon: "🎪", feature: "collection" },
   { href: "/health", label: "System Health", icon: "📊", feature: "collection" },
+  { href: "/api-docs", label: "API", icon: "🔌", feature: "collection" },
   { href: "/scrapers", label: "Scrapers", icon: "🔧", feature: "collection" },
   { href: "/settings", label: "Settings", icon: "⚙️", feature: "collection" },
 ];
