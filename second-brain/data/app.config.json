@@ -1,0 +1,30 @@
+{
+  "appName": "RetroVault",
+  "tagline": "Your Retro Gaming Collection Engine",
+  "ownerName": "",
+  "themeColor": "green",
+  "currency": "$",
+  "dateFormat": "US",
+  "publicUrl": "",
+  "standaloneMode": true,
+  "auth": {
+    "enabled": false,
+    "passwordHash": ""
+  },
+  "plex": {
+    "url": "https://192.168.1.2:32400",
+    "token": "s3_dpsVi8rCxG-ciJP32"
+  },
+  "fetchScheduleHour": 0,
+  "priceDataSource": "pricecharting",
+  "scrapers": {
+    "craigslistCity": "portland"
+  },
+  "features": {
+    "business": true,
+    "fieldTools": true,
+    "social": true,
+    "personal": true,
+    "media": true
+  }
+}

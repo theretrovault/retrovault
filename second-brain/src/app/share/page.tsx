@@ -1,0 +1,153 @@
+"use client";
+import { useState, useEffect, useRef } from "react";
+
+export default function SharePage() {
+  const [config, setConfig] = useState<any>(null);
+  const [token, setToken] = useState("");
+  const [qrSvg, setQrSvg] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/config").then(r => r.json()).then(d => {
+      setConfig(d);
+      setToken(d.publicToken || "");
+    });
+  }, []);
+
+  const publicUrl = config?.publicUrl
+    ? `${config.publicUrl}/public/${token}`
+    : `http://localhost:3000/public/${token}`;
+
+  const generateToken = () => {
+    const t = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    setToken(t);
+  };
+
+  const generateQr = async () => {
+    const QRCode = (await import("qrcode")).default;
+    const svg = await QRCode.toString(publicUrl, { type: "svg", width: 256, margin: 2, color: { dark: "#4ade80", light: "#09090b" } });
+    setQrSvg(svg);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    await fetch("/api/config", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...config, publicToken: token })
+    });
+    setSaving(false);
+    await generateQr();
+  };
+
+  const copy = () => {
+    navigator.clipboard.writeText(publicUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const downloadQr = () => {
+    const blob = new Blob([qrSvg], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "retrovault-qr.svg"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (!config) return <div className="text-green-500 font-terminal animate-pulse text-xl text-center py-16">LOADING...</div>;
+
+  return (
+    <div className="w-full bg-black border-4 border-green-500 rounded p-6 shadow-[0_0_15px_rgba(34,197,94,0.3)] min-h-[80vh]">
+      <div className="border-b-4 border-green-900 pb-6 mb-6">
+        <h2 className="text-2xl sm:text-3xl text-green-400 tracking-widest uppercase font-terminal">🔗 Share Your Collection</h2>
+        <p className="text-zinc-500 font-terminal text-sm mt-1">Generate a public read-only link to share your collection. No prices or P&L shown.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Setup */}
+        <div className="space-y-5">
+          <div className="bg-zinc-950 border border-zinc-700 p-4 space-y-3">
+            <p className="text-zinc-400 font-terminal text-sm uppercase">What visitors can see:</p>
+            <ul className="space-y-1 font-terminal text-sm">
+              {["✅ Your game collection (titles, platforms, condition)", "✅ Showcase gallery", "✅ Collection stats", "✅ Completion tiers", "❌ Prices paid or market values", "❌ Sales / P&L data", "❌ Watchlist or business tools"].map(s => (
+                <li key={s} className={s.startsWith("✅") ? "text-zinc-300" : "text-zinc-600"}>{s}</li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Token */}
+          <div>
+            <label className="block text-zinc-400 font-terminal text-sm uppercase mb-2">Share Token</label>
+            <div className="flex gap-2">
+              <input type="text" value={token} onChange={e => setToken(e.target.value)}
+                placeholder="Generate or type a token..."
+                className="flex-1 bg-black border-2 border-zinc-700 text-zinc-300 font-terminal text-base p-2 focus:outline-none focus:border-green-600" />
+              <button onClick={generateToken}
+                className="px-3 py-2 font-terminal text-xs text-zinc-400 border border-zinc-700 hover:border-zinc-500 transition-colors">
+                🎲 Random
+              </button>
+            </div>
+            <p className="text-zinc-700 font-terminal text-xs mt-1">Your public URL will be: /public/{token || "your-token"}</p>
+          </div>
+
+          {/* Public URL base */}
+          <div>
+            <label className="block text-zinc-400 font-terminal text-sm uppercase mb-2">Base URL</label>
+            <input type="text" value={config.publicUrl || ""} onChange={e => setConfig({ ...config, publicUrl: e.target.value })}
+              placeholder="https://your-domain.com (or leave blank for LAN)"
+              className="w-full bg-black border-2 border-zinc-700 text-zinc-300 font-terminal text-base p-2 focus:outline-none focus:border-green-600" />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 flex-wrap">
+            <button onClick={save} disabled={!token || saving}
+              className="px-5 py-2 bg-green-600 hover:bg-green-500 text-black font-terminal text-base font-bold border-2 border-green-400 transition-colors disabled:opacity-40">
+              {saving ? "SAVING..." : "SAVE & GENERATE QR"}
+            </button>
+          </div>
+
+          {/* URL display */}
+          {token && (
+            <div className="bg-zinc-950 border-2 border-green-800 p-4">
+              <p className="text-zinc-500 font-terminal text-xs uppercase mb-2">Your public URL:</p>
+              <div className="flex items-center gap-2">
+                <code className="text-green-300 font-terminal text-sm flex-1 break-all">{publicUrl}</code>
+                <button onClick={copy}
+                  className={`px-3 py-1 font-terminal text-xs border shrink-0 transition-colors ${copied ? "text-emerald-400 border-emerald-600" : "text-zinc-400 border-zinc-700 hover:border-zinc-500"}`}>
+                  {copied ? "✓ Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* QR Code */}
+        <div className="flex flex-col items-center gap-4">
+          {qrSvg ? (
+            <>
+              <div className="border-4 border-green-700 p-4 bg-zinc-950" dangerouslySetInnerHTML={{ __html: qrSvg }} />
+              <div className="flex gap-3">
+                <button onClick={downloadQr}
+                  className="px-4 py-2 font-terminal text-sm text-blue-400 border border-blue-800 hover:bg-blue-900/20 transition-colors">
+                  ⬇️ Download QR
+                </button>
+                <button onClick={generateQr}
+                  className="px-4 py-2 font-terminal text-sm text-zinc-400 border border-zinc-700 hover:border-zinc-500 transition-colors">
+                  🔄 Refresh
+                </button>
+              </div>
+              <p className="text-zinc-600 font-terminal text-xs text-center">
+                Print this QR code to share at conventions — visitors can scan to browse your collection
+              </p>
+            </>
+          ) : (
+            <div className="border-4 border-dashed border-zinc-800 p-16 text-center">
+              <div className="text-5xl mb-4">📱</div>
+              <p className="text-zinc-600 font-terminal text-lg">QR code will appear here after saving</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
