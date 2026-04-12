@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTheme } from "@/components/ThemeProvider";
 import { COLOR_PALETTES, STYLE_THEMES } from "@/data/themes";
 import { NAV_GROUPS } from "@/data/navConfig";
+import { PLATFORM_GROUPS, RETRO_DEFAULTS, ALL_PLATFORMS } from "@/data/platformGroups";
 import { useRef } from "react";
 import Link from "next/link";
 
@@ -204,6 +205,82 @@ export default function SettingsPage() {
             value={config.fetchScheduleHour}
             onChange={e => setConfig({ ...config, fetchScheduleHour: parseInt(e.target.value) || 0 })} />
           <p className="text-zinc-600 font-terminal text-xs mt-1">Background price fetcher will run at this hour. Current: {config.fetchScheduleHour}:00. Note: crontab must be manually updated to match.</p>
+        </div>
+      </Section>
+
+      <Section title="Platforms" icon="🕹️">
+        <div>
+          <p className="text-zinc-500 font-terminal text-sm mb-4">Choose which platforms to track in your vault, analytics, and goals. Defaults to the original 14 retro systems.</p>
+
+          {/* Quick presets */}
+          <div className="flex flex-wrap gap-2 mb-5">
+            {[
+              { label: "Retro Only (default)", platforms: RETRO_DEFAULTS, color: "bg-green-700 border-green-500" },
+              { label: "All Platforms", platforms: ALL_PLATFORMS, color: "bg-blue-700 border-blue-500" },
+              { label: "Nintendo Only", platforms: ["NES","SNES","Nintendo 64","Gamecube","Wii","Wii U","Nintendo Switch","Switch 2","Game Boy","Game Boy Color","Game Boy Advance","Nintendo DS","Nintendo 3DS"], color: "bg-red-800 border-red-600" },
+              { label: "PlayStation Only", platforms: ["PS1","PS2","PS3","PS4","PS5","PSP","PS Vita"], color: "bg-blue-800 border-blue-600" },
+              { label: "None", platforms: [], color: "bg-zinc-800 border-zinc-600" },
+            ].map(preset => (
+              <button key={preset.label}
+                onClick={() => setConfig({ ...config, platforms: preset.platforms } as any)}
+                className={`px-3 py-1.5 font-terminal text-xs border-2 text-white transition-colors ${preset.color} hover:opacity-80`}>
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Platform groups */}
+          <div className="space-y-5">
+            {PLATFORM_GROUPS.map(group => {
+              const enabledInGroup = group.platforms.filter(p => ((config as any).platforms || RETRO_DEFAULTS).includes(p)).length;
+              const allEnabled = enabledInGroup === group.platforms.length;
+              const noneEnabled = enabledInGroup === 0;
+              return (
+                <div key={group.id}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="font-terminal text-sm text-zinc-400 uppercase">{group.icon} {group.label}</span>
+                    <div className="flex gap-1">
+                      <button onClick={() => {
+                        const current = new Set((config as any).platforms || RETRO_DEFAULTS);
+                        group.platforms.forEach(p => current.add(p));
+                        setConfig({ ...config, platforms: [...current] } as any);
+                      }} className="font-terminal text-xs text-zinc-600 hover:text-green-400 transition-colors px-1">+all</button>
+                      <button onClick={() => {
+                        const current = new Set((config as any).platforms || RETRO_DEFAULTS);
+                        group.platforms.forEach(p => current.delete(p));
+                        setConfig({ ...config, platforms: [...current] } as any);
+                      }} className="font-terminal text-xs text-zinc-600 hover:text-red-400 transition-colors px-1">−all</button>
+                    </div>
+                    <span className="text-zinc-700 font-terminal text-xs ml-auto">{enabledInGroup}/{group.platforms.length}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {group.platforms.map(platform => {
+                      const enabled = ((config as any).platforms || RETRO_DEFAULTS).includes(platform);
+                      return (
+                        <button key={platform}
+                          onClick={() => {
+                            const current = new Set((config as any).platforms || RETRO_DEFAULTS);
+                            if (enabled) current.delete(platform); else current.add(platform);
+                            setConfig({ ...config, platforms: [...current] } as any);
+                          }}
+                          className={`px-3 py-1.5 font-terminal text-sm border-2 transition-colors ${
+                            enabled
+                              ? 'bg-green-900/40 text-green-300 border-green-700'
+                              : 'text-zinc-600 border-zinc-800 hover:border-zinc-600'
+                          }`}>
+                          {platform}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-zinc-600 font-terminal text-xs mt-4">
+            {((config as any).platforms || RETRO_DEFAULTS).length} platform{((config as any).platforms || RETRO_DEFAULTS).length !== 1 ? 's' : ''} enabled.
+            Changes take effect immediately after saving.
+          </p>
         </div>
       </Section>
 

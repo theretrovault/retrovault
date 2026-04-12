@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { type Features, DEFAULT_FEATURES } from "@/data/navConfig";
+import { RETRO_DEFAULTS } from "@/data/platformGroups";
 
 type AppConfig = {
   appName: string;
@@ -12,6 +13,7 @@ type AppConfig = {
   dateFormat: string;
   standaloneMode: boolean;
   features: Features;
+  platforms: string[];
 };
 
 const DEFAULTS: AppConfig = {
@@ -23,6 +25,7 @@ const DEFAULTS: AppConfig = {
   dateFormat: "US",
   standaloneMode: true,
   features: DEFAULT_FEATURES,
+  platforms: RETRO_DEFAULTS,
 };
 
 const AppConfigContext = createContext<AppConfig>(DEFAULTS);

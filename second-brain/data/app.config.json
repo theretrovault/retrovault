@@ -26,5 +26,21 @@
     "social": true,
     "personal": true,
     "media": true
-  }
+  },
+  "platforms": [
+    "NES",
+    "SNES",
+    "Nintendo 64",
+    "Gamecube",
+    "Nintendo Switch",
+    "Sega Genesis",
+    "Sega CD",
+    "Dreamcast",
+    "PS1",
+    "PS2",
+    "PS3",
+    "PSP",
+    "Xbox",
+    "Xbox 360"
+  ]
 }
