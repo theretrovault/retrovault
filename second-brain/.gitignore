@@ -1,8 +1,0 @@
-node_modules/
-.next/
-.env.local
-logs/
-data/inventory.json
-data/favorites.json
-data/fetch.lock
-*.log
