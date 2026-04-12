@@ -463,9 +463,11 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      <Section title="YouTube Videos" icon="📺">
-        <YouTubeSettings />
-      </Section>
+      <div id="youtube">
+        <Section title="YouTube Videos" icon="📺">
+          <YouTubeSettings />
+        </Section>
+      </div>
 
       <Section title="Bug Reporting" icon="🐛">
         <BugReportingSettings config={config} setConfig={setConfig} />
