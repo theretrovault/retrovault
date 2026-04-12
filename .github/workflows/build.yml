@@ -1,0 +1,62 @@
+name: RetroVault Build Check
+
+on:
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'retrovault/src/**'
+      - 'retrovault/package*.json'
+      - 'retrovault/next.config.ts'
+      - 'retrovault/tsconfig.json'
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build:
+    name: TypeScript & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: retrovault/package-lock.json
+
+      - name: Install dependencies
+        working-directory: retrovault
+        run: npm ci
+
+      - name: Create minimal data files for build
+        working-directory: retrovault
+        run: |
+          mkdir -p data
+          echo '[]' > data/inventory.json
+          echo '{}' > data/app.config.json
+          echo '[]' > data/favorites.json
+          echo '{"sales":[],"acquisitions":[]}' > data/sales.json
+          echo '[]' > data/watchlist.json
+          echo '[]' > data/goals.json
+          echo '[]' > data/grails.json
+          echo '[]' > data/playlog.json
+          echo '{}' > data/tags.json
+          echo '[]' > data/events.json
+          echo '{}' > data/whatnot.json
+          echo '[]' > data/value-history.json
+          echo '[]' > data/achievements-unlocked.json
+          echo '[]' > data/scrapers.json
+          echo '[]' > data/bug-reports.json
+          echo '{}' > data/youtube-cache.json
+
+      - name: Build production bundle
+        working-directory: retrovault
+        run: npm run build
+
+      - name: Check for TypeScript errors
+        working-directory: retrovault
+        run: npx tsc --noEmit
+        continue-on-error: true  # TypeScript errors shown as warnings, build is the real gate

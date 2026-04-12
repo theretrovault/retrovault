@@ -1,0 +1,44 @@
+name: RetroVault CI
+
+on:
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'retrovault/**'
+  pull_request:
+    branches: [ master, main ]
+    paths:
+      - 'retrovault/**'
+
+jobs:
+  test:
+    name: Run Test Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: retrovault/package-lock.json
+
+      - name: Install dependencies
+        working-directory: retrovault
+        run: npm ci
+
+      - name: Run tests
+        working-directory: retrovault
+        run: npm test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: retrovault/coverage/
+          retention-days: 14
+          if-no-files-found: ignore
