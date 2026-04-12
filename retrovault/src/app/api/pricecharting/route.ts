@@ -158,21 +158,71 @@ export async function GET(request: Request) {
     for (const [platName, platSlug] of Object.entries(PLATFORM_SLUGS)) {
       if (q.toLowerCase().endsWith(platName)) {
         const gameTitle = q.slice(0, q.length - platName.length - 1).trim();
-        const gameSlug = titleToSlug(gameTitle);
-        const directUrl = `https://www.pricecharting.com/game/${platSlug}/${gameSlug}`;
-        
-        const directRes = await fetch(directUrl, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-        });
-        const directHtml = await directRes.text();
-        const $d = cheerio.load(directHtml);
-        const pageTitle = $d('h1').first().text().trim();
-        
-        // Check it's actually a game page (not 404 redirect)
+
+        // Try multiple slug variants: PriceCharting often drops "The" / "A" from slugs
+        // e.g. "The Legend of Zelda" → "zelda-wind-waker" not "the-legend-of-zelda-wind-waker"
+        const slugVariants: string[] = [];
+        slugVariants.push(titleToSlug(gameTitle));
+        // Strip leading articles
+        const stripped = gameTitle.replace(/^(the|a|an)\s+/i, '').trim();
+        if (stripped !== gameTitle) slugVariants.push(titleToSlug(stripped));
+
+        let directHtml = '';
+        let $d: any = null;
+        let pageTitle = '';
+        let usedUrl = '';
+
+        for (const gameSlug of slugVariants) {
+          const directUrl = `https://www.pricecharting.com/game/${platSlug}/${gameSlug}`;
+          const directRes = await fetch(directUrl, {
+            redirect: 'manual', // Don't auto-follow — detect if we got redirected to search
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+          });
+          
+          // If it redirected to search, this slug didn't match — try next variant
+          if (directRes.status === 301 || directRes.status === 302) {
+            const location = directRes.headers.get('location') || '';
+            if (location.includes('search-products')) continue;
+          }
+
+          // Follow manually if needed
+          const fetchUrl = directRes.status >= 300 && directRes.status < 400
+            ? (directRes.headers.get('location') || directUrl)
+            : directUrl;
+          
+          const finalRes = await fetch(fetchUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+          });
+          directHtml = await finalRes.text();
+          $d = cheerio.load(directHtml);
+          pageTitle = $d('h1').first().text().trim();
+          usedUrl = fetchUrl;
+          break; // Got a real page
+        }
+
+        if (!$d) break; // No valid page found for any slug variant
+
+        // Check it's actually a game page (not a search results page)
         if (pageTitle && !pageTitle.toLowerCase().includes('not found') && !pageTitle.toLowerCase().includes('search')) {
-          // Try to find pricing from the related editions table on product page
-          // Score each row by how well its title matches the game we searched for
-          let loose = null, cib = null, newPrice = null, graded = null;
+          // ── Priority 1: Read prices directly from the product page price table ──
+          // These IDs are reliable on direct product pages
+          const getDirectPrice = (id: string) => {
+            const val = $d(`#${id} .js-price, #${id} .price`).first().text().replace(/[$,]/g,'').trim();
+            if (val && !isNaN(parseFloat(val))) return val;
+            return null;
+          };
+          let loose: string | null    = getDirectPrice('used_price');
+          let cib: string | null      = getDirectPrice('complete_price');
+          let newPrice: string | null = getDirectPrice('new_price');
+          let graded: string | null   = getDirectPrice('graded_price');
+
+          // If we got prices directly, return immediately — most reliable path
+          if (loose || cib) {
+            directResult = { loose: loose || 'N/A', cib: cib || 'N/A', new: newPrice || 'N/A', graded: graded || 'N/A', matchedTitle: pageTitle, confidence: 1.0 };
+            break;
+          }
+
+          // ── Priority 2: Fall back to related editions table if direct prices not found ──
           let bestRowScore = -1;
           
           const platAliases = [platName, platSlug.replace(/-/g, ' '), 'mega drive', 'mega-drive',
