@@ -5,6 +5,7 @@ import { PriceDetailModal } from "@/components/PriceDetailModal";
 import { ConsoleModal, PlatformButton } from "@/components/ConsoleModal";
 import { AddAssetModal, type AssetFormData } from "@/components/AddAssetModal";
 import { CriticProfileModal } from "@/components/CriticProfileModal";
+import { useAppConfig } from "@/components/AppConfig";
 
 type GameCopy = {
   id: string;
@@ -40,6 +41,7 @@ type GameItem = {
 };
 
 export default function InventoryPage() {
+  const { platforms: enabledPlatforms } = useAppConfig();
   const [items, setItems] = useState<GameItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -196,8 +198,13 @@ export default function InventoryPage() {
   const totalPaid = (copies: GameCopy[]) =>
     copies.reduce((s, c) => s + (parseFloat(c.priceAcquired) || 0), 0);
 
+  // Filter items to only enabled platforms (from app config)
+  const filteredByPlatform = enabledPlatforms && enabledPlatforms.length > 0
+    ? items.filter(i => enabledPlatforms.includes(i.platform))
+    : items;
+
   // Get unique platforms for the filter dropdown
-  const platforms = Array.from(new Set(items.map(i => i.platform))).sort();
+  const platforms = Array.from(new Set(filteredByPlatform.map(i => i.platform))).sort();
 
   // Score computation (run over items after filtering)
   const computeScores = (allItems: GameItem[]) => {
@@ -358,7 +365,7 @@ export default function InventoryPage() {
     return copies.reduce((s, c) => s + getCorrectPrice(item, c), 0);
   };
 
-  const { minSell, maxSell, minBuy, maxBuy } = computeScores(items);
+  const { minSell, maxSell, minBuy, maxBuy } = computeScores(filteredByPlatform);
 
   // Tag & mention search helpers
   const getTagsForItem = (id: string) => tagsData.gameTags?.[id] || [];
@@ -376,7 +383,7 @@ export default function InventoryPage() {
     return allMentions.join(" ").toLowerCase();
   };
 
-  const sortedItems = [...items]
+  const sortedItems = [...filteredByPlatform]
     .filter((m) => {
       const q = search.toLowerCase();
       const match = m.title.toLowerCase().includes(q) || m.platform.toLowerCase().includes(q);
@@ -572,6 +579,12 @@ export default function InventoryPage() {
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-2xl">🕹️</span>
           <h2 className="text-xl sm:text-3xl text-green-400 tracking-widest uppercase leading-tight">Vault Inventory</h2>
+          {enabledPlatforms && enabledPlatforms.length > 0 && enabledPlatforms.length < 35 && (
+            <span className="text-zinc-600 font-terminal text-xs">
+              {enabledPlatforms.length} platform{enabledPlatforms.length !== 1 ? 's' : ''} active
+              <a href="/settings" className="ml-2 text-blue-700 hover:text-blue-500 transition-colors">change →</a>
+            </span>
+          )}
         </div>
         <div className="flex gap-4">
           <button
