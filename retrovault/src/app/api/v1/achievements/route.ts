@@ -1,0 +1,52 @@
+import { NextRequest } from 'next/server';
+import { requireApiAuth, apiResponse } from '@/lib/apiAuth';
+import { ACHIEVEMENTS, getTotalPoints } from '@/data/achievements';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: NextRequest) {
+  const { error } = requireApiAuth(req);
+  if (error) return error;
+
+  // Fetch from the internal achievements API
+  const baseUrl = req.nextUrl.origin;
+  const ach = await fetch(`${baseUrl}/api/achievements`, { cache: 'no-store' })
+    .then(r => r.json())
+    .catch(() => ({ unlockedIds: [] }));
+
+  const unlockedIds: string[] = ach.unlockedIds || [];
+  const points = getTotalPoints(unlockedIds);
+
+  const unlocked = ACHIEVEMENTS
+    .filter(a => unlockedIds.includes(a.id) && !a.secret)
+    .map(a => ({
+      id: a.id,
+      name: a.name,
+      category: a.category,
+      rarity: a.rarity,
+      points: a.points,
+      condition: a.condition,
+    }));
+
+  const locked = ACHIEVEMENTS
+    .filter(a => !unlockedIds.includes(a.id) && !a.secret)
+    .map(a => ({
+      id: a.id,
+      name: a.name,
+      category: a.category,
+      rarity: a.rarity,
+      points: a.points,
+      condition: a.condition,
+    }));
+
+  return apiResponse({
+    summary: {
+      unlocked: unlockedIds.length,
+      total: ACHIEVEMENTS.filter(a => !a.secret).length,
+      points,
+      completionPercent: Math.round((unlocked.length / locked.length + unlocked.length) * 100),
+    },
+    unlocked,
+    locked,
+  });
+}
