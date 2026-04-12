@@ -178,4 +178,48 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       { label: "Digital Press", url: "https://www.digitpress.com", note: "Deep expertise on rare games" },
     ],
   },
+  {
+    id: "integrations",
+    title: "Optional Integrations",
+    icon: "🔌",
+    color: "text-blue-400 border-blue-700",
+    intro: "RetroVault has several optional features that require free third-party API keys. None are required — the core app works without any of them. Each integration is a quality-of-life upgrade you can enable when ready.",
+    tips: [
+      {
+        id: "int_youtube",
+        text: "YouTube Videos — watch playthroughs and walkthroughs directly in game modals",
+        detail: "Add a free YouTube Data API v3 key from Google Cloud Console. Once configured, every game modal shows top-rated playthroughs, walkthroughs, reviews, and longplays. Videos load on demand and cache locally — the free quota is plenty for normal use.",
+        appLink: { label: "Enable YouTube in Settings", href: "/settings#youtube" }
+      },
+      {
+        id: "int_bugs",
+        text: "Bug Reporter — file GitHub issues directly from the app without leaving RetroVault",
+        detail: "Create a fine-grained GitHub Personal Access Token with Issues:Write permission on your repo. Once set, the 🐛 button files reports to GitHub with duplicate detection and rate limiting built in.",
+        appLink: { label: "Enable Bug Reporter in Settings", href: "/settings" }
+      },
+      {
+        id: "int_api",
+        text: "Public API — expose your collection data programmatically for automations and integrations",
+        detail: "Generate API keys from the /api-docs page. Use them to connect RetroVault to Home Assistant, Discord bots, Obsidian, or any script. Read-only keys are safe to share; write keys can manage other keys.",
+        appLink: { label: "Manage API Keys", href: "/api-docs" }
+      },
+      {
+        id: "int_craigslist",
+        text: "Craigslist Deals — get alerts when games on your watchlist appear locally",
+        detail: "Set your city slug in Settings (e.g. 'portland', 'chicago'). Enable the Craigslist scraper and it scans the video games section, cross-referencing your watchlist and grail list for matching deals.",
+        appLink: { label: "Configure in Settings", href: "/settings" }
+      },
+      {
+        id: "int_reddit",
+        text: "Reddit r/gameswap Alerts — monitor selling posts for games you want",
+        detail: "No API key needed — uses Reddit's public JSON API. Enable the Reddit scraper and it checks r/gameswap for posts offering games on your watchlist or grail list.",
+        appLink: { label: "Enable Reddit Scraper", href: "/scrapers" }
+      },
+    ],
+    resources: [
+      { label: "Google Cloud Console (YouTube API)", url: "https://console.cloud.google.com", note: "Free YouTube Data API v3 key" },
+      { label: "GitHub Fine-Grained Tokens", url: "https://github.com/settings/personal-access-tokens", note: "For bug reporter integration" },
+      { label: "API Documentation", url: "/api-docs", note: "RetroVault v1 API reference" },
+    ],
+  },
 ];

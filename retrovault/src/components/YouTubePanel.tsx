@@ -81,11 +81,24 @@ export function YouTubePanel({ game, platform, type: initialType = "playthrough"
     fetchVideos(t);
   };
 
-  // Not configured — render nothing (clean UX, no noise)
-  if (configured === false) return null;
-
-  // Still checking config (loading state on first render)
+  // Still checking config
   if (configured === null && loading) return null;
+
+  // Not configured — show a small unobtrusive hint with a settings link
+  if (configured === false) {
+    return (
+      <div className="mt-5 border-t border-zinc-900 pt-3">
+        <div className="flex items-center justify-between">
+          <span className="text-zinc-700 font-terminal text-xs flex items-center gap-1.5">
+            📺 Videos not enabled
+          </span>
+          <a href="/settings#youtube" className="text-zinc-700 hover:text-blue-500 font-terminal text-xs transition-colors">
+            Enable in Settings →
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-5 border-t-2 border-zinc-800 pt-4">
