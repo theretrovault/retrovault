@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { ACHIEVEMENTS, RARITIES, getTotalPoints } from "@/data/achievements";
+import { ACHIEVEMENTS, getTotalPoints } from "@/data/achievements";
+import { AchievementCard } from "@/components/AchievementCard";
 import { PriceDetailModal } from "@/components/PriceDetailModal";
 import { ConsoleModal, PlatformButton } from "@/components/ConsoleModal";
 
@@ -680,18 +681,14 @@ export default function AnalyticsPage() {
           </div>
           {recentUnlocked.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {recentUnlocked.map(a => {
-                const cfg = RARITIES[a.rarity];
-                return (
-                  <div key={a.id} className={`border ${cfg.border} ${cfg.bg} p-3 flex items-center gap-2`}>
-                    <span className="text-xl shrink-0">{a.icon}</span>
-                    <div className="min-w-0">
-                      <div className={`font-terminal text-xs ${cfg.color} truncate`}>{a.name}</div>
-                      <div className="text-zinc-700 font-terminal text-xs">+{a.points}pts</div>
-                    </div>
-                  </div>
-                );
-              })}
+              {recentUnlocked.map(a => (
+                <AchievementCard
+                  key={a.id}
+                  achievement={a}
+                  unlocked={true}
+                  compact
+                />
+              ))}
             </div>
           ) : (
             <p className="text-zinc-700 font-terminal text-sm">No achievements unlocked yet. Start collecting!</p>

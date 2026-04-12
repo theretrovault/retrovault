@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ACHIEVEMENTS, RARITIES, getTotalPoints } from "@/data/achievements";
+import { ACHIEVEMENTS, getTotalPoints } from "@/data/achievements";
+import { AchievementCard } from "@/components/AchievementCard";
 import { AlertsBanner } from "@/components/AlertsBanner";
 
 type GameItem = {
@@ -40,7 +41,7 @@ export function Dashboard() {
   const [grails, setGrails] = useState<GrailEntry[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [playlog, setPlaylog] = useState<PlayLogEntry[]>([]);
-  const [achievements, setAchievements] = useState<{ unlockedIds: string[] } | null>(null);
+  const [achievements, setAchievements] = useState<{ unlockedIds: string[]; context?: any } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -215,18 +216,15 @@ export function Dashboard() {
                 <Link href="/achievements" className="text-zinc-600 hover:text-zinc-400 font-terminal text-xs">All {achCount} →</Link>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {recentAch.map(a => {
-                  const cfg = RARITIES[a.rarity];
-                  return (
-                    <div key={a.id} className={`border ${cfg.border} ${cfg.bg} p-3 flex items-center gap-2`}>
-                      <span className="text-2xl">{a.icon}</span>
-                      <div>
-                        <div className={`font-terminal text-xs ${cfg.color}`}>{a.name}</div>
-                        <div className="text-zinc-700 font-terminal text-xs">+{a.points}pts</div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {recentAch.map(a => (
+                  <AchievementCard
+                    key={a.id}
+                    achievement={a}
+                    unlocked={true}
+                    context={achievements?.context}
+                    compact
+                  />
+                ))}
               </div>
             </section>
           )}
