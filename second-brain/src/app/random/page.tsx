@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { PriceDetailModal } from "@/components/PriceDetailModal";
 
 type GameItem = {
   id: string; title: string; platform: string;
@@ -20,6 +21,7 @@ export default function RandomizerPage() {
   const [picked, setPicked] = useState<GameItem | null>(null);
   const [rolling, setRolling] = useState(false);
   const [rollCount, setRollCount] = useState(0);
+  const [detailItem, setDetailItem] = useState<GameItem | null>(null);
 
   useEffect(() => {
     fetch("/api/inventory").then(r => r.json()).then((d: GameItem[]) => setInventory(d.filter(i => (i.copies||[]).length > 0 && !i.isDigital)));
@@ -106,10 +108,18 @@ export default function RandomizerPage() {
               <div className="text-zinc-500 font-terminal text-xs uppercase mb-2">
                 {rolling ? "Rolling..." : "Tonight you should play:"}
               </div>
-              <h2 className={`font-terminal text-3xl sm:text-4xl uppercase mb-2 ${rolling ? "text-yellow-400" : "text-green-300"} leading-tight`}>
+              <button
+                onClick={() => !rolling && setDetailItem(picked)}
+                disabled={rolling}
+                className={`font-terminal text-3xl sm:text-4xl uppercase mb-2 leading-tight block w-full text-center transition-colors ${
+                  rolling ? 'text-yellow-400 cursor-default' : 'text-green-300 hover:text-green-100 cursor-pointer'
+                }`}
+                title={rolling ? undefined : 'Click to view game details'}
+              >
                 {picked.title}
-              </h2>
-              <div className="text-zinc-400 font-terminal text-xl mb-3">{picked.platform}</div>
+              </button>
+              <div className="text-zinc-400 font-terminal text-xl mb-1">{picked.platform}</div>
+              {!rolling && <p className="text-zinc-700 font-terminal text-xs mb-3">click title to view details</p>}
               <div className="flex justify-center gap-2 flex-wrap font-terminal text-sm text-zinc-600 mb-4">
                 <span>{picked.copies?.[0]?.condition || "Loose"}</span>
                 {picked.copies?.[0]?.hasBox && <span>📦 Box</span>}
@@ -154,6 +164,14 @@ export default function RandomizerPage() {
           </p>
         )}
       </div>
+
+      {detailItem && (
+        <PriceDetailModal
+          item={detailItem as any}
+          onClose={() => setDetailItem(null)}
+          allPeople={[]}
+        />
+      )}
     </div>
   );
 }
