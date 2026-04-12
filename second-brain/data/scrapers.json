@@ -142,5 +142,23 @@
     "itemsProcessed": 1,
     "itemsTotal": 1,
     "defaultCadenceHour": 1
+  },
+  {
+    "id": "catalog-scraper",
+    "name": "Game Catalog Updater",
+    "description": "Scrapes PriceCharting for all game titles across all supported platforms. Adds new games to the database without touching your existing collection data. Run weekly to pick up new releases.",
+    "script": "scripts/scrape-catalog.mjs",
+    "logFile": "logs/catalog-scraper.log",
+    "featureGroup": null,
+    "enabled": false,
+    "status": "idle",
+    "lastRun": null,
+    "lastRunStatus": null,
+    "nextRun": null,
+    "cadenceHour": 3,
+    "cadenceType": "weekly",
+    "itemsProcessed": 0,
+    "itemsTotal": 0,
+    "defaultCadenceHour": 3
   }
 ]
