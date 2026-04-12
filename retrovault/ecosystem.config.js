@@ -4,7 +4,7 @@ module.exports = {
       name: "retrovault",
       script: "node_modules/.bin/next",
       args: "start",
-      cwd: "/home/apesch/.openclaw/workspace/second-brain",
+      cwd: "/home/apesch/.openclaw/workspace/retrovault",
 
       // Process settings
       instances: 1,
@@ -21,8 +21,8 @@ module.exports = {
       },
 
       // Logging
-      out_file: "/home/apesch/.openclaw/workspace/second-brain/logs/pm2-out.log",
-      error_file: "/home/apesch/.openclaw/workspace/second-brain/logs/pm2-err.log",
+      out_file: "/home/apesch/.openclaw/workspace/retrovault/logs/pm2-out.log",
+      error_file: "/home/apesch/.openclaw/workspace/retrovault/logs/pm2-err.log",
       merge_logs: true,
       log_date_format: "YYYY-MM-DD HH:mm:ss",
 

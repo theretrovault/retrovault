@@ -3,16 +3,17 @@
 > **Your retro gaming collection engine.**  
 > Track what you own. Know what it's worth. Hunt smarter. Play more.
 
-The full app lives in the [`second-brain/`](./second-brain/) directory.
+The app lives in the [`retrovault/`](./retrovault/) directory.
 
-👉 **[View the full README →](./second-brain/README.md)**
+👉 **[View the full README →](./retrovault/README.md)**
 
 ---
 
 ## Quick Start
 
 ```bash
-cd second-brain
+cd retrovault
+cp data/sample/app.config.sample.json data/app.config.json
 npm install
 npm run dev
 ```
