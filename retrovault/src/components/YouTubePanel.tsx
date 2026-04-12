@@ -42,6 +42,7 @@ export function YouTubePanel({ game, platform, type: initialType = "playthrough"
   const [error, setError] = useState<string | null>(null);
 
   const fetchVideos = async (t: string) => {
+    if (configured === false) return; // Don't try if not configured
     setLoading(true);
     setError(null);
     setVideos([]);
@@ -51,9 +52,8 @@ export function YouTubePanel({ game, platform, type: initialType = "playthrough"
         `/api/youtube?game=${encodeURIComponent(game)}&platform=${encodeURIComponent(platform)}&type=${t}`
       );
       const data = await res.json();
-      setConfigured(data.configured !== false);
       if (data.videos) setVideos(data.videos);
-      if (data.videos?.length === 0) setError("No videos found for this game.");
+      if (!data.videos?.length) setError("No videos found for this game.");
     } catch {
       setError("Failed to load videos.");
     } finally {
@@ -62,7 +62,18 @@ export function YouTubePanel({ game, platform, type: initialType = "playthrough"
   };
 
   useEffect(() => {
-    fetchVideos(type);
+    // Quick config check before loading
+    fetch(`/api/youtube?game=${encodeURIComponent(game)}&platform=${encodeURIComponent(platform)}&type=${type}`)
+      .then(r => r.json())
+      .then(data => {
+        setConfigured(data.configured !== false);
+        if (data.configured !== false) {
+          setVideos(data.videos || []);
+          if (!data.videos?.length) setError('No videos found.');
+        }
+        setLoading(false);
+      })
+      .catch(() => { setError('Failed to load.'); setLoading(false); });
   }, [game, platform]);
 
   const switchType = (t: string) => {
@@ -70,23 +81,11 @@ export function YouTubePanel({ game, platform, type: initialType = "playthrough"
     fetchVideos(t);
   };
 
-  if (configured === false) {
-    return (
-      <div className="mt-5 border-t-2 border-zinc-800 pt-4">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-red-500 text-lg">📺</span>
-          <h4 className="text-zinc-400 font-terminal text-base uppercase">Videos</h4>
-        </div>
-        <div className="border border-zinc-800 bg-zinc-900/30 p-3">
-          <p className="text-zinc-500 font-terminal text-sm">YouTube videos not configured.</p>
-          <p className="text-zinc-700 font-terminal text-xs mt-1">
-            Add <code className="bg-zinc-800 px-1">YOUTUBE_API_KEY</code> to .env.local
-            — free from <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-400">console.cloud.google.com</a>
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Not configured — render nothing (clean UX, no noise)
+  if (configured === false) return null;
+
+  // Still checking config (loading state on first render)
+  if (configured === null && loading) return null;
 
   return (
     <div className="mt-5 border-t-2 border-zinc-800 pt-4">
