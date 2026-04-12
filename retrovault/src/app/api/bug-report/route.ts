@@ -7,7 +7,12 @@ import crypto from 'crypto';
 export const dynamic = 'force-dynamic';
 
 const RATE_FILE = path.join(process.cwd(), 'data', 'bug-reports.json');
-const GITHUB_REPO = 'apesch85/retrovault';
+function getGithubRepo(): string {
+  try {
+    const cfg = JSON.parse(require('fs').readFileSync(require('path').join(process.cwd(), 'data', 'app.config.json'), 'utf8'));
+    return cfg.githubRepo || 'apesch85/retrovault';
+  } catch { return 'apesch85/retrovault'; }
+}
 const RATE_LIMIT_HOURS = 1;
 const MAX_PER_DAY = 5; // per IP
 
@@ -88,7 +93,7 @@ async function searchExistingIssues(title: string, token: string): Promise<{ isD
   if (!keywords) return { isDuplicate: false };
 
   try {
-    const searchUrl = `https://api.github.com/search/issues?q=${encodeURIComponent(keywords)}+repo:${GITHUB_REPO}+is:issue+is:open&per_page=5`;
+    const searchUrl = `https://api.github.com/search/issues?q=${encodeURIComponent(keywords)}+repo:${getGithubRepo()}+is:issue+is:open&per_page=5`;
     const res = await fetch(searchUrl, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -124,7 +129,7 @@ async function searchExistingIssues(title: string, token: string): Promise<{ isD
 }
 
 async function createGitHubIssue(title: string, body: string, labels: string[], token: string): Promise<{ url: string; number: number }> {
-  const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/issues`, {
+  const res = await fetch(`https://api.github.com/repos/${getGithubRepo()}/issues`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -234,7 +239,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  // Return whether bug reporting is configured
   const configured = !!process.env.GITHUB_ISSUES_TOKEN;
-  return NextResponse.json({ configured });
+  const repo = getGithubRepo();
+  return NextResponse.json({ configured, repo, issuesUrl: `https://github.com/${repo}/issues` });
 }

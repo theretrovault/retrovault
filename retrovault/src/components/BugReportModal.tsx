@@ -23,9 +23,10 @@ export function BugReportModal({ onClose }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ ok?: boolean; error?: string; issueUrl?: string; issueNumber?: number; duplicate?: boolean; existingUrl?: string; existingTitle?: string; resetIn?: number } | null>(null);
   const [configured, setConfigured] = useState<boolean | null>(null);
+  const [issuesUrl, setIssuesUrl] = useState('https://github.com/apesch85/retrovault/issues');
 
   useEffect(() => {
-    fetch("/api/bug-report").then(r => r.json()).then(d => setConfigured(d.configured));
+    fetch("/api/bug-report").then(r => r.json()).then(d => { setConfigured(d.configured); if (d.issuesUrl) setIssuesUrl(d.issuesUrl); });
   }, []);
 
   const submit = async (e: React.FormEvent) => {
@@ -72,7 +73,7 @@ export function BugReportModal({ onClose }: Props) {
           <div className="p-5 border border-yellow-800 bg-yellow-950/20 m-5">
             <p className="text-yellow-400 font-terminal text-sm">⚠️ Bug reporting is not configured.</p>
             <p className="text-zinc-500 font-terminal text-xs mt-1">Add <code className="bg-zinc-900 px-1">GITHUB_ISSUES_TOKEN</code> to <code className="bg-zinc-900 px-1">.env.local</code> to enable in-app bug reporting.</p>
-            <p className="text-zinc-600 font-terminal text-xs mt-2">In the meantime, open issues directly at: <a href="https://github.com/apesch85/retrovault/issues" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-400">github.com/apesch85/retrovault/issues ↗</a></p>
+            <p className="text-zinc-600 font-terminal text-xs mt-2">In the meantime, open issues directly at: <a href={issuesUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-400">{issuesUrl.replace("https://", "")} ↗</a></p>
           </div>
         )}
 
