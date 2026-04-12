@@ -23,6 +23,46 @@ type Config = {
 
 const THEME_COLORS = ["green","blue","purple","orange","cyan","yellow","pink"];
 
+function YouTubeSettings() {
+  const [configured, setConfigured] = useState<boolean | null>(null);
+  useEffect(() => {
+    fetch('/api/youtube?game=test&platform=test&type=test')
+      .then(r => r.json())
+      .then(d => setConfigured(d.configured !== false))
+      .catch(() => setConfigured(false));
+  }, []);
+
+  return (
+    <div className="space-y-4">
+      <div className={`border-2 p-4 ${configured ? 'border-red-800 bg-red-950/10' : 'border-zinc-800'}`}>
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-2xl">{configured ? '✅' : '⚠️'}</span>
+          <div>
+            <div className={`font-terminal text-base ${configured ? 'text-red-400' : 'text-zinc-400'}`}>
+              {configured ? 'YouTube API configured — videos active in game modals' : 'YouTube API not configured — video section hidden'}
+            </div>
+            <p className="text-zinc-600 font-terminal text-xs mt-0.5">
+              {configured
+                ? 'Game and console modals show playthrough, walkthrough, and review videos.'
+                : 'Add YOUTUBE_API_KEY to .env.local to enable in-modal videos.'}
+            </p>
+          </div>
+        </div>
+        {!configured && (
+          <div className="bg-zinc-900 border border-zinc-700 p-3 font-mono text-xs text-zinc-400 mt-2">
+            <p className="text-zinc-500 mb-1"># Add to .env.local:</p>
+            <p>YOUTUBE_API_KEY=AIzaSy...</p>
+          </div>
+        )}
+        <p className="text-zinc-600 font-terminal text-xs mt-2">
+          Free API key from <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-400">console.cloud.google.com</a>.
+          Enable "YouTube Data API v3". Free quota: 10,000 units/day (100+ video lookups/day). Videos are cached after first load.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function BugReportingSettings({ config, setConfig }: { config: any; setConfig: (c: any) => void }) {
   const [bugStatus, setBugStatus] = useState<{ configured: boolean; issuesUrl: string } | null>(null);
   useEffect(() => {
@@ -421,6 +461,10 @@ export default function SettingsPage() {
             );
           })}
         </div>
+      </Section>
+
+      <Section title="YouTube Videos" icon="📺">
+        <YouTubeSettings />
       </Section>
 
       <Section title="Bug Reporting" icon="🐛">
