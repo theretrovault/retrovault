@@ -45,6 +45,74 @@ RetroVault is self-hosted. Your collection data lives in plain files on your own
 
 ---
 
+## How it compares
+
+You've probably tried the alternatives. Here's why they left you wanting more.
+
+### vs. PriceCharting
+
+PriceCharting is indispensable as a **price reference** — we use it as our data source too. But its built-in collection tracker is a sideline feature, not a purpose-built tool.
+
+| | PriceCharting | RetroVault |
+|---|---|---|
+| Market prices (Loose/CIB/New/Graded) | ✅ | ✅ (powered by PriceCharting) |
+| 30-day price history & trend analysis | ✅ | ✅ |
+| Collection tracking | Basic | Full (copies, condition, cost, source, date) |
+| P&L / flip tracking | ❌ | ✅ Full ledger with realized profit |
+| Buy/Sell score per game | ❌ | ✅ Computed from market + trend data |
+| Hot List (ranked flip opportunities) | ❌ | ✅ |
+| Field Mode (garage sale price checker) | ❌ | ✅ With dupe alert + Should I Buy? |
+| Negotiation Helper | ❌ | ✅ |
+| Convention budget tracker | ❌ | ✅ |
+| Watchlist price alerts | ❌ | ✅ |
+| Play Log / backlog tracker | ❌ | ✅ |
+| Holy Grail Tracker | ❌ | ✅ |
+| Achievement system | ❌ | ✅ 100+ achievements |
+| Local deal alerts (Craigslist/Reddit) | ❌ | ✅ |
+| Sourcing analytics (ROI by source) | ❌ | ✅ |
+| Seasonal buy/sell calendar | ❌ | ✅ |
+| Self-hosted / your data | ❌ (cloud only) | ✅ |
+| Free | Free tier + paid Pro | ✅ Free and open source |
+
+**Bottom line:** PriceCharting is where you look up a price. RetroVault is what you do with that information.
+
+---
+
+### vs. CLZ Games
+
+CLZ Games is the most polished dedicated game collection app available. It's genuinely good, especially on mobile. But it's built for cataloging, not for the business of collecting.
+
+| | CLZ Games | RetroVault |
+|---|---|---|
+| Mobile app | ✅ Native iOS/Android | ✅ PWA (installable, works offline) |
+| Barcode scanning | ✅ | ❌ (title search instead) |
+| Cover art & metadata | ✅ Rich database | ✅ via PriceCharting catalog |
+| Market prices | ✅ (PriceCharting powered) | ✅ (PriceCharting powered) |
+| Cloud sync | ✅ (CLZ Cloud) | Self-hosted (your data stays local) |
+| P&L / profit tracking | ❌ | ✅ |
+| Flip calculator with fee math | ❌ | ✅ |
+| Hot flip opportunities | ❌ | ✅ |
+| Field Mode decision engine | ❌ | ✅ |
+| Negotiation assistance | ❌ | ✅ |
+| Local deal alerts | ❌ | ✅ |
+| Convention tracker | ❌ | ✅ |
+| Critics / social ratings | ❌ | ✅ |
+| Achievement system | ❌ | ✅ |
+| Open source | ❌ (proprietary SaaS) | ✅ MIT license |
+| Subscription required | ✅ ~$4-6/month | ❌ Free forever |
+
+**Bottom line:** CLZ is excellent if you want a polished catalog app and cloud sync. RetroVault is for collectors who also want to understand the *business* of their collection — what to buy, what to sell, what the margins look like.
+
+---
+
+### vs. a spreadsheet
+
+A spreadsheet can't check for dupes at a garage sale. It doesn't know what the 30-day price trend is. It won't tell you your ROI after eBay fees. It has no idea when gaming conventions are happening near you. And it definitely doesn't have an achievement for finding 10 items off your grail list.
+
+You know this already. That's why you're here.
+
+---
+
 ## Getting started
 
 ### Requirements
