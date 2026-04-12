@@ -1,5 +1,13 @@
 # 👾 RetroVault
 
+[![CI](https://github.com/apesch85/retrovault/actions/workflows/test.yml/badge.svg)](https://github.com/apesch85/retrovault/actions/workflows/test.yml)
+[![Build](https://github.com/apesch85/retrovault/actions/workflows/build.yml/badge.svg)](https://github.com/apesch85/retrovault/actions/workflows/build.yml)
+[![Version](https://img.shields.io/badge/version-2.0.0-22c55e?style=flat-square)](retrovault/src/data/changelog.ts)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square)](https://typescriptlang.org)
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
+
 **You've got a spreadsheet. You hate your spreadsheet.**
 
 It doesn't know what your Earthbound CIB is worth today. It can't tell you if the PS1 game at the garage sale tomorrow is on your want list. It has no idea you already own three copies of Madden '95.

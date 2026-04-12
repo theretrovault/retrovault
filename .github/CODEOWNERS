@@ -1,0 +1,7 @@
+# RetroVault CODEOWNERS
+# All files require review from the maintainer
+* @apesch85
+
+# Core data files require explicit sign-off
+retrovault/src/data/ @apesch85
+retrovault/src/app/api/ @apesch85
