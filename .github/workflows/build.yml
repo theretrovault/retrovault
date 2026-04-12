@@ -3,13 +3,9 @@ name: RetroVault Build Check
 on:
   push:
     branches: [ master, main ]
-    paths:
-      - 'retrovault/src/**'
-      - 'retrovault/package*.json'
-      - 'retrovault/next.config.ts'
-      - 'retrovault/tsconfig.json'
   pull_request:
     branches: [ master, main ]
+  workflow_dispatch:  # Allow manual trigger from GitHub Actions UI
 
 jobs:
   build:
