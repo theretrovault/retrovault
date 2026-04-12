@@ -14,7 +14,7 @@ type Features = {
 
 type Config = {
   appName: string; tagline: string; ownerName: string; themeColor: string;
-  currency: string; dateFormat: string; publicUrl: string; standaloneMode: boolean;
+  currency: string; dateFormat: string; region: string; publicUrl: string; standaloneMode: boolean;
   auth: { enabled: boolean; passwordHash: string };
   fetchScheduleHour: number; priceDataSource: string;
   features: Features;
@@ -160,6 +160,27 @@ export default function SettingsPage() {
               </button>
             ))}
           </div>
+        </div>
+        <div>
+          <label className="block text-zinc-400 font-terminal text-sm mb-2 uppercase">Region / Price Market</label>
+          <div className="flex gap-3 flex-wrap">
+            {[
+              { id: "NTSC", label: "NTSC (North America)", desc: "US prices — default" },
+              { id: "PAL",  label: "PAL (Europe/Australia)", desc: "European prices" },
+              { id: "JP",   label: "JP (Japan)", desc: "Japanese prices" },
+            ].map(r => (
+              <button key={r.id} onClick={() => setConfig({ ...config, region: r.id } as any)}
+                className={`px-4 py-2 font-terminal text-base border-2 transition-colors text-left ${
+                  (config as any).region === r.id || (!((config as any).region) && r.id === 'NTSC')
+                    ? "bg-green-600 text-black border-green-400"
+                    : "text-zinc-400 border-zinc-700 hover:border-zinc-400"
+                }`}>
+                <div>{r.label}</div>
+                <div className="text-xs opacity-60">{r.desc}</div>
+              </button>
+            ))}
+          </div>
+          <p className="text-zinc-600 font-terminal text-xs mt-2">Controls which regional price data is used when fetching from PriceCharting. NTSC is the North American market (recommended for most users).</p>
         </div>
       </Section>
 

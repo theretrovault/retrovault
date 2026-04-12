@@ -1,5 +1,14 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
+import fs from 'fs';
+import path from 'path';
+
+function getRegion(): string {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'data', 'app.config.json'), 'utf8'));
+    return (cfg.region || 'NTSC').toUpperCase();
+  } catch { return 'NTSC'; }
+}
 
 // Normalized title for comparison: lowercase, remove punctuation and common noise words
 function normalizeTitle(s: string): string {
@@ -31,26 +40,96 @@ function hasSuspiciousSuffix(query: string, candidate: string): boolean {
   return extraTokens.some(t => /^(2|3|4|5|ii|iii|iv|v|vi|deluxe|plus|ex|super|special|turbo|remix|ultra)$/i.test(t));
 }
 
-// Map platform names to PriceCharting console slugs
+// Map platform names to PriceCharting console slugs (NTSC/NA region names)
 const PLATFORM_SLUGS: Record<string, string> = {
-  'sega genesis': 'sega-genesis',
+  // Nintendo retro
   'nes': 'nes',
   'snes': 'super-nintendo',
+  'super nintendo': 'super-nintendo',
   'super nintendo entertainment system': 'super-nintendo',
   'n64': 'n64',
   'nintendo 64': 'n64',
   'gamecube': 'gamecube',
   'nintendo gamecube': 'gamecube',
-  'nintendo switch': 'switch',
+  // Nintendo modern
+  'wii': 'wii',
+  'nintendo wii': 'wii',
+  'wii u': 'wii-u',
+  'nintendo wii u': 'wii-u',
+  'nintendo switch': 'nintendo-switch',
+  'switch': 'nintendo-switch',
+  'switch 2': 'nintendo-switch-2',
+  // Nintendo handheld
+  'game boy': 'gameboy',
+  'gameboy': 'gameboy',
+  'game boy color': 'gameboy-color',
+  'gameboy color': 'gameboy-color',
+  'game boy advance': 'gameboy-advance',
+  'gameboy advance': 'gameboy-advance',
+  'gba': 'gameboy-advance',
+  'nintendo ds': 'nintendo-ds',
+  'ds': 'nintendo-ds',
+  'nintendo 3ds': 'nintendo-3ds',
+  '3ds': 'nintendo-3ds',
+  // PlayStation
+  'ps1': 'playstation',
+  'psx': 'playstation',
+  'playstation': 'playstation',
   'playstation 1': 'playstation',
+  'ps2': 'playstation-2',
   'playstation 2': 'playstation-2',
+  'ps3': 'playstation-3',
   'playstation 3': 'playstation-3',
+  'ps4': 'playstation-4',
+  'playstation 4': 'playstation-4',
+  'ps5': 'playstation-5',
+  'playstation 5': 'playstation-5',
+  'psp': 'psp',
   'sony psp': 'psp',
-  'xbox': 'xbox',
-  'xbox 360': 'xbox-360',
+  'ps vita': 'playstation-vita',
+  'playstation vita': 'playstation-vita',
+  'vita': 'playstation-vita',
+  // Sega
+  'sega genesis': 'sega-genesis',
+  'genesis': 'sega-genesis',
   'sega cd': 'sega-cd',
-  'sega dreamcast': 'dreamcast',
+  'sega 32x': 'sega-32x',
+  '32x': 'sega-32x',
+  'sega saturn': 'sega-saturn',
+  'saturn': 'sega-saturn',
+  'dreamcast': 'sega-dreamcast',
+  'sega dreamcast': 'sega-dreamcast',
+  'game gear': 'sega-game-gear',
+  'sega game gear': 'sega-game-gear',
+  'sega master system': 'sega-master-system',
+  'master system': 'sega-master-system',
+  // Xbox
+  'xbox': 'xbox',
+  'original xbox': 'xbox',
+  'xbox 360': 'xbox-360',
+  'xbox one': 'xbox-one',
+  'xbox series x': 'xbox-series-x',
+  // Legacy
+  'atari 2600': 'atari-2600',
+  'turbografx-16': 'turbografx-16',
+  'neo geo': 'neo-geo-aes',
+  'atari jaguar': 'atari-jaguar',
 };
+
+// PAL/JP platform name prefixes to exclude when preferring NTSC
+const PAL_PREFIXES = ['pal ', 'jp ', 'pal-', 'jp-', 'european ', 'japan '];
+
+function shouldSkipRegion(platformText: string): boolean {
+  const region = getRegion();
+  const lower = platformText.toLowerCase();
+  const isPal = PAL_PREFIXES.some(p => lower.startsWith(p)) || lower.includes('pal ') || lower.includes(' pal');
+  const isJp  = lower.startsWith('jp ') || lower.includes(' jp ') || lower.startsWith('jp-');
+  const isNtsc = !isPal && !isJp;
+  if (region === 'NTSC') return isPal || isJp;  // skip non-NTSC
+  if (region === 'PAL')  return !isPal;           // skip non-PAL
+  if (region === 'JP')   return !isJp;            // skip non-JP
+  return isPal || isJp; // default: NTSC
+}
 
 function titleToSlug(s: string): string {
   return s.toLowerCase()
@@ -106,11 +185,15 @@ export async function GET(request: Request) {
             const isThisPlatform = platAliases.some((a: string) => rowLower.includes(a.toLowerCase()));
             if (!isThisPlatform) return;
 
+            // Skip PAL/JP rows — we want NTSC prices by default
+            // Check the platform cell specifically, not the whole row
+            const platformCell = rowEl.find('td').eq(1).text().trim();
+            if (shouldSkipRegion(platformCell)) return;
+
             const prices = rowEl.find('.js-price').map((_: any, el: any) => $d(el).text().replace('$','').replace(',','').trim()).get().filter((p: string) => p && p !== '?' && !isNaN(parseFloat(p)));
             if (prices.length < 2) return;
 
             // Score this row: how well does the row title match our game title?
-            // Find the link text or first cell text as the row's game title
             const rowTitleEl = rowEl.find('a').first();
             const rowTitle = rowTitleEl.text().replace(/\s+/g, ' ').trim() || rowText.slice(0, 50);
             const score = tokenScore(gameTitle, rowTitle) - (hasSuspiciousSuffix(gameTitle, rowTitle) ? 0.5 : 0);
@@ -172,6 +255,10 @@ export async function GET(request: Request) {
         const titleEl = rowEl.find('td.title a, td.title');
         const rowTitle = titleEl.text().trim();
         if (!rowTitle) continue;
+
+        // Skip PAL/JP results — prefer NTSC prices
+        const platformCell = rowEl.find('td').eq(1).text().trim();
+        if (shouldSkipRegion(platformCell)) continue;
 
         // Score this result
         const score = tokenScore(queryTitle, rowTitle);
