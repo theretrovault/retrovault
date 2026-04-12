@@ -1,4 +1,4 @@
-export type FeatureGroup = "collection" | "business" | "fieldTools" | "social" | "personal" | "media";
+export type FeatureGroup = "collection" | "business" | "fieldTools" | "social" | "personal";
 
 export type NavItem = {
   href: string;
@@ -128,20 +128,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/grails", label: "Grail List", icon: "🏴‍☠️", feature: "personal" },
       { href: "/journal", label: "Memory Bank", icon: "📓", feature: "personal" },
     ],
-  },
-  {
-    id: "media",
-    label: "Media",
-    icon: "🎬",
-    description: "Optional media server integration for browsing your library alongside games.",
-    benefits: [
-      "Connect a media server to browse movies, TV, and music",
-      "Direct links to IMDb and streaming services",
-      "Disabled by default — enable if you want media integration",
-    ],
-    alwaysOn: false,
-    items: [],
-  },
+  }
 ];
 
 // Always-visible items regardless of feature flags
@@ -163,7 +150,6 @@ export type Features = {
   fieldTools: boolean;
   social: boolean;
   personal: boolean;
-  media: boolean;
 };
 
 export const DEFAULT_FEATURES: Features = {
@@ -172,7 +158,6 @@ export const DEFAULT_FEATURES: Features = {
   fieldTools: true,
   social: true,
   personal: true,
-  media: true,
 };
 
 export function getEnabledGroups(features: Features): NavGroup[] {

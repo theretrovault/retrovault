@@ -9,14 +9,13 @@ import Link from "next/link";
 
 type Features = {
   collection: boolean; business: boolean; fieldTools: boolean;
-  social: boolean; personal: boolean; media: boolean;
+  social: boolean; personal: boolean;
 };
 
 type Config = {
   appName: string; tagline: string; ownerName: string; themeColor: string;
   currency: string; dateFormat: string; publicUrl: string; standaloneMode: boolean;
   auth: { enabled: boolean; passwordHash: string };
-  plex: { url: string; token: string };
   fetchScheduleHour: number; priceDataSource: string;
   features: Features;
 };
@@ -180,22 +179,6 @@ export default function SettingsPage() {
           </div>
           <p className="text-zinc-600 font-terminal text-xs mt-1">Standalone shows the app's own navigation. Embedded uses Mission Control's sidebar.</p>
         </div>
-      </Section>
-
-      <Section title="Media Server (Optional)" icon="🎬">
-        <div>
-          <label className="block text-zinc-400 font-terminal text-sm mb-1 uppercase">Plex Server URL</label>
-          <input type="text" className="w-full bg-black border-2 border-green-800 text-green-300 p-2 font-terminal text-xl focus:outline-none focus:border-green-400"
-            placeholder="https://YYY.YYY.YYY.YYY:PPPPP" value={config.plex?.url || ""}
-            onChange={e => setConfig({ ...config, plex: { ...config.plex, url: e.target.value } })} />
-        </div>
-        <div>
-          <label className="block text-zinc-400 font-terminal text-sm mb-1 uppercase">Plex Token</label>
-          <input type="password" className="w-full bg-black border-2 border-green-800 text-green-300 p-2 font-terminal text-xl focus:outline-none focus:border-green-400"
-            placeholder="Your X-Plex-Token" value={config.plex?.token || ""}
-            onChange={e => setConfig({ ...config, plex: { ...config.plex, token: e.target.value } })} />
-        </div>
-        <p className="text-zinc-600 font-terminal text-xs">Optional: connect a Plex media server to enable the Media feature group. Leave blank if not using media integration.</p>
       </Section>
 
       <Section title="Price Data" icon="📊">

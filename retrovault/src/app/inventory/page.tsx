@@ -1077,7 +1077,7 @@ export default function InventoryPage() {
                 }, {
                   icon: "⚙️", title: "PLATFORM & SETTINGS",
                   content: [
-                    "SETTINGS (/settings) — theme, color, app name, auth, media server config, feature flags, city config.",
+                    "SETTINGS (/settings) — theme, color, app name, auth, feature flags, city config.",
                     "FEATURE FLAGS — enable/disable entire feature groups; nav updates instantly.",
                     "THEME SYSTEM — 8 color palettes × 5 style themes (Terminal, CRT Scanline, Arcade, Cartridge, Galaxy).",
                     "GLOBAL SEARCH — press / or click 🔍 to search pages, games, grails, watchlist, events.",
