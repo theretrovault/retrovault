@@ -337,6 +337,24 @@ Add to `src/data/achievements.ts` in the `ACHIEVEMENTS` array:
 
 Add context fields to `AchievementContext` if needed, then populate them in `src/app/api/achievements/route.ts`.
 
+### Scheduler behavior
+
+The in-process scheduler (`src/lib/scheduler.ts`) runs automatically when the Next.js server starts via `src/instrumentation.ts`. It uses `setInterval` to check every minute whether any enabled scraper should run based on its `cadenceType` and `cadenceHour`.
+
+**Cadence types:**
+- `hourly` — runs at minute 0, every N hours (`cadenceHour` = interval)
+- `daily` — runs at minute 0, every day at `cadenceHour` 
+- `weekly` — runs on Monday at `cadenceHour`
+- `on-demand` — never auto-runs, only via "Run Now" button
+
+**When user changes a schedule in the Scraper UI:**
+1. `PUT /api/scrapers` with `action: update_cadence`
+2. Saves to `data/scrapers.json`
+3. Calls `reloadSchedules()` — takes effect within 60 seconds (next tick)
+4. No server restart required
+
+**Tests:** `src/__tests__/scheduler.test.ts` — covers all cadence types, disabled/on-demand invariants, exact fire counts per day/week.
+
 ### New scraper
 
 1. Create `scripts/scrape-yourdata.mjs`

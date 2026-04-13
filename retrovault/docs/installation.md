@@ -45,9 +45,11 @@ docker compose run --rm price-fetcher
 docker compose run --rm event-scraper
 ```
 
-For automatic scheduling, add a cron job on your host to run these:
-```cron
-0 0 * * * docker compose -f /path/to/retrovault/docker-compose.yml run --rm price-fetcher
+**Scheduled scrapers run automatically!** RetroVault includes a built-in scheduler — configure schedules from the Scraper Control Center (`/scrapers`) in the app UI. No crontab or external tools needed.
+
+To run a scraper manually on-demand:
+```bash
+docker compose exec retrovault node scripts/bg-fetch.mjs
 ```
 
 ### Docker — updates
