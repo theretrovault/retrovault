@@ -411,8 +411,8 @@ Follow the existing style:
 | Deploy update | `bash scripts/deploy.sh` |
 | Fetch prices | `node scripts/bg-fetch.mjs` |
 | Scrape events | `node scripts/scrape-events.mjs` |
-| Value snapshot | `node scripts/snapshot-value.mjs` |
-| Git sync | `node scripts/git-sync.mjs` |
+| Value snapshot (manual) | `node scripts/snapshot-value.mjs` |
+| Git sync (manual) | `node scripts/git-sync.mjs` |
 | Tag release | `git tag v2.x.x && git push origin v2.x.x` |
 | Docker up | `docker compose up -d` |
 | Docker rebuild | `docker compose build && docker compose up -d` |
