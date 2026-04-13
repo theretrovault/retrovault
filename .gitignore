@@ -1,0 +1,17 @@
+# Personal AI workspace — never commit these
+SOUL.md
+MEMORY.md
+IDENTITY.md
+USER.md
+AGENTS.md
+HEARTBEAT.md
+TOOLS.md
+memory/
+state/
+
+# second-brain was a legacy folder — fully ignore
+second-brain/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
