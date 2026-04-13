@@ -20,28 +20,25 @@ data/reddit-alerts.json
 data/achievements-unlocked.json
 data/value-history.json
 data/app.config.json
-
 # Secrets
 .env.local
 .env
-
 # Logs (runtime, not for public)
 logs/
-
 # Temp / runtime
 data/fetch.lock
 data/scrapers.json
-
 # OS
 .DS_Store
 *.log
-
-
 # Plex integration (personal, optional feature — keep locally but don't publish)
 src/app/plex/
 src/app/api/plex/
 data/youtube-cache.json
-
 # Memory Bank / Mission Control (personal AI workspace — not part of RetroVault)
 src/app/journal/
 src/lib/markdown.ts
+/src/generated/prisma
+# SQLite database files
+*.db
+data/retrovault.db
