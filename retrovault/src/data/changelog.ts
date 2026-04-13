@@ -6,6 +6,7 @@ export type ChangelogEntry = {
   changes: { category: string; items: string[] }[];
 };
 
+export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "2.0.1",
     date: "2026-04-13",
@@ -34,7 +35,6 @@ export type ChangelogEntry = {
       ]},
     ],
   },
-export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.0.0",
     date: "2026-04-09",
