@@ -8,6 +8,26 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.0.7",
+    date: "2026-04-13",
+    title: "Developer Guide + Docker first-run fix",
+    type: "improvement",
+    changes: [
+      { category: "Documentation", items: [
+        "Added docs/developer-guide.md — end-to-end contributor guide",
+        "Added docs/README.md — documentation index",
+        "Developer guide covers: architecture, data layer, testing, CI/CD, releases, Docker, code style",
+        "README now links to both installation and developer guides",
+      ]},
+      { category: "Docker", items: [
+        "Added .env.example template with all optional env vars documented",
+        "docker-compose.yml: env_file now has required:false (no more crash on missing .env.local)",
+        "README and installation docs updated to include cp .env.example .env.local step",
+      ]},
+    ],
+  },
+
+  {
     version: "2.0.1",
     date: "2026-04-13",
     title: "Infrastructure & Docker fixes",

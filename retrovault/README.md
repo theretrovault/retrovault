@@ -124,8 +124,8 @@ You know this already. That's why you're here.
 
 ## Getting started
 
-> **📋 [Full installation guide →](docs/installation.md)**
-> Covers Docker, Debian/Ubuntu, CentOS/RHEL, macOS, Windows, and Raspberry Pi.
+> **📋 [Installation guide →](docs/installation.md)** — Docker, Debian/Ubuntu, CentOS/RHEL, macOS, Windows, Raspberry Pi
+> **🛠️ [Developer guide →](docs/developer-guide.md)** — Architecture, CI/CD, testing, releases, contributing
 
 ### 🐳 Docker (easiest — all platforms)
 
