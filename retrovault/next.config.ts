@@ -10,3 +10,5 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+// Docker standalone output configured via DOCKER_BUILD env var
