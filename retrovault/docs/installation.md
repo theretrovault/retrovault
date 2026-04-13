@@ -26,11 +26,14 @@ docker compose up -d
 
 Your collection lives in `../retrovault-data/` (outside the container, persists across updates).
 
-Add API keys to `.env.local` in the `retrovault/` directory:
+API keys are optional — RetroVault works without them. To enable YouTube videos and in-app bug reporting:
+
+```bash
+cp .env.example .env.local
+# Edit .env.local and uncomment the keys you want
 ```
-YOUTUBE_API_KEY=AIza...
-GITHUB_ISSUES_TOKEN=github_pat_...
-```
+
+See `.env.example` for all available options with explanations.
 
 ### Docker — scheduled scrapers
 

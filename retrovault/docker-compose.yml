@@ -21,7 +21,8 @@ services:
       # - YOUTUBE_API_KEY=AIza...
       # - GITHUB_ISSUES_TOKEN=github_pat_...
     env_file:
-      - .env.local   # Optional: create this file with your API keys
+      - path: .env.local
+        required: false  # Won't fail if file doesn't exist — copy .env.example to .env.local to add API keys
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 30s

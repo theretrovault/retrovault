@@ -134,6 +134,7 @@ git clone https://github.com/theretrovault/retrovault.git
 cd retrovault/retrovault
 mkdir -p ../retrovault-data
 cp data/sample/app.config.sample.json ../retrovault-data/app.config.json
+cp .env.example .env.local  # optional: add YouTube/GitHub API keys
 docker compose up -d
 ```
 
