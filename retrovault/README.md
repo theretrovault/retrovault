@@ -259,6 +259,7 @@ MIT — use it, fork it, build on it.
 RetroVault is free and open source. If it saves you money on a deal or helps you run your collection better, consider sponsoring development:
 
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Sponsor%20RetroVault-EA4AAA?style=flat-square&logo=github-sponsors)](https://github.com/sponsors/apesch85)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?style=flat-square&logo=kofi)](https://ko-fi.com/alexp85)
 
 Every contribution helps keep the project active and free.
 
