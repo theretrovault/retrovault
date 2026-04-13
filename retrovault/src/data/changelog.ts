@@ -6,6 +6,34 @@ export type ChangelogEntry = {
   changes: { category: string; items: string[] }[];
 };
 
+  {
+    version: "2.0.1",
+    date: "2026-04-13",
+    title: "Infrastructure & Docker fixes",
+    type: "fix",
+    changes: [
+      { category: "Docker", items: [
+        "Fixed Dockerfile standalone output mode (DOCKER_BUILD=1 required for next.config.ts)",
+        "Fixed githubRepo default in embedded config",
+        "Docker CI smoke test now uses retry loop instead of fixed sleep",
+        "Published multi-platform image to GHCR (linux/amd64 + linux/arm64)",
+        "Added Unraid Community Applications template",
+      ]},
+      { category: "CI/CD", items: [
+        "Added publish-image.yml: builds and pushes to ghcr.io on version tag",
+        "Added release.yml: auto-creates GitHub Release with notes on tag push",
+        "Fixed Docker Build workflow path filters to trigger correctly",
+      ]},
+      { category: "Repository", items: [
+        "Migrated to theretrovault org (github.com/theretrovault/retrovault)",
+        "Git author set to RetroVault project identity",
+        "SemVer versioning formalized with docs/releasing.md",
+        "History scrubbed of sensitive data",
+        "Repository made public",
+        "Ko-fi and GitHub Sponsors added",
+      ]},
+    ],
+  },
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.0.0",
