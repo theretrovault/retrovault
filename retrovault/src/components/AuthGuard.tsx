@@ -17,9 +17,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    fetch("/api/auth")
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort();
+      // Fail open after 3s timeout
+      setAuthState("authenticated");
+    }, 3000);
+
+    fetch("/api/auth", { signal: controller.signal })
       .then(r => r.json())
       .then(d => {
+        clearTimeout(timeout);
         if (d.authenticated) {
           setAuthState("authenticated");
         } else {
@@ -28,10 +36,14 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {
+        clearTimeout(timeout);
         // Fail open on network error (LAN-first design)
         setAuthState("authenticated");
       });
-  }, [pathname, router]);
+
+    return () => { clearTimeout(timeout); controller.abort(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]); // router excluded — stable ref not needed for auth check
 
   if (authState === "loading") {
     return (
