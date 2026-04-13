@@ -62,12 +62,15 @@ export default function ScrapersPage() {
   const [notifications, setNotifications] = useState<string[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const [schedulerStatus, setSchedulerStatus] = useState<Record<string, { scheduled: boolean; cronExpr: string | null }>>({});
 
   const load = () => {
     fetch("/api/scrapers").then(r => r.json()).then((d: Scraper[]) => {
       setScrapers(d);
       setLoading(false);
     });
+    // Also fetch scheduler status
+    fetch("/api/scrapers/status").then(r => r.json()).then(d => setSchedulerStatus(d)).catch(() => {});
   };
 
   useEffect(() => {
@@ -127,9 +130,9 @@ export default function ScrapersPage() {
     const updated = await res.json();
     setScrapers(prev => prev.map(s => s.id === id ? { ...s, ...updated } : s));
     if (updated.enabled) {
-      notify(`✅ ${scraper.name} enabled — registered in cron (${cadenceLabel(updated)})`);
+      notify(`✅ ${scraper.name} enabled — scheduled automatically (${cadenceLabel(updated)})`);
     } else {
-      notify(`⏸ ${scraper.name} disabled — removed from cron`);
+      notify(`⏸ ${scraper.name} disabled — removed from schedule`);
     }
   };
 
@@ -236,6 +239,19 @@ export default function ScrapersPage() {
                       <div className="text-zinc-400 font-terminal text-sm">{cadenceLabel(s)}</div>
                       <div className="text-zinc-700 font-terminal text-xs">schedule</div>
                     </div>
+                    {/* In-process scheduler status */}
+                    {schedulerStatus[s.id] && (
+                      <div>
+                        <div className={`font-terminal text-sm ${
+                          schedulerStatus[s.id].scheduled ? 'text-emerald-400' : 'text-zinc-600'
+                        }`}>
+                          {schedulerStatus[s.id].scheduled ? '⏰ SCHEDULED' : '⏸ NOT SCHEDULED'}
+                        </div>
+                        <div className="text-zinc-700 font-terminal text-xs">
+                          {schedulerStatus[s.id].cronExpr || 'on-demand'}
+                        </div>
+                      </div>
+                    )}
                     {s.logSize > 0 && (
                       <div>
                         <div className="text-zinc-500 font-terminal text-sm">{fmtBytes(s.logSize)}</div>

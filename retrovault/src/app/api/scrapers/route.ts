@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+// Scheduler imported dynamically to avoid bundling child_process in client paths
 
 export const dynamic = 'force-dynamic';
 
@@ -74,32 +75,10 @@ export async function POST(req: Request) {
   if (action === 'run') {
     if (idx < 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const scraper = scrapers[idx];
-    const scriptPath = path.join(process.cwd(), scraper.script);
+    if (!scraper.script) return NextResponse.json({ error: 'Script not configured' }, { status: 400 });
 
-    if (!fs.existsSync(scriptPath)) {
-      return NextResponse.json({ error: `Script not found: ${scraper.script}` }, { status: 404 });
-    }
-
-    if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true });
-
-    // Run in background, log to file
-    const logPath = path.join(process.cwd(), scraper.logFile);
-    const cmd = `node ${scriptPath} >> ${logPath} 2>&1 &`;
-
-    scrapers[idx].status = 'running';
-    scrapers[idx].lastRun = new Date().toISOString();
-    saveScrapers(scrapers);
-
-    exec(cmd, (err) => {
-      const s2 = loadScrapers();
-      const i2 = s2.findIndex(s => s.id === id);
-      if (i2 >= 0) {
-        s2[i2].status = err ? 'error' : 'idle';
-        s2[i2].lastRunStatus = err ? 'error' : 'success';
-        saveScrapers(s2);
-      }
-    });
-
+    // Run via the in-process scheduler (handles status updates + logging)
+    try { const { runNow } = await import('@/lib/scheduler'); runNow(id).catch(console.error); } catch { console.error('Scheduler not available'); }
     return NextResponse.json({ ok: true, status: 'running' });
   }
 
@@ -107,6 +86,7 @@ export async function POST(req: Request) {
     if (idx < 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     scrapers[idx].enabled = !scrapers[idx].enabled;
     saveScrapers(scrapers);
+    try { const { reloadSchedules } = await import('@/lib/scheduler'); reloadSchedules(); } catch {}
     return NextResponse.json(scrapers[idx]);
   }
 
@@ -115,39 +95,10 @@ export async function POST(req: Request) {
     scrapers[idx].cadenceHour = body.cadenceHour;
     scrapers[idx].cadenceType = body.cadenceType;
     saveScrapers(scrapers);
-
-    // Update crontab for this scraper
-    try {
-      const { stdout: currentCron } = await execAsync('crontab -l 2>/dev/null || echo ""');
-      const scriptName = path.basename(scrapers[idx].script, '.mjs');
-      const logPath = path.join(process.cwd(), scrapers[idx].logFile);
-      const scriptPath = path.join(process.cwd(), scrapers[idx].script);
-
-      // Remove existing entry for this script
-      const lines = currentCron.split('\n').filter(l => !l.includes(scriptName));
-
-      // Build cron expression
-      let cronExpr = '';
-      if (body.cadenceType === 'hourly') {
-        cronExpr = `0 */${body.cadenceHour} * * *`;
-      } else if (body.cadenceType === 'daily') {
-        cronExpr = `0 ${body.cadenceHour} * * *`;
-      } else if (body.cadenceType === 'weekly') {
-        cronExpr = `0 ${body.cadenceHour} * * 1`;
-      }
-
-      if (scrapers[idx].enabled && fs.existsSync(scriptPath)) {
-        lines.push(`${cronExpr} node ${scriptPath} >> ${logPath} 2>&1`);
-      }
-
-      const newCron = lines.filter(Boolean).join('\n') + '\n';
-      await execAsync(`echo "${newCron.replace(/"/g, '\\"')}" | crontab -`);
-    } catch (e) {
-      console.error('Cron update failed:', e);
-    }
-
+    try { const { reloadSchedules } = await import('@/lib/scheduler'); reloadSchedules(); } catch {}
     return NextResponse.json(scrapers[idx]);
   }
+
 
   if (action === 'clear_log') {
     if (idx < 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
