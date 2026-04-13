@@ -19,7 +19,7 @@ COPY . .
 # Create minimal data directory for build (real data mounts at runtime)
 RUN mkdir -p data && \
     echo '[]' > data/inventory.json && \
-    echo '{"appName":"RetroVault","tagline":"Your Retro Gaming Collection Engine","ownerName":"","themeColor":"green","currency":"$","dateFormat":"US","region":"NTSC","publicUrl":"","standaloneMode":true,"auth":{"enabled":false,"passwordHash":""},"plex":{"url":"","token":""},"fetchScheduleHour":0,"priceDataSource":"pricecharting","githubRepo":"apesch85/retrovault","scrapers":{"craigslistCity":"portland"},"features":{"business":true,"fieldTools":true,"social":true,"personal":true},"platforms":["NES","SNES","Nintendo 64","Gamecube","Nintendo Switch","Sega Genesis","Sega CD","Dreamcast","PS1","PS2","PS3","PSP","Xbox","Xbox 360"]}' > data/app.config.json && \
+    echo '{"appName":"RetroVault","tagline":"Your Retro Gaming Collection Engine","ownerName":"","themeColor":"green","currency":"$","dateFormat":"US","region":"NTSC","publicUrl":"","standaloneMode":true,"auth":{"enabled":false,"passwordHash":""},"plex":{"url":"","token":""},"fetchScheduleHour":0,"priceDataSource":"pricecharting","githubRepo":"theretrovault/retrovault","scrapers":{"craigslistCity":"portland"},"features":{"business":true,"fieldTools":true,"social":true,"personal":true},"platforms":["NES","SNES","Nintendo 64","Gamecube","Nintendo Switch","Sega Genesis","Sega CD","Dreamcast","PS1","PS2","PS3","PSP","Xbox","Xbox 360"]}' > data/app.config.json && \
     echo '{"people":[],"favorites":{},"regrets":{}}' > data/favorites.json && \
     echo '{"sales":[],"acquisitions":[]}' > data/sales.json && \
     echo '[]' > data/watchlist.json && \
@@ -35,6 +35,7 @@ RUN mkdir -p data && \
     echo '[]' > data/bug-reports.json && \
     echo '{}' > data/youtube-cache.json
 
+ENV DOCKER_BUILD=1
 RUN npm run build
 
 # ─── Stage 3: Runner ──────────────────────────────────────────────────────────
