@@ -46,7 +46,10 @@ COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/data/sample ./data/sample
 
-RUN mkdir -p data logs && chown -R nextjs:nodejs /app
+# Only chown the directories nextjs needs to write to, not all of /app
+# (chown -R on node_modules is extremely slow due to tens of thousands of files)
+RUN mkdir -p data logs && \
+    chown -R nextjs:nodejs /app/data /app/logs /app/public
 
 USER nextjs
 EXPOSE 3000
