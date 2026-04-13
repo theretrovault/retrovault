@@ -120,13 +120,11 @@ export const NAV_GROUPS: NavGroup[] = [
       "1–5 star ratings and notes per game",
       "Holy Grail Tracker: your must-have wish list, priority-ranked",
       "Mark grails as FOUND when you score them",
-      "Memory Bank journal of past sessions and decisions",
-    ],
+          ],
     alwaysOn: false,
     items: [
       { href: "/playlog", label: "Play Log", icon: "🎮", feature: "personal" },
       { href: "/grails", label: "Grail List", icon: "🏴‍☠️", feature: "personal" },
-      { href: "/journal", label: "Memory Bank", icon: "📓", feature: "personal" },
     ],
   }
 ];
