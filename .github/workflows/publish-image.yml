@@ -51,6 +51,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             DOCKER_BUILD=1
-          platforms: linux/amd64  # Start with amd64; add arm64 after GHCR permissions verified
+          platforms: linux/amd64
+          no-cache: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
