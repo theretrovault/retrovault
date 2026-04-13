@@ -1,0 +1,41 @@
+name: Docker Build
+
+on:
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'retrovault/Dockerfile'
+      - 'retrovault/docker-compose.yml'
+      - 'retrovault/next.config.ts'
+      - 'retrovault/package*.json'
+  workflow_dispatch:
+
+jobs:
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./retrovault
+          push: false  # Just build, don't push to a registry
+          tags: retrovault:test
+          build-args: |
+            DOCKER_BUILD=1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test container starts
+        run: |
+          docker run -d --name rv-test -p 3000:3000 retrovault:test
+          sleep 15
+          curl -f http://localhost:3000/api/health || (docker logs rv-test && exit 1)
+          docker stop rv-test
