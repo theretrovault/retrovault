@@ -7,6 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square)](https://typescriptlang.org)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
+[![Docker](https://img.shields.io/badge/Docker-supported-2496ED?style=flat-square&logo=docker)](docs/installation.md)
 
 **You've got a spreadsheet. You hate your spreadsheet.**
 
@@ -123,21 +124,30 @@ You know this already. That's why you're here.
 
 ## Getting started
 
-### Requirements
-- Node.js 22+
-- Git
+> **📋 [Full installation guide →](docs/installation.md)**
+> Covers Docker, Debian/Ubuntu, CentOS/RHEL, macOS, Windows, and Raspberry Pi.
 
-### Install
+### 🐳 Docker (easiest — all platforms)
 
 ```bash
-git clone git@github.com:apesch85/retrovault.git
+git clone https://github.com/apesch85/retrovault.git
+cd retrovault/retrovault
+mkdir -p ../retrovault-data
+cp data/sample/app.config.sample.json ../retrovault-data/app.config.json
+docker compose up -d
+```
+
+Open [http://localhost:3000](http://localhost:3000) and start adding games.
+
+### 💻 Native (Node.js 22+)
+
+```bash
+git clone https://github.com/apesch85/retrovault.git
 cd retrovault/retrovault
 cp data/sample/app.config.sample.json data/app.config.json
 npm install
 npm run dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000) and start adding games.
 
 ### Build your game database
 

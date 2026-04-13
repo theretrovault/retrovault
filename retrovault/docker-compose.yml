@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  retrovault:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: retrovault
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persist your collection data outside the container
+      # On first run, copy data/sample/app.config.sample.json → ./retrovault-data/app.config.json
+      - ./retrovault-data:/app/data
+      - ./retrovault-logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Add your API keys here (or use a .env file)
+      # - YOUTUBE_API_KEY=AIza...
+      # - GITHUB_ISSUES_TOKEN=github_pat_...
+    env_file:
+      - .env.local   # Optional: create this file with your API keys
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Optional: scheduled price fetching (remove if you don't want it)
+  price-fetcher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: retrovault-price-fetcher
+    restart: "no"  # Managed by the cron service below
+    volumes:
+      - ./retrovault-data:/app/data
+      - ./retrovault-logs:/app/logs
+    entrypoint: ["node", "scripts/bg-fetch.mjs"]
+    profiles:
+      - cron  # Only starts with: docker compose --profile cron up
+
+  # Optional: event scraper
+  event-scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: retrovault-event-scraper
+    restart: "no"
+    volumes:
+      - ./retrovault-data:/app/data
+      - ./retrovault-logs:/app/logs
+    entrypoint: ["node", "scripts/scrape-events.mjs"]
+    profiles:
+      - cron
+
+volumes:
+  retrovault-data:
+  retrovault-logs:
