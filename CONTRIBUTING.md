@@ -69,6 +69,23 @@ All 97 tests must pass before a PR will be merged.
 
 ---
 
+## Branch Protection
+
+Direct pushes to `master` are restricted. **All changes must go through a pull request**, including from maintainers. The CI pipeline must pass before anything merges:
+
+- `test` — all 116+ unit tests must pass
+- `build` — Next.js production build must succeed
+
+As a contributor:
+1. Fork the repo
+2. Create a branch (`git checkout -b fix/my-bug-fix`)
+3. Make your changes + add tests
+4. Open a PR against `master`
+5. CI runs automatically — fix anything that fails
+6. A maintainer reviews and merges
+
+---
+
 ## Adding a Feature
 
 1. Create or find an existing issue
