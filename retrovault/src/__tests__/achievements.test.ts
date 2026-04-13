@@ -176,3 +176,68 @@ describe('Achievement data integrity', () => {
     }
   });
 });
+
+describe('System & Power User achievements', () => {
+  it('unlocks uptime achievements at correct thresholds', () => {
+    const cases = [
+      { id: 'sys_uptime7',   days: 7 },
+      { id: 'sys_uptime30',  days: 30 },
+      { id: 'sys_uptime90',  days: 90 },
+      { id: 'sys_uptime365', days: 365 },
+    ];
+    for (const { id, days } of cases) {
+      const ctx = makeContext({ uptimeDays: days } as any);
+      const unlocked = evaluateAchievements(ctx);
+      expect(unlocked.has(id), `${id} should unlock at ${days} days`).toBe(true);
+    }
+  });
+
+  it('does NOT unlock uptime achievement before threshold', () => {
+    const ctx = makeContext({ uptimeDays: 6 } as any);
+    const unlocked = evaluateAchievements(ctx);
+    expect(unlocked.has('sys_uptime7')).toBe(false);
+  });
+
+  it('unlocks value history achievement at 7 days', () => {
+    const ctx = makeContext({ valueHistoryDays: 7 } as any);
+    const unlocked = evaluateAchievements(ctx);
+    expect(unlocked.has('sys_snapshot7')).toBe(true);
+  });
+
+  it('unlocks API key achievement', () => {
+    const ctx = makeContext({ apiKeysCreated: 1 } as any);
+    const unlocked = evaluateAchievements(ctx);
+    expect(unlocked.has('sys_api_key')).toBe(true);
+    expect(unlocked.has('sys_api_3')).toBe(false);
+  });
+
+  it('unlocks integrator at 3 API keys', () => {
+    const ctx = makeContext({ apiKeysCreated: 3 } as any);
+    const unlocked = evaluateAchievements(ctx);
+    expect(unlocked.has('sys_api_3')).toBe(true);
+  });
+
+  it('unlocks bug reporter achievements', () => {
+    const ctx1 = makeContext({ bugReportsFiled: 1 } as any);
+    expect(evaluateAchievements(ctx1).has('sys_bug')).toBe(true);
+
+    const ctx3 = makeContext({ bugReportsFiled: 3 } as any);
+    expect(evaluateAchievements(ctx3).has('sys_bug3')).toBe(true);
+  });
+
+  it('unlocks scraper power user achievements', () => {
+    const ctx5 = makeContext({ scraperRuns: 5 });
+    expect(evaluateAchievements(ctx5).has('sys_scraper5')).toBe(true);
+    expect(evaluateAchievements(ctx5).has('sys_scraper20')).toBe(false);
+
+    const ctx20 = makeContext({ scraperRuns: 20 });
+    expect(evaluateAchievements(ctx20).has('sys_scraper20')).toBe(true);
+  });
+
+  it('BUG REGRESSION: uptime 0 does not unlock any uptime achievement', () => {
+    const ctx = makeContext({ uptimeDays: 0 } as any);
+    const unlocked = evaluateAchievements(ctx);
+    expect(unlocked.has('sys_uptime7')).toBe(false);
+    expect(unlocked.has('sys_uptime30')).toBe(false);
+  });
+});
