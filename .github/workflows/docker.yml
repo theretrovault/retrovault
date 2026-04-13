@@ -26,16 +26,43 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./retrovault
-          push: false  # Just build, don't push to a registry
+          push: false
+          # load=true makes the image available to the local docker daemon
+          load: true
           tags: retrovault:test
           build-args: |
             DOCKER_BUILD=1
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Test container starts
+      - name: Create minimal data directory
         run: |
-          docker run -d --name rv-test -p 3000:3000 retrovault:test
-          sleep 15
-          curl -f http://localhost:3000/api/health || (docker logs rv-test && exit 1)
-          docker stop rv-test
+          mkdir -p retrovault-data
+          echo '{"appName":"RetroVault","tagline":"Your Retro Gaming Collection Engine","ownerName":"","themeColor":"green","currency":"$","dateFormat":"US","region":"NTSC","publicUrl":"","standaloneMode":true,"auth":{"enabled":false,"passwordHash":""},"plex":{"url":"","token":""},"fetchScheduleHour":0,"priceDataSource":"pricecharting","githubRepo":"theretrovault/retrovault","scrapers":{"craigslistCity":"portland"},"features":{"business":true,"fieldTools":true,"social":true,"personal":true},"platforms":["NES","SNES"]}' > retrovault-data/app.config.json
+
+      - name: Test container starts and responds
+        run: |
+          docker run -d \
+            --name rv-test \
+            -p 3000:3000 \
+            -v ${{ github.workspace }}/retrovault-data:/app/data \
+            retrovault:test
+          
+          # Wait for container to be healthy (up to 30s)
+          for i in $(seq 1 10); do
+            sleep 3
+            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "✅ Container healthy after $((i*3))s"
+              break
+            fi
+            echo "Waiting... ($i/10)"
+            if [ $i -eq 10 ]; then
+              echo "❌ Container failed to start"
+              docker logs rv-test
+              exit 1
+            fi
+          done
+
+      - name: Stop container
+        if: always()
+        run: docker stop rv-test 2>/dev/null || true
