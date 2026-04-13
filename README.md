@@ -39,3 +39,13 @@ npm install && npm run dev
 ---
 
 *Built for hunters, collectors, and everyone who's ever walked out of a garage sale with a cardboard box full of someone else's childhood.*
+
+---
+
+## Support the project
+
+RetroVault is free and open source. If it saves you money on a deal or helps you run your collection better, consider sponsoring development:
+
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Support%20RetroVault-EA4AAA?style=flat-square&logo=github-sponsors)](https://github.com/sponsors/apesch85)
+
+Every contribution helps keep the project active and free.
