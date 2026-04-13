@@ -36,5 +36,35 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.4"
-  }
+  },
+  "keywords": [
+    "retro-gaming",
+    "game-collection",
+    "self-hosted",
+    "nextjs",
+    "typescript",
+    "game-tracker",
+    "retro-games",
+    "pricecharting",
+    "collecting",
+    "homelab",
+    "game-inventory",
+    "flip-calculator",
+    "eBay",
+    "garage-sale",
+    "video-games",
+    "field-mode",
+    "price-tracker",
+    "open-source"
+  ],
+  "description": "Self-hosted retro game collection manager. Track inventory, live market prices, P&L, and hunt smarter at garage sales.",
+  "homepage": "https://github.com/theretrovault/retrovault",
+  "bugs": {
+    "url": "https://github.com/theretrovault/retrovault/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theretrovault/retrovault.git"
+  },
+  "license": "MIT"
 }

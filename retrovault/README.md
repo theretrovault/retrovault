@@ -242,6 +242,14 @@ Topics covered: hunter's mindset · pricing mechanics · buying smart at garage 
 
 ---
 
+## Built with
+
+Next.js · TypeScript · Tailwind CSS · Recharts · Node.js · PriceCharting API · YouTube Data API · GitHub Actions
+
+**Designed for:** Retro game collectors, flippers, and hunters. Works on any platform — Docker, Linux, macOS, Windows, Raspberry Pi.
+
+---
+
 ## Acknowledgments
 
 Knowledge drawn from the retro game collecting community — r/gamecollecting, r/gameswap, Chase After The Right Price (YouTube), Metal Jesus Rocks, and the countless collectors who've shared what they know.
