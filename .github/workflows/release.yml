@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on tags like v2.0.0, v2.1.0, v2.1.1
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed to create releases
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: retrovault/package-lock.json
+
+      - name: Install dependencies
+        working-directory: retrovault
+        run: npm ci
+
+      - name: Run tests (must pass for release)
+        working-directory: retrovault
+        run: npm test
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          node -e "
+          const fs = require('fs');
+          const content = fs.readFileSync('retrovault/src/data/changelog.ts', 'utf8');
+          const versionMatch = content.match(/version: '${{ steps.version.outputs.VERSION }}'[\s\S]*?title: '([^']+)'[\s\S]*?changes: \[([\s\S]*?)\],\s*\},/);
+          if (versionMatch) {
+            process.stdout.write(versionMatch[1] + '\n\nSee CHANGELOG for full details.');
+          } else {
+            process.stdout.write('See CHANGELOG for full details.');
+          }
+          " > /tmp/release_notes.txt
+          cat /tmp/release_notes.txt
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: RetroVault v${{ steps.version.outputs.VERSION }}
+          body_path: /tmp/release_notes.txt
+          draft: false
+          prerelease: false
