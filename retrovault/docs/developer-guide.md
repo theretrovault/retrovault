@@ -412,7 +412,7 @@ Follow the existing style:
 | Fetch prices | `node scripts/bg-fetch.mjs` |
 | Scrape events | `node scripts/scrape-events.mjs` |
 | Value snapshot (manual) | `node scripts/snapshot-value.mjs` |
-| Git sync (manual) | `node scripts/git-sync.mjs` |
+| Git sync (maintainer only) | `node scripts/git-sync.mjs` |
 | Tag release | `git tag v2.x.x && git push origin v2.x.x` |
 | Docker up | `docker compose up -d` |
 | Docker rebuild | `docker compose build && docker compose up -d` |
