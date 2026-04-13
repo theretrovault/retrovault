@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Questions & Discussion
-    url: https://github.com/apesch85/retrovault/discussions
+    url: https://github.com/theretrovault/retrovault/discussions
     about: For setup help, configuration questions, and general discussion
   - name: Field Guide
-    url: https://github.com/apesch85/retrovault/blob/master/retrovault/src/data/guide.ts
+    url: https://github.com/theretrovault/retrovault/blob/master/retrovault/src/data/guide.ts
     about: Hunting tips, pricing principles, and best practices

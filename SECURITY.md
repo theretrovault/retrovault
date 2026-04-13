@@ -21,7 +21,7 @@ RetroVault handles:
 
 If you discover a security vulnerability, please:
 
-1. **Email the maintainer directly** or use [GitHub's private vulnerability reporting](https://github.com/apesch85/retrovault/security/advisories/new)
+1. **Email the maintainer directly** or use [GitHub's private vulnerability reporting](https://github.com/theretrovault/retrovault/security/advisories/new)
 2. Include: what the vulnerability is, how to reproduce it, potential impact
 3. Allow reasonable time to address it before public disclosure
 

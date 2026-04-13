@@ -35,7 +35,7 @@ try {
 
   // Push
   run('git push origin master');
-  console.log('✅ Pushed to github.com/apesch85/retrovault');
+  console.log('✅ Pushed to github.com/theretrovault/retrovault');
 
 } catch (e) {
   console.error('❌ Git sync failed:', e.message);

@@ -9,7 +9,7 @@ RetroVault runs on any modern OS with Node.js 22+ or Docker. Pick the path that 
 The simplest way to run RetroVault on any OS. Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/Mac) or Docker Engine (Linux).
 
 ```bash
-git clone https://github.com/apesch85/retrovault.git
+git clone https://github.com/theretrovault/retrovault.git
 cd retrovault/retrovault
 
 # First-time setup: create your data directory
@@ -76,7 +76,7 @@ sudo apt install nginx -y
 ### Install
 
 ```bash
-git clone https://github.com/apesch85/retrovault.git
+git clone https://github.com/theretrovault/retrovault.git
 cd retrovault/retrovault
 cp data/sample/app.config.sample.json data/app.config.json
 npm install
@@ -178,7 +178,7 @@ npm install -g pm2
 ### Install
 
 ```bash
-git clone https://github.com/apesch85/retrovault.git
+git clone https://github.com/theretrovault/retrovault.git
 cd retrovault/retrovault
 cp data/sample/app.config.sample.json data/app.config.json
 npm install
@@ -234,7 +234,7 @@ Then follow the **Debian/Ubuntu** instructions above inside WSL2. Access the app
 - Windows Terminal or PowerShell
 
 ```powershell
-git clone https://github.com/apesch85/retrovault.git
+git clone https://github.com/theretrovault/retrovault.git
 cd retrovault\retrovault
 copy data\sample\app.config.sample.json data\app.config.json
 npm install
@@ -336,6 +336,6 @@ Open `http://localhost:3000/health` in your browser for a full system status das
 
 ## Getting help
 
-- [GitHub Discussions](https://github.com/apesch85/retrovault/discussions) — setup help and questions
-- [Open an issue](https://github.com/apesch85/retrovault/issues) — bug reports
+- [GitHub Discussions](https://github.com/theretrovault/retrovault/discussions) — setup help and questions
+- [Open an issue](https://github.com/theretrovault/retrovault/issues) — bug reports
 - In-app: Settings → Bug Reporting → Report an Issue

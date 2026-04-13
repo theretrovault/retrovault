@@ -1201,7 +1201,7 @@ export default function InventoryPage() {
                     "8 scraper scripts in scripts/. Cron schedules managed via Scraper Control Center (/scrapers).",
                     "Auto-commit to GitHub via scripts/git-sync.mjs (cron: every 6 hours).",
                     "PWA manifest at public/manifest.json. SSH key at ~/.ssh/id_github_retrovault.",
-                    "GitHub repo: github.com/apesch85/retrovault (private). Deploy: bash scripts/deploy.sh.",
+                    "GitHub repo: github.com/theretrovault/retrovault (private). Deploy: bash scripts/deploy.sh.",
                   ]
                 }].map(section => (
                   <div key={section.title} className="bg-zinc-900 border border-zinc-700 rounded-sm p-4">

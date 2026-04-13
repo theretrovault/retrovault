@@ -6,7 +6,7 @@ Thanks for wanting to contribute! RetroVault is built for the retro gaming commu
 
 ## Before You Start
 
-- Check [open issues](https://github.com/apesch85/retrovault/issues) to avoid duplicates
+- Check [open issues](https://github.com/theretrovault/retrovault/issues) to avoid duplicates
 - For big changes, open an issue first to discuss the approach
 - For small fixes (typos, clear bugs), a PR is fine directly
 
@@ -15,7 +15,7 @@ Thanks for wanting to contribute! RetroVault is built for the retro gaming commu
 ## Development Setup
 
 ```bash
-git clone https://github.com/apesch85/retrovault.git
+git clone https://github.com/theretrovault/retrovault.git
 cd retrovault/retrovault
 
 # Copy the sample config
@@ -105,7 +105,7 @@ We use conventional-ish commits:
 
 ## Getting Help
 
-- [GitHub Discussions](https://github.com/apesch85/retrovault/discussions) for questions
+- [GitHub Discussions](https://github.com/theretrovault/retrovault/discussions) for questions
 - Open an issue if you're unsure about direction
 
 ---

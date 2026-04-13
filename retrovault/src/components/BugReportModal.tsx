@@ -23,7 +23,7 @@ export function BugReportModal({ onClose }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ ok?: boolean; error?: string; issueUrl?: string; issueNumber?: number; duplicate?: boolean; existingUrl?: string; existingTitle?: string; resetIn?: number } | null>(null);
   const [configured, setConfigured] = useState<boolean | null>(null);
-  const [issuesUrl, setIssuesUrl] = useState('https://github.com/apesch85/retrovault/issues');
+  const [issuesUrl, setIssuesUrl] = useState('https://github.com/theretrovault/retrovault/issues');
 
   useEffect(() => {
     fetch("/api/bug-report").then(r => r.json()).then(d => { setConfigured(d.configured); if (d.issuesUrl) setIssuesUrl(d.issuesUrl); });

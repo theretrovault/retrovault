@@ -10,8 +10,8 @@ const RATE_FILE = path.join(process.cwd(), 'data', 'bug-reports.json');
 function getGithubRepo(): string {
   try {
     const cfg = JSON.parse(require('fs').readFileSync(require('path').join(process.cwd(), 'data', 'app.config.json'), 'utf8'));
-    return cfg.githubRepo || 'apesch85/retrovault';
-  } catch { return 'apesch85/retrovault'; }
+    return cfg.githubRepo || 'theretrovault/retrovault';
+  } catch { return 'theretrovault/retrovault'; }
 }
 const RATE_LIMIT_HOURS = 1;
 const MAX_PER_DAY = 5; // per IP

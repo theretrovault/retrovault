@@ -84,7 +84,7 @@ function BugReportingSettings({ config, setConfig }: { config: any; setConfig: (
         <div className="flex gap-2 items-start">
           <input type="text"
             className="flex-1 bg-black border-2 border-zinc-800 text-zinc-300 p-2 font-terminal text-base focus:outline-none focus:border-green-600"
-            placeholder="apesch85/retrovault"
+            placeholder="theretrovault/retrovault"
             value={config.githubRepo || ''}
             onChange={e => setConfig({ ...config, githubRepo: e.target.value })}
           />

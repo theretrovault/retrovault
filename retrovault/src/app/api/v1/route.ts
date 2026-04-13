@@ -9,7 +9,7 @@ const SPEC = {
     title: 'RetroVault API',
     version: '1.0.0',
     description: 'RESTful API for programmatic access to your RetroVault collection data.',
-    contact: { url: 'https://github.com/apesch85/retrovault' },
+    contact: { url: 'https://github.com/theretrovault/retrovault' },
   },
   servers: [{ url: '/api/v1', description: 'RetroVault local instance' }],
   security: [{ apiKey: [] }],
