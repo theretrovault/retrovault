@@ -77,6 +77,13 @@ export type AchievementContext = {
   dealsDismissed: number;
   whatnotSellers: number;
   streamsWatched: number;
+  // System / power user
+  apiKeysCreated: number;
+  bugReportsFiled: number;
+  collectionExported: boolean;
+  csvImported: boolean;
+  valueHistoryDays: number; // days of snapshot data
+  uptimeDays: number;       // computed from value-history as proxy for system uptime
 };
 
 const RARITIES: Record<AchievementRarity, { color: string; bg: string; border: string; label: string; points: number }> = {
@@ -202,6 +209,22 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "x_collector",  name: "Never For Sale",      icon: "🔒", category: "secret",     rarity: "epic",      points: 100, condition: "Secret: 1000 games, 0 sales",        check: c => c.totalOwned >= 1000 && c.totalSales === 0, secret: true },
 
   // ─── APP MASTERY ─────────────────────────────────────────────────────────────
+  // ─── SYSTEM & POWER USER ────────────────────────────────────────────────────
+  { id: "sys_uptime7",   name: "Week One",            icon: "⚡", category: "grind",      rarity: "common",    points: 10,  condition: "RetroVault has been running for 7+ days",   check: c => c.uptimeDays >= 7 },
+  { id: "sys_uptime30",  name: "Monthly Regular",     icon: "📅", category: "grind",      rarity: "uncommon",  points: 25,  condition: "RetroVault has been running for 30+ days",  check: c => c.uptimeDays >= 30 },
+  { id: "sys_uptime90",  name: "Quarterly Veteran",   icon: "🏅", category: "grind",      rarity: "rare",      points: 50,  condition: "RetroVault has been running for 90+ days",  check: c => c.uptimeDays >= 90 },
+  { id: "sys_uptime365", name: "One Year Strong",     icon: "🎖️", category: "grind",      rarity: "epic",      points: 100, condition: "RetroVault has been running for a full year", check: c => c.uptimeDays >= 365 },
+  { id: "sys_snapshot7", name: "Daily Driver",        icon: "📊", category: "grind",      rarity: "common",    points: 10,  condition: "7+ days of collection value history",       check: c => c.valueHistoryDays >= 7 },
+  { id: "sys_api_key",   name: "Developer",           icon: "🔌", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Create your first API key",                 check: c => c.apiKeysCreated >= 1 },
+  { id: "sys_api_3",     name: "Integrator",          icon: "🔗", category: "milestone",  rarity: "rare",      points: 50,  condition: "Create 3 API keys (multiple integrations)", check: c => c.apiKeysCreated >= 3 },
+  { id: "sys_export",    name: "Backed Up",           icon: "💾", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Export your collection",                    check: c => c.collectionExported },
+  { id: "sys_import",    name: "Migrator",            icon: "📥", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Import a CSV collection",                   check: c => c.csvImported },
+  { id: "sys_bug",       name: "Bug Hunter",          icon: "🐛", category: "milestone",  rarity: "common",    points: 10,  condition: "File your first bug report",                check: c => c.bugReportsFiled >= 1 },
+  { id: "sys_bug3",      name: "QA Tester",           icon: "🔬", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "File 3 bug reports",                        check: c => c.bugReportsFiled >= 3 },
+  { id: "sys_scraper5",  name: "Data Hoarder",        icon: "🤖", category: "grind",      rarity: "rare",      points: 50,  condition: "Run scrapers 5+ times",                     check: c => c.scraperRuns >= 5 },
+  { id: "sys_scraper20", name: "The Machine",         icon: "⚙️", category: "grind",      rarity: "epic",      points: 100, condition: "Run scrapers 20+ times",                    check: c => c.scraperRuns >= 20 },
+
+  // ─── APP MASTERY (manual unlocks) ────────────────────────────────────────────
   { id: "a_field",      name: "Field Ready",         icon: "🔦", category: "milestone",  rarity: "common",    points: 10,  condition: "Use Field Mode to check a price",    check: _ => false }, // triggered manually
   { id: "a_negotiator", name: "The Negotiator",      icon: "🤝", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Use the Negotiation Helper",         check: _ => false }, // triggered manually
   { id: "a_guide",      name: "Student of the Game", icon: "📖", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Read the Field Guide",               check: _ => false }, // triggered manually

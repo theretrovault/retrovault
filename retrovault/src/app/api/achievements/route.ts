@@ -108,6 +108,28 @@ function buildContext(): AchievementContext {
   // Scraper runs
   const scraperRuns = scrapers.filter((s: any) => s.lastRun !== null).length;
 
+  // Value history days (proxy for uptime)
+  const valueHistory = read('value-history.json', []);
+  const valueHistoryDays = valueHistory.length;
+  // Uptime = days since first value snapshot
+  let uptimeDays = 0;
+  if (valueHistory.length > 0) {
+    const first = new Date(valueHistory[0].date || valueHistory[0].fetchedAt || 0);
+    uptimeDays = Math.floor((Date.now() - first.getTime()) / 86400000);
+  }
+
+  // API keys
+  const cfg = read('app.config.json', {});
+  const apiKeysCreated = (cfg.apiKeys || []).length;
+
+  // Bug reports filed
+  const bugReports = read('bug-reports.json', []);
+  const bugReportsFiled = bugReports.length;
+
+  // Export/import flags (check for non-empty data files as proxy)
+  const collectionExported = valueHistory.length > 0; // If they have history, they've been running long enough to export
+  const csvImported = owned.some((i: any) => i.source && i.source.toLowerCase().includes('import'));
+
   return {
     totalOwned: owned.length,
     totalPlatforms: platforms.length,
@@ -158,6 +180,13 @@ function buildContext(): AchievementContext {
     dealsDismissed: clDeals.filter((d: any) => d.dismissed).length,
     whatnotSellers: (whatnot.sellers || []).length,
     streamsWatched: (whatnot.streams || []).filter((s: any) => s.attending).length,
+    // System / power user
+    apiKeysCreated,
+    bugReportsFiled,
+    collectionExported,
+    csvImported,
+    valueHistoryDays,
+    uptimeDays,
   };
 }
 
