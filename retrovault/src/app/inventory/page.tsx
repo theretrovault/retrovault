@@ -641,22 +641,22 @@ export default function InventoryPage() {
             </span>
           )}
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-3 items-center">
           <button
             onClick={fetchAll}
             disabled={isFetchingAll}
             title={lastFetchAllTime ? `Last Fetch: ${lastFetchAllTime}` : "Never fetched"}
-            className="bg-blue-900/50 hover:bg-blue-600 text-blue-300 font-terminal font-bold text-xl px-4 py-2 rounded-sm border-2 border-blue-500 transition-all disabled:opacity-50"
+            className="bg-blue-900/50 hover:bg-blue-600 text-blue-300 font-terminal font-bold text-sm sm:text-xl px-3 sm:px-4 py-2 rounded-sm border-2 border-blue-500 transition-all disabled:opacity-50 whitespace-nowrap"
           >
             {isFetchingAll ? `FETCHING ${fetchProgress.current}/${fetchProgress.total}...` : "FETCH FILTERED"}
           </button>
-          <button onClick={() => setShowCodex(true)} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-terminal font-bold text-xl px-4 py-2 rounded-sm border-2 border-zinc-600 transition-all" title="Vault Codex — How to use this app">
+          <button onClick={() => setShowCodex(true)} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-terminal font-bold text-sm sm:text-xl px-3 sm:px-4 py-2 rounded-sm border-2 border-zinc-600 transition-all whitespace-nowrap" title="Vault Codex — How to use this app">
             📜 CODEX
           </button>
-          <button onClick={() => setShowPeopleManager(true)} className="bg-purple-900/60 hover:bg-purple-700 text-purple-300 font-terminal font-bold text-xl px-4 py-2 rounded-sm border-2 border-purple-600 transition-all" title="Manage Critics — people who track favorites and regrets">
+          <button onClick={() => setShowPeopleManager(true)} className="bg-purple-900/60 hover:bg-purple-700 text-purple-300 font-terminal font-bold text-sm sm:text-xl px-3 sm:px-4 py-2 rounded-sm border-2 border-purple-600 transition-all whitespace-nowrap" title="Manage Critics — people who track favorites and regrets">
             🎬 THE CRITICS
           </button>
-          <button onClick={openNew} className="bg-green-600 hover:bg-green-500 text-black font-terminal font-bold text-xl px-4 py-2 rounded-sm border-2 border-green-400 transition-all">
+          <button onClick={openNew} className="bg-green-600 hover:bg-green-500 text-black font-terminal font-bold text-sm sm:text-xl px-3 sm:px-4 py-2 rounded-sm border-2 border-green-400 transition-all whitespace-nowrap ml-auto">
             + ADD ASSET
           </button>
         </div>
