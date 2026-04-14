@@ -8,6 +8,21 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.1.2",
+    date: "2026-04-13",
+    title: "Post-wizard feature tour",
+    type: "feature",
+    changes: [
+      { category: "Onboarding", items: [
+        "Feature tour now launches automatically after completing the Setup Wizard",
+        "Tour is mode-aware: only shows steps for features you enabled (Collector / Dealer / Empire)",
+        "Expanded to 20 tour steps covering all major features",
+        "Manual DEMO button in the nav still shows the full unfiltered tour",
+        "Tour state persists across page navigations (survives hard refresh mid-tour)",
+      ]},
+    ],
+  },
+  {
     version: "2.1.1",
     date: "2026-04-13",
     title: "Setup Wizard — choose your adventure",

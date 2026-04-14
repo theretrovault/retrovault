@@ -16,6 +16,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { DEMO_AUTOSTART_KEY } from "@/components/DemoMode";
 
 export const ONBOARDING_KEY = "rv-onboarding-done";
 export const WIZARD_VERSION  = "2"; // bump to re-show wizard on major updates
@@ -194,7 +195,14 @@ export function Onboarding({ forceShow = false, onDone }: OnboardingProps) {
     await applyWizardConfig(answers);
     setSaving(false);
     dismiss();
-    // Reload so nav reflects new feature flags
+    // Write autostart flag so DemoProvider launches the tour after reload
+    // Include feature config so tour filters to only enabled features
+    const mode = answers.mode ?? "empire";
+    const features = MODE_META[mode].features;
+    try {
+      localStorage.setItem(DEMO_AUTOSTART_KEY, JSON.stringify({ features }));
+    } catch { /* ignore */ }
+    // Reload so nav reflects new feature flags, then tour auto-starts
     window.location.reload();
   };
 
