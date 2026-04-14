@@ -10,6 +10,7 @@ import { useLogout } from "@/components/AuthGuard";
 import { BugReportModal } from "@/components/BugReportModal";
 import { QuoteBanner } from "@/components/QuoteBanner";
 import { Onboarding } from "@/components/Onboarding";
+import { useTheme } from "@/components/ThemeProvider";
 import { WhatsNew } from "@/components/WhatsNew";
 import { NAV_GROUPS, SYSTEM_ITEMS, getEnabledGroups } from "@/data/navConfig";
 import { NavTooltip } from "@/components/NavTooltip";
@@ -19,6 +20,7 @@ export function StandaloneNav({ children }: { children: React.ReactNode }) {
   const { appName, ownerName, features } = useAppConfig();
   const { start: startDemo } = useDemoMode();
   const { enabled: tooltipsEnabled, toggle: toggleTooltips } = useTooltips();
+  const { theme, toggleMode } = useTheme();
   const logout = useLogout();
   const [menuOpen, setMenuOpen] = useState(false);
   const [authEnabled, setAuthEnabled] = useState(false);
@@ -110,6 +112,13 @@ export function StandaloneNav({ children }: { children: React.ReactNode }) {
                 tooltipsEnabled ? "text-blue-400 border-blue-800" : "text-zinc-700 border-zinc-800 hover:text-zinc-500"
               }`}>
               💡
+            </button>
+            </NavTooltip>
+            <NavTooltip label="Toggle Mode" description={theme.mode === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+            <button onClick={toggleMode}
+              className="hidden md:flex px-3 py-2 font-terminal text-sm border border-zinc-800 hover:border-zinc-600 text-zinc-500 hover:text-zinc-300 rounded-sm transition-colors"
+              title={theme.mode === 'dark' ? 'Light Mode' : 'Dark Mode'}>
+              {theme.mode === 'dark' ? '☀️' : '🌑'}
             </button>
             </NavTooltip>
             <NavTooltip label="Report Issue" description="File a bug or feature request">

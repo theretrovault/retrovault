@@ -147,7 +147,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
   },
 ];
 
-export const STYLE_THEMES: StyleTheme[] = [
+/** Style themes tagged by which mode(s) they support */
+export type StyleThemeMode = "dark" | "light" | "both";
+
+export const STYLE_THEMES: (StyleTheme & { modes: StyleThemeMode })[] = [
+  // ── Dark-mode style themes ──────────────────────────────────────────────────
   {
     id: "terminal",
     name: "Terminal",
@@ -155,14 +159,16 @@ export const STYLE_THEMES: StyleTheme[] = [
     description: "Clean phosphor terminal. Minimal, focused, fast.",
     cssClass: "theme-terminal",
     previewBg: "bg-zinc-950 border-green-800",
+    modes: "both" as StyleThemeMode,
   },
   {
     id: "scanline",
     name: "CRT Scanline",
     emoji: "📺",
-    description: "Visible scanlines and CRT vignette for maximum retro authenticity.",
+    description: "Visible scanlines and CRT vignette. Dark mode only.",
     cssClass: "theme-scanline",
     previewBg: "bg-zinc-950 border-green-800",
+    modes: "dark" as StyleThemeMode,
   },
   {
     id: "arcade",
@@ -171,23 +177,45 @@ export const STYLE_THEMES: StyleTheme[] = [
     description: "Bold bezels, neon marquee glow, and heavy border treatments.",
     cssClass: "theme-arcade",
     previewBg: "bg-zinc-900 border-yellow-700",
+    modes: "both" as StyleThemeMode,
   },
   {
     id: "cartridge",
     name: "Cartridge",
     emoji: "🎮",
-    description: "Gray and beige tones inspired by physical cartridge plastic.",
+    description: "Warm beige tones inspired by physical cartridge plastic.",
     cssClass: "theme-cartridge",
     previewBg: "bg-stone-900 border-stone-700",
+    modes: "both" as StyleThemeMode,
   },
   {
     id: "galaxy",
     name: "Dark Galaxy",
     emoji: "🌌",
-    description: "Deep space darkness with a subtle star-field background.",
+    description: "Deep space darkness with a subtle star-field background. Dark mode only.",
     cssClass: "theme-galaxy",
     previewBg: "bg-slate-950 border-indigo-900",
+    modes: "dark" as StyleThemeMode,
+  },
+  // ── Light-mode style themes ──────────────────────────────────────────────────
+  {
+    id: "paper",
+    name: "Paper",
+    emoji: "📄",
+    description: "Clean white paper. Simple, legible, distraction-free.",
+    cssClass: "theme-paper",
+    previewBg: "bg-white border-gray-300",
+    modes: "light" as StyleThemeMode,
+  },
+  {
+    id: "blueprint",
+    name: "Blueprint",
+    emoji: "📐",
+    description: "Technical blueprint grid on a cool blue-white background.",
+    cssClass: "theme-blueprint",
+    previewBg: "bg-blue-50 border-blue-300",
+    modes: "light" as StyleThemeMode,
   },
 ];
 
-export const DEFAULT_THEME = { colorId: "green", styleId: "terminal" };
+export const DEFAULT_THEME = { colorId: "green", styleId: "terminal", mode: "dark" as "dark" | "light" };

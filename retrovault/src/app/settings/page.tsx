@@ -197,6 +197,34 @@ export default function SettingsPage() {
       </header>
 
       <Section title="Theme" icon="🎨">
+        {/* Light / Dark Mode Toggle */}
+        <div>
+          <label className="block text-zinc-400 font-terminal text-sm mb-3 uppercase">Mode</label>
+          <div className="flex gap-3">
+            {(["dark", "light"] as const).map(m => (
+              <button key={m}
+                onClick={() => setTheme({ ...theme, mode: m,
+                  // Auto-switch style if current is mode-incompatible
+                  styleId: (() => {
+                    const st = STYLE_THEMES.find(s => s.id === theme.styleId);
+                    if (m === 'light' && st?.modes === 'dark') return 'terminal';
+                    if (m === 'dark'  && st?.modes === 'light') return 'terminal';
+                    return theme.styleId;
+                  })()
+                })}
+                className={`flex items-center gap-2 px-4 py-2 border-2 font-terminal text-sm transition-all ${
+                  theme.mode === m
+                    ? 'border-green-500 bg-green-900/20 text-green-300'
+                    : 'border-zinc-700 text-zinc-500 hover:border-zinc-500'
+                }`}>
+                <span>{m === 'dark' ? '🌑' : '☀️'}</span>
+                <span className="uppercase">{m === 'dark' ? 'Dark' : 'Light'}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Color Palette */}
         <div>
           <label className="block text-zinc-400 font-terminal text-sm mb-3 uppercase">Color Palette</label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -216,10 +244,17 @@ export default function SettingsPage() {
             ))}
           </div>
         </div>
+
+        {/* Style Theme — filtered by current mode */}
         <div>
-          <label className="block text-zinc-400 font-terminal text-sm mb-3 uppercase">Style Theme</label>
+          <label className="block text-zinc-400 font-terminal text-sm mb-3 uppercase">
+            Style Theme
+            <span className="text-zinc-600 ml-2 normal-case">
+              (showing {theme.mode === 'dark' ? 'dark' : 'light'} mode themes)
+            </span>
+          </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {STYLE_THEMES.map(s => (
+            {STYLE_THEMES.filter(s => s.modes === 'both' || s.modes === theme.mode).map(s => (
               <button key={s.id}
                 onClick={() => setTheme({ ...theme, styleId: s.id })}
                 className={`p-3 text-left border-2 rounded-sm transition-all ${
