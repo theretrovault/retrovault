@@ -10,6 +10,8 @@ type PriceResult = {
   newPrice: string | null;
   source: "inventory" | "pricecharting";
   owned: number;
+  paidTotal: number;   // sum of priceAcquired across all copies
+  paidEach: number[];  // per-copy cost for multi-copy display
   watchlisted: boolean;
   watchlistPrice?: string;
 };
@@ -18,7 +20,7 @@ type OwnedItem = {
   id: string;
   title: string;
   platform: string;
-  copies: { id: string }[];
+  copies: { id: string; priceAcquired?: number | string; condition?: string }[];
   marketLoose?: string;
   marketCib?: string;
   marketNew?: string;
@@ -87,17 +89,24 @@ export default function FieldPage() {
     );
 
     if (owned.length > 0) {
-      const fromInventory: PriceResult[] = owned.slice(0, 5).map(i => ({
-        title: i.title,
-        platform: i.platform,
-        loose: i.marketLoose || null,
-        cib: i.marketCib || null,
-        newPrice: i.marketNew || null,
-        source: "inventory",
-        owned: (i.copies || []).length,
-        watchlisted: watchlist.some(w => w.id === i.id),
-        watchlistPrice: watchlist.find(w => w.id === i.id)?.alertPrice,
-      }));
+      const fromInventory: PriceResult[] = owned.slice(0, 5).map(i => {
+        const copies = i.copies || [];
+        const paidEach = copies.map(c => parseFloat(String(c.priceAcquired || 0)) || 0);
+        const paidTotal = paidEach.reduce((s, v) => s + v, 0);
+        return {
+          title: i.title,
+          platform: i.platform,
+          loose: i.marketLoose || null,
+          cib: i.marketCib || null,
+          newPrice: i.marketNew || null,
+          source: "inventory" as const,
+          owned: copies.length,
+          paidTotal,
+          paidEach,
+          watchlisted: watchlist.some(w => w.id === i.id),
+          watchlistPrice: watchlist.find(w => w.id === i.id)?.alertPrice,
+        };
+      });
       setResults(fromInventory);
       setSearching(false);
       return;
@@ -117,6 +126,8 @@ export default function FieldPage() {
           newPrice: d.new || null,
           source: "pricecharting",
           owned: 0,
+          paidTotal: 0,
+          paidEach: [],
           watchlisted: false,
         }]);
       }
@@ -189,10 +200,30 @@ export default function FieldPage() {
               <p className="text-zinc-500 font-terminal text-sm">{r.platform} · {r.source === "inventory" ? "📦 In your vault" : "🌐 PriceCharting"}</p>
             </div>
 
-            {/* Dupe alert */}
+            {/* Dupe alert + what you paid */}
             {r.owned > 0 && (
-              <div className={`border px-4 py-2 font-terminal text-xl ${r.owned >= 2 ? "border-orange-700 bg-orange-950/30 text-orange-400" : "border-blue-800 bg-blue-950/20 text-blue-400"}`}>
-                {r.owned >= 2 ? `⚠️ DUPE ALERT — you own ${r.owned} copies!` : `ℹ️ You own 1 copy`}
+              <div className={`border px-4 py-2 font-terminal ${r.owned >= 2 ? "border-orange-700 bg-orange-950/30 text-orange-400" : "border-blue-800 bg-blue-950/20 text-blue-400"}`}>
+                <div className="text-xl mb-1">
+                  {r.owned >= 2 ? `⚠️ DUPE ALERT — you own ${r.owned} copies!` : `ℹ️ You own 1 copy`}
+                </div>
+                {r.paidTotal > 0 && (
+                  <div className="text-sm text-zinc-400 font-terminal">
+                    {r.owned === 1
+                      ? `Paid: $${r.paidTotal.toFixed(2)}`
+                      : `Paid: ${r.paidEach.map((p, i) => `Copy ${i + 1}: $${p.toFixed(2)}`).join(" · ")} (total $${r.paidTotal.toFixed(2)})`
+                    }
+                    {r.loose && r.paidTotal > 0 && (() => {
+                      const mkt = parseFloat(r.loose);
+                      const gain = mkt - (r.paidTotal / r.owned);
+                      const gainPct = ((gain / (r.paidTotal / r.owned)) * 100);
+                      return gain !== 0 ? (
+                        <span className={`ml-2 ${gain > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          ({gain > 0 ? '+' : ''}${gain.toFixed(2)} · {gainPct > 0 ? '+' : ''}{gainPct.toFixed(0)}% vs market)
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
+                )}
               </div>
             )}
 
