@@ -8,6 +8,22 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.1.1",
+    date: "2026-04-13",
+    title: "Setup Wizard — choose your adventure",
+    type: "feature",
+    changes: [
+      { category: "New Feature", items: [
+        "Setup Wizard: multi-step onboarding that configures RetroVault to match how you use it",
+        "Three modes: The Collector (personal tracking), The Dealer (business tools), The Empire Builder (everything)",
+        "Wizard asks: collection size, online selling habits, solo vs shared instance, name, currency",
+        "Automatically enables/disables the right feature groups based on your answers",
+        "Shared instance mode suggests enabling password protection",
+        "Settings → Features → Restart Setup Wizard to re-run anytime",
+      ]},
+    ],
+  },
+  {
     version: "2.1.0",
     date: "2026-04-13",
     title: "Wishlist, SQLite backend, smart price fetching",

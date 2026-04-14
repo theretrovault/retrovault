@@ -7,13 +7,13 @@
  *         PlexSettings, ScraperSettings, PlatformSettings,
  *         FeaturesSettings, BugReportingSettings, AuthSettings
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useTheme } from "@/components/ThemeProvider";
 import { COLOR_PALETTES, STYLE_THEMES } from "@/data/themes";
 import { NAV_GROUPS } from "@/data/navConfig";
 import { PLATFORM_GROUPS, RETRO_DEFAULTS, ALL_PLATFORMS } from "@/data/platformGroups";
-import { useRef } from "react";
 import Link from "next/link";
+import { Onboarding, ONBOARDING_KEY } from "@/components/Onboarding";
 
 type Features = {
   collection: boolean; business: boolean; fieldTools: boolean;
@@ -180,6 +180,8 @@ export default function SettingsPage() {
   );
 
   return (
+    <>
+    <Onboarding />
     <div className="w-full bg-black border-4 border-green-500 rounded p-6 shadow-[0_0_15px_rgba(34,197,94,0.3)] min-h-[80vh] flex flex-col space-y-6">
       <header className="border-b-4 border-green-900 pb-6 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -420,7 +422,19 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Features" icon="🎛️">
-        <p className="text-zinc-500 font-terminal text-sm">Enable or disable feature groups. The navigation updates instantly to show only what you use. Collection is always on.</p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-zinc-500 font-terminal text-sm">Enable or disable feature groups. The navigation updates instantly to show only what you use. Collection is always on.</p>
+          <button
+            onClick={() => {
+              localStorage.removeItem(ONBOARDING_KEY);
+              localStorage.removeItem(`${ONBOARDING_KEY}-v`);
+              window.location.reload();
+            }}
+            className="ml-4 shrink-0 px-3 py-1.5 font-terminal text-xs border border-green-800 text-green-600 hover:text-green-400 hover:border-green-600 transition-colors whitespace-nowrap"
+          >
+            ↺ Restart Setup Wizard
+          </button>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
           {NAV_GROUPS.filter(g => !g.alwaysOn).map(group => {
             const enabled = config.features?.[group.id as keyof Features] ?? true;
@@ -513,5 +527,6 @@ export default function SettingsPage() {
         )}
       </Section>
     </div>
+    </>
   );
 }
