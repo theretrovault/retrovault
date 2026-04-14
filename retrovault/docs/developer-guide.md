@@ -116,7 +116,42 @@ See `.env.example` for setup instructions per key.
 
 ## 4. Data Layer
 
-All personal data lives in JSON files in `data/`. The `.gitignore` ensures none of it is ever committed.
+RetroVault uses **SQLite** as its primary database backend, with Prisma 7 as the ORM. All personal data lives in `data/` (gitignored — never committed).
+
+### SQLite Database
+
+| File | What it contains |
+|---|---|
+| `data/retrovault.db` | Primary SQLite database (all collection data) |
+
+The schema is defined in `prisma/schema.prisma`. Apply changes with:
+
+```bash
+# Apply schema migrations
+npx prisma migrate dev --name your_change_name
+
+# Regenerate Prisma client after schema changes
+npx prisma generate
+```
+
+### Prisma Client
+
+Use the singleton client from `src/lib/prisma.ts`:
+
+```typescript
+import prisma from '@/lib/prisma'
+
+// Query examples
+const owned = await prisma.game.findMany({ where: { copies: { some: {} } } })
+const count = await prisma.game.count()
+const game  = await prisma.game.findUnique({ where: { id } })
+```
+
+The singleton uses Prisma 7's adapter pattern with `@prisma/adapter-better-sqlite3`.
+
+### JSON fallback files (legacy / config)
+
+Some data is still read from JSON (config, scrapers state, achievements manual unlocks). These coexist with SQLite during the transition period.
 
 | File | What it contains |
 |---|---|
@@ -160,7 +195,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-All 116+ tests live in `src/__tests__/`. When adding a feature:
+All 137+ tests live in `src/__tests__/`. When adding a feature:
 1. Write tests in `src/__tests__/yourfeature.test.ts`
 2. Run `npm test` before committing
 3. CI will also run them — PRs don't merge without green tests

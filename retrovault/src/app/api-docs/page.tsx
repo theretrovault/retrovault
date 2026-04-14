@@ -6,16 +6,25 @@ type ApiKey = { id: string; name: string; prefix: string; permissions: string; c
 type Endpoint = { path: string; method: string; summary: string; params?: string[] };
 
 const ENDPOINTS: Endpoint[] = [
-  { path: "/api/v1/inventory", method: "GET", summary: "List all games in catalog", params: ["platform", "owned", "q", "has_price", "sort", "limit", "offset"] },
-  { path: "/api/v1/collection", method: "GET", summary: "Collection summary stats and KPIs" },
-  { path: "/api/v1/sales", method: "GET", summary: "Sales and acquisition history", params: ["type", "limit", "offset"] },
-  { path: "/api/v1/watchlist", method: "GET", summary: "Target Radar items with alert status" },
-  { path: "/api/v1/grails", method: "GET", summary: "Holy Grail wish list", params: ["status"] },
-  { path: "/api/v1/achievements", method: "GET", summary: "Achievement unlock status and progress" },
-  { path: "/api/v1/health", method: "GET", summary: "System health and data quality metrics" },
-  { path: "/api/v1/keys", method: "GET", summary: "List API keys (write key required)" },
-  { path: "/api/v1/keys", method: "POST", summary: "Create API key (write key required)" },
-  { path: "/api/v1/keys?id=", method: "DELETE", summary: "Revoke API key (write key required)" },
+  // ── Collection API (v1, requires API key) ──────────────────────────────────
+  { path: "/api/v1/inventory",   method: "GET",    summary: "List all games in catalog", params: ["platform", "owned", "q", "has_price", "sort", "limit", "offset"] },
+  { path: "/api/v1/collection",  method: "GET",    summary: "Collection summary stats and KPIs" },
+  { path: "/api/v1/sales",       method: "GET",    summary: "Sales and acquisition history", params: ["type", "limit", "offset"] },
+  { path: "/api/v1/watchlist",   method: "GET",    summary: "Target Radar items with live price alert status" },
+  { path: "/api/v1/grails",      method: "GET",    summary: "Holy Grail tracker", params: ["status: all|hunting|found"] },
+  { path: "/api/v1/achievements",method: "GET",    summary: "Achievement unlock status and progress" },
+  { path: "/api/v1/health",      method: "GET",    summary: "System health and data quality metrics" },
+  { path: "/api/v1/keys",        method: "GET",    summary: "List API keys (write key required)" },
+  { path: "/api/v1/keys",        method: "POST",   summary: "Create API key (write key required)" },
+  { path: "/api/v1/keys?id=",    method: "DELETE", summary: "Revoke API key (write key required)" },
+  // ── Wishlist API (no key required — local use only) ────────────────────────
+  { path: "/api/wishlist",                    method: "GET",    summary: "List all wishlist items (ordered by priority)" },
+  { path: "/api/wishlist",                    method: "POST",   summary: "Add item — body: { title, platform, priority?, notes?, gameId? }" },
+  { path: "/api/wishlist/[id]",               method: "PATCH",  summary: "Update item — body: { priority?, notes?, foundAt? }" },
+  { path: "/api/wishlist/[id]",               method: "DELETE", summary: "Remove item from wishlist" },
+  { path: "/api/wishlist/share",              method: "GET",    summary: "Get (or create) public share token" },
+  { path: "/api/wishlist/share",              method: "DELETE", summary: "Regenerate share token (revokes old link)" },
+  { path: "/api/wishlist/public/[token]",     method: "GET",    summary: "Public read-only wishlist view — no auth required" },
 ];
 
 export default function ApiDocsPage() {

@@ -8,6 +8,29 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.1.4",
+    date: "2026-04-13",
+    title: "Tests, docs, and API docs updated",
+    type: "improvement",
+    changes: [
+      { category: "Testing", items: [
+        "New test file: wishlist.test.ts — 13 tests for wishlist and wizard achievements",
+        "Total test count: 150 passing across 8 test files",
+      ]},
+      { category: "Documentation", items: [
+        "installation.md: added SQLite setup section (prisma migrate, migration script, DATABASE_URL)",
+        "installation.md: added Setup Wizard section",
+        "developer-guide.md: updated Data Layer section with Prisma/SQLite architecture",
+        "developer-guide.md: test count updated to 150+",
+      ]},
+      { category: "API Docs", items: [
+        "/api-docs page: all 7 Wishlist API endpoints documented",
+        "Endpoint list reorganized into Collection API (v1, key required) and Wishlist API (no key)",
+        "Parameter hints improved across all endpoints",
+      ]},
+    ],
+  },
+  {
     version: "2.1.3",
     date: "2026-04-13",
     title: "Mode & Wishlist achievements",

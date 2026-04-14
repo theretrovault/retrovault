@@ -320,6 +320,60 @@ For automated deployment on git push, see [deploy.sh](../scripts/deploy.sh).
 
 ---
 
+## 🗄️ Database Setup (SQLite)
+
+RetroVault uses SQLite as its database backend. On first install you need to:
+
+### 1. Apply the schema
+
+```bash
+npx prisma migrate dev
+```
+
+This creates `data/retrovault.db` with the full schema.
+
+### 2. Import existing JSON data (if upgrading from an older version)
+
+If you have existing `data/*.json` files from a previous installation:
+
+```bash
+# Preview what will be imported (no writes)
+node scripts/migrate-to-sqlite.mjs --dry-run
+
+# Run the migration
+node scripts/migrate-to-sqlite.mjs
+```
+
+Migration is fast — 26,000+ games with full price history imports in under 1 second. Your JSON files are preserved as backup.
+
+### DATABASE_URL
+
+The default database location is `data/retrovault.db`. Override via `.env`:
+
+```bash
+DATABASE_URL="file:./data/retrovault.db"  # default
+DATABASE_URL="file:/custom/path/vault.db" # custom path
+```
+
+---
+
+## 🗺️ First-Run Setup Wizard
+
+When you open RetroVault for the first time with an empty collection, the **Setup Wizard** launches automatically.
+
+It walks you through:
+1. **Mode** — Collector (personal tracking), Dealer (business tools), or Empire Builder (everything)
+2. **Collection size** — starter / building / serious (500+ games)
+3. **Online selling** — configures eBay/Whatnot tools
+4. **Instance type** — solo or shared (recommends auth for shared)
+5. **Identity** — your name and currency
+
+The wizard configures feature flags automatically. You can re-run it anytime from **Settings → Features → Restart Setup Wizard**.
+
+After completing the wizard, a guided feature tour launches automatically.
+
+---
+
 ## Verifying your installation
 
 After setup, confirm everything is working:
