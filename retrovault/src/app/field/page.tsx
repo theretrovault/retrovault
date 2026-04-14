@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { ALL_PLATFORMS } from "@/data/platformGroups";
 
 type PriceResult = {
   title: string;
@@ -64,7 +65,8 @@ export default function FieldPage() {
   const [results, setResults] = useState<PriceResult[]>([]);
   const [inventory, setInventory] = useState<OwnedItem[]>([]);
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
-  const [platforms, setPlatforms] = useState<string[]>([]);
+  // Pre-seeded with all known platforms so the select works before inventory loads
+  const [platforms, setPlatforms] = useState<string[]>(ALL_PLATFORMS);
   const [suggestions, setSuggestions] = useState<{ title: string; platform: string }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
@@ -79,8 +81,10 @@ export default function FieldPage() {
     // Load inventory and watchlist for dupe detection + watchlist check
     fetch("/api/inventory").then(r => r.json()).then((d: OwnedItem[]) => {
       setInventory(d);
-      const plats = Array.from(new Set(d.map(i => i.platform))).sort();
-      setPlatforms(plats);
+      // Owned platforms first, then the rest of the known catalog
+      const owned = Array.from(new Set(d.map((i: OwnedItem) => i.platform))).sort() as string[];
+      const rest = ALL_PLATFORMS.filter(p => !owned.includes(p));
+      setPlatforms([...owned, ...rest]);
       // Store lightweight catalog copy in ref for suggestion filtering
       catalogRef.current = d.map(i => ({ title: i.title, platform: i.platform }));
     }).catch(() => {});
