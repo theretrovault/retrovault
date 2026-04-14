@@ -180,8 +180,6 @@ export default function SettingsPage() {
   );
 
   return (
-    <>
-    <Onboarding />
     <div className="w-full bg-black border-4 border-green-500 rounded p-6 shadow-[0_0_15px_rgba(34,197,94,0.3)] min-h-[80vh] flex flex-col space-y-6">
       <header className="border-b-4 border-green-900 pb-6 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -527,6 +525,5 @@ export default function SettingsPage() {
         )}
       </Section>
     </div>
-    </>
   );
 }

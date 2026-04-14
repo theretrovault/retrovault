@@ -9,6 +9,8 @@ import { useTooltips } from "@/components/Tooltip";
 import { useLogout } from "@/components/AuthGuard";
 import { BugReportModal } from "@/components/BugReportModal";
 import { QuoteBanner } from "@/components/QuoteBanner";
+import { Onboarding } from "@/components/Onboarding";
+import { WhatsNew } from "@/components/WhatsNew";
 import { NAV_GROUPS, SYSTEM_ITEMS, getEnabledGroups } from "@/data/navConfig";
 import { NavTooltip } from "@/components/NavTooltip";
 
@@ -186,6 +188,8 @@ export function StandaloneNav({ children }: { children: React.ReactNode }) {
         </div>
       </footer>
     {bugOpen && <BugReportModal onClose={() => setBugOpen(false)} />}
+    <Onboarding />
+    <WhatsNew />
     </div>
   );
 }
