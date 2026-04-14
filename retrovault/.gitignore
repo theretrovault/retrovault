@@ -43,3 +43,10 @@ src/lib/markdown.ts
 *.db
 data/retrovault.db*.db-shm
 *.db-wal
+data/config.json
+data/exists.json
+data/formatted.json
+data/items.json
+data/overwrite.json
+data/test.json
+coverage/
