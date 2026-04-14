@@ -1,3 +1,14 @@
+/**
+ * Prisma Client — lazy singleton
+ *
+ * IMPORTANT: We use a lazy getter pattern rather than eager initialization.
+ * During `npm run build`, Next.js imports all modules across 3+ parallel workers.
+ * If the DB connection is opened at module evaluation time, all workers race to
+ * open the same SQLite file → SQLITE_BUSY.
+ *
+ * Solution: defer DB connection until the first actual query.
+ */
+
 import { PrismaClient } from '@prisma/client'
 
 declare global {
@@ -19,6 +30,24 @@ function createClient(): PrismaClient {
   return new PrismaClient({ adapter })
 }
 
-export const prisma: PrismaClient = globalThis.__prisma ?? createClient()
-if (process.env.NODE_ENV !== 'production') globalThis.__prisma = prisma
+// Lazy singleton — connection deferred until first use
+let _prisma: PrismaClient | undefined
+
+export function getPrisma(): PrismaClient {
+  if (!_prisma) {
+    _prisma = globalThis.__prisma ?? createClient()
+    if (process.env.NODE_ENV !== 'production') {
+      globalThis.__prisma = _prisma
+    }
+  }
+  return _prisma
+}
+
+// Proxy that looks like a PrismaClient but only connects on first property access
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    return (getPrisma() as unknown as Record<string | symbol, unknown>)[prop]
+  }
+})
+
 export default prisma

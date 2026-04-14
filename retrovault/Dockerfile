@@ -24,11 +24,13 @@ RUN mkdir -p data && \
     echo '{"sellers":[],"streams":[]}' > data/whatnot.json && \
     echo '[]' > data/scrapers.json
 
-# Generate Prisma client (required before build so types are available)
-ENV DATABASE_URL="file:./data/retrovault.db"
+# Generate Prisma client types (does NOT connect to DB — just generates TS types)
+# DATABASE_URL must be set but the file doesn't need to exist at this stage
+ENV DATABASE_URL="file:/tmp/build-placeholder.db"
 RUN npx prisma generate
 
-# Build WITHOUT standalone mode (simpler, more compatible)
+# Build — force-dynamic on all API routes prevents static pre-rendering
+# which would try to open the DB during build with multiple parallel workers
 RUN npm run build
 
 FROM node:22-slim AS runner
