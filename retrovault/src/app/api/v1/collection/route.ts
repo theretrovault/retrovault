@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     const totalCib    = (cibAgg._sum.marketCib ?? 0) || totalValue
     const totalPaid   = copiesAgg._sum.priceAcquired ?? 0
     const saleRevenue = salesAgg._sum.salePrice ?? 0
-    const platforms   = platformGroups.map(p => p.platform)
+    const platforms   = platformGroups.map((p: { platform: string }) => p.platform)
 
     return apiResponse({
       games: {
