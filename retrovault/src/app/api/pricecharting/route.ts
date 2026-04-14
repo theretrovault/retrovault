@@ -140,6 +140,15 @@ function titleToSlug(s: string): string {
     .trim();
 }
 
+const FETCH_TIMEOUT_MS = 8000; // 8 seconds — enough for slow connections, not enough to hang in field
+
+/** AbortSignal that times out after ms milliseconds */
+function timeoutSignal(ms: number): AbortSignal {
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get('q');
@@ -149,6 +158,7 @@ export async function GET(request: Request) {
   }
 
   const queryTitle = q;
+  const signal = timeoutSignal(FETCH_TIMEOUT_MS);
 
   try {
     // Strategy 1: Try direct URL first (most accurate)
@@ -176,7 +186,8 @@ export async function GET(request: Request) {
           const directUrl = `https://www.pricecharting.com/game/${platSlug}/${gameSlug}`;
           const directRes = await fetch(directUrl, {
             redirect: 'manual', // Don't auto-follow — detect if we got redirected to search
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            signal
           });
           
           // If it redirected to search, this slug didn't match — try next variant
@@ -191,7 +202,8 @@ export async function GET(request: Request) {
             : directUrl;
           
           const finalRes = await fetch(fetchUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            signal
           });
           directHtml = await finalRes.text();
           $d = cheerio.load(directHtml);
@@ -293,7 +305,8 @@ export async function GET(request: Request) {
     const response = await fetch(searchUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-      }
+      },
+      signal
     });
 
     const html = await response.text();
@@ -371,7 +384,12 @@ export async function GET(request: Request) {
     });
 
   } catch (error: any) {
-    console.error("PriceCharting Scrape Error:", error);
-    return NextResponse.json({ error: "Failed to fetch price" }, { status: 500 });
+    const isTimeout = error?.name === 'AbortError' || error?.message?.includes('abort');
+    if (isTimeout) {
+      console.warn('[pricecharting] Request timed out after', FETCH_TIMEOUT_MS, 'ms for query:', q);
+      return NextResponse.json({ error: 'timeout', message: 'Price lookup timed out' }, { status: 408 });
+    }
+    console.error('PriceCharting Scrape Error:', error);
+    return NextResponse.json({ error: 'Failed to fetch price' }, { status: 500 });
   }
 }

@@ -16,6 +16,9 @@ type PriceResult = {
   conditions: string[]; // condition label per copy (Loose, CIB, etc.)
   watchlisted: boolean;
   watchlistPrice?: string;
+  // Stale/cached price info
+  stale?: boolean;       // true if price is from cached inventory data, not a live scrape
+  lastFetched?: string;  // ISO date of last successful scrape
 };
 
 type OwnedItem = {
@@ -26,6 +29,7 @@ type OwnedItem = {
   marketLoose?: string;
   marketCib?: string;
   marketNew?: string;
+  lastFetched?: string;
 };
 
 type WatchlistItem = {
@@ -166,10 +170,44 @@ export default function FieldPage() {
       return;
     }
 
-    // Fall back to PriceCharting
+    // Fall back to PriceCharting with 9s client-side timeout (server adds its own 8s)
     try {
       const platParam = platFilter ? plat : "";
-      const res = await fetch(`/api/pricecharting?title=${encodeURIComponent(titleQ)}&platform=${encodeURIComponent(platParam)}`);
+      const controller = new AbortController();
+      const clientTimeout = setTimeout(() => controller.abort(), 9000);
+
+      const res = await fetch(
+        `/api/pricecharting?title=${encodeURIComponent(titleQ)}&platform=${encodeURIComponent(platParam)}`,
+        { signal: controller.signal }
+      );
+      clearTimeout(clientTimeout);
+
+      // Handle timeout (408) or network error
+      if (res.status === 408 || !res.ok) {
+        // Try to show cached price from inventory catalog for this title
+        const cached = inventory.find(i =>
+          i.title.toLowerCase().includes(q) && (!platFilter || i.platform === plat)
+        );
+        if (cached && (cached.marketLoose || cached.marketCib)) {
+          setResults([{
+            title: cached.title,
+            platform: cached.platform,
+            loose: cached.marketLoose || null,
+            cib: cached.marketCib || null,
+            newPrice: cached.marketNew || null,
+            source: "inventory",
+            owned: (cached.copies || []).length,
+            paidTotal: 0, paidEach: [], conditions: [],
+            watchlisted: watchlist.some(w => w.id === cached.id),
+            stale: true,
+            lastFetched: cached.lastFetched,
+          }]);
+        }
+        // else: no result, leave results empty
+        setSearching(false);
+        return;
+      }
+
       const d = await res.json();
       if (d && d.title) {
         setResults([{
@@ -181,7 +219,26 @@ export default function FieldPage() {
           watchlisted: false,
         }]);
       }
-    } catch { /* no result */ }
+    } catch (e: any) {
+      // AbortError = client-side timeout, try cached
+      if (e?.name === 'AbortError') {
+        const cached = inventory.find(i =>
+          i.title.toLowerCase().includes(q) && (!platFilter || i.platform === plat)
+        );
+        if (cached && (cached.marketLoose || cached.marketCib)) {
+          setResults([{
+            title: cached.title, platform: cached.platform,
+            loose: cached.marketLoose || null, cib: cached.marketCib || null,
+            newPrice: cached.marketNew || null,
+            source: "inventory",
+            owned: (cached.copies || []).length,
+            paidTotal: 0, paidEach: [], conditions: [],
+            watchlisted: watchlist.some(w => w.id === cached.id),
+            stale: true, lastFetched: cached.lastFetched,
+          }]);
+        }
+      }
+    }
     setSearching(false);
   };
 
@@ -326,6 +383,14 @@ export default function FieldPage() {
             {r.watchlisted && (
               <div className="border border-yellow-700 bg-yellow-950/20 px-4 py-2 font-terminal text-xl text-yellow-400">
                 ⭐ ON YOUR WATCHLIST{r.watchlistPrice ? ` — alert at $${r.watchlistPrice}` : ""}
+              </div>
+            )}
+
+            {/* Stale price warning */}
+            {r.stale && (
+              <div className="border border-yellow-800 bg-yellow-950/20 px-3 py-2 font-terminal text-xs text-yellow-600">
+                ⚠️ Live price unavailable (network timeout) — showing cached price
+                {r.lastFetched && ` from ${new Date(r.lastFetched).toLocaleDateString()}`}
               </div>
             )}
 
