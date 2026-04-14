@@ -12,6 +12,7 @@ type PriceResult = {
   owned: number;
   paidTotal: number;   // sum of priceAcquired across all copies
   paidEach: number[];  // per-copy cost for multi-copy display
+  conditions: string[]; // condition label per copy (Loose, CIB, etc.)
   watchlisted: boolean;
   watchlistPrice?: string;
 };
@@ -93,6 +94,7 @@ export default function FieldPage() {
         const copies = i.copies || [];
         const paidEach = copies.map(c => parseFloat(String(c.priceAcquired || 0)) || 0);
         const paidTotal = paidEach.reduce((s, v) => s + v, 0);
+        const conditions = copies.map(c => c.condition || 'Loose');
         return {
           title: i.title,
           platform: i.platform,
@@ -103,6 +105,7 @@ export default function FieldPage() {
           owned: copies.length,
           paidTotal,
           paidEach,
+          conditions,
           watchlisted: watchlist.some(w => w.id === i.id),
           watchlistPrice: watchlist.find(w => w.id === i.id)?.alertPrice,
         };
@@ -128,6 +131,7 @@ export default function FieldPage() {
           owned: 0,
           paidTotal: 0,
           paidEach: [],
+          conditions: [],
           watchlisted: false,
         }]);
       }
@@ -204,7 +208,10 @@ export default function FieldPage() {
             {r.owned > 0 && (
               <div className={`border px-4 py-2 font-terminal ${r.owned >= 2 ? "border-orange-700 bg-orange-950/30 text-orange-400" : "border-blue-800 bg-blue-950/20 text-blue-400"}`}>
                 <div className="text-xl mb-1">
-                  {r.owned >= 2 ? `⚠️ DUPE ALERT — you own ${r.owned} copies!` : `ℹ️ You own 1 copy`}
+                  {r.owned >= 2
+                    ? `⚠️ DUPE ALERT — you own ${r.owned} copies (${r.conditions.join(' + ')})!`
+                    : `ℹ️ You own 1 ${r.conditions[0] ?? 'Loose'} copy`
+                  }
                 </div>
                 {r.paidTotal > 0 && (
                   <div className="text-sm text-zinc-400 font-terminal">
