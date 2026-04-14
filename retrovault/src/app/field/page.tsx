@@ -53,6 +53,9 @@ function getDecision(askPrice: number, loosePrice: number | null, ownedCount: nu
   return { verdict: "PASS", color: "text-red-400", reason: `Overpriced by ${Math.abs(margin).toFixed(0)}%.` };
 }
 
+const MAX_SUGGESTIONS = 8;
+const SUGGEST_DEBOUNCE_MS = 150;
+
 export default function FieldPage() {
   const [query, setQuery] = useState("");
   const [platform, setPlatform] = useState("all");
@@ -62,7 +65,14 @@ export default function FieldPage() {
   const [inventory, setInventory] = useState<OwnedItem[]>([]);
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [platforms, setPlatforms] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<{ title: string; platform: string }[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const suggestRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Keep catalog in a ref — filtering never triggers re-renders
+  const catalogRef = useRef<{ title: string; platform: string }[]>([]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -71,22 +81,65 @@ export default function FieldPage() {
       setInventory(d);
       const plats = Array.from(new Set(d.map(i => i.platform))).sort();
       setPlatforms(plats);
+      // Store lightweight catalog copy in ref for suggestion filtering
+      catalogRef.current = d.map(i => ({ title: i.title, platform: i.platform }));
     }).catch(() => {});
     fetch("/api/sales?type=watchlist").then(r => r.json()).then(d => {
       if (Array.isArray(d)) setWatchlist(d);
     }).catch(() => {});
   }, []);
 
-  const search = async () => {
-    if (!query.trim()) return;
+  // Debounced suggestion filtering — pure client-side, no network
+  const updateSuggestions = (q: string, plat: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!q || q.length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
+    debounceRef.current = setTimeout(() => {
+      const lower = q.toLowerCase();
+      const catalog = catalogRef.current;
+      const platFilter = plat !== 'all';
+      // Prefer: starts-with matches first, then contains
+      const startsWith = catalog.filter(i =>
+        i.title.toLowerCase().startsWith(lower) &&
+        (!platFilter || i.platform === plat)
+      );
+      const contains = catalog.filter(i =>
+        !i.title.toLowerCase().startsWith(lower) &&
+        i.title.toLowerCase().includes(lower) &&
+        (!platFilter || i.platform === plat)
+      );
+      const merged = [...startsWith, ...contains].slice(0, MAX_SUGGESTIONS);
+      setSuggestions(merged);
+      setShowSuggestions(merged.length > 0);
+      setActiveSuggestion(-1);
+    }, SUGGEST_DEBOUNCE_MS);
+  };
+
+  const pickSuggestion = (s: { title: string; platform: string }) => {
+    setQuery(s.title);
+    if (s.platform) setPlatform(s.platform);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setActiveSuggestion(-1);
+    // Call with explicit values to avoid stale closure on query/platform state
+    doSearch(s.title, s.platform || platform);
+  };
+
+  // Main search — accepts explicit title+platform so pickSuggestion can pass values
+  // without depending on possibly-stale state closures
+  const doSearch = async (titleQ: string, plat: string) => {
+    if (!titleQ.trim()) return;
+    setShowSuggestions(false);
+    setSuggestions([]);
     setSearching(true);
     setResults([]);
 
-    // First check own inventory
-    const q = query.toLowerCase();
+    const q = titleQ.toLowerCase();
+    const platFilter = plat !== "all";
+
+    // Check own inventory first (instant, no network)
     const owned = inventory.filter(i =>
       i.title.toLowerCase().includes(q) &&
-      (platform === "all" || i.platform === platform)
+      (!platFilter || i.platform === plat)
     );
 
     if (owned.length > 0) {
@@ -96,16 +149,10 @@ export default function FieldPage() {
         const paidTotal = paidEach.reduce((s, v) => s + v, 0);
         const conditions = copies.map(c => c.condition || 'Loose');
         return {
-          title: i.title,
-          platform: i.platform,
-          loose: i.marketLoose || null,
-          cib: i.marketCib || null,
-          newPrice: i.marketNew || null,
+          title: i.title, platform: i.platform,
+          loose: i.marketLoose || null, cib: i.marketCib || null, newPrice: i.marketNew || null,
           source: "inventory" as const,
-          owned: copies.length,
-          paidTotal,
-          paidEach,
-          conditions,
+          owned: copies.length, paidTotal, paidEach, conditions,
           watchlisted: watchlist.some(w => w.id === i.id),
           watchlistPrice: watchlist.find(w => w.id === i.id)?.alertPrice,
         };
@@ -115,31 +162,26 @@ export default function FieldPage() {
       return;
     }
 
-    // Fall back to PriceCharting lookup
+    // Fall back to PriceCharting
     try {
-      const plat = platform !== "all" ? platform : "";
-      const res = await fetch(`/api/pricecharting?title=${encodeURIComponent(query)}&platform=${encodeURIComponent(plat)}`);
+      const platParam = platFilter ? plat : "";
+      const res = await fetch(`/api/pricecharting?title=${encodeURIComponent(titleQ)}&platform=${encodeURIComponent(platParam)}`);
       const d = await res.json();
       if (d && d.title) {
         setResults([{
           title: d.title,
           platform: d.platform || plat || "Unknown",
-          loose: d.loose || null,
-          cib: d.cib || null,
-          newPrice: d.new || null,
+          loose: d.loose || null, cib: d.cib || null, newPrice: d.new || null,
           source: "pricecharting",
-          owned: 0,
-          paidTotal: 0,
-          paidEach: [],
-          conditions: [],
+          owned: 0, paidTotal: 0, paidEach: [], conditions: [],
           watchlisted: false,
         }]);
       }
-    } catch {
-      // no result
-    }
+    } catch { /* no result */ }
     setSearching(false);
   };
+
+  const search = () => doSearch(query, platform);
 
   const askNum = parseFloat(askPrice);
   const hasAsk = !isNaN(askNum) && askNum > 0;
@@ -154,14 +196,56 @@ export default function FieldPage() {
 
       {/* Search */}
       <div className="space-y-3 mb-6">
-        <input ref={inputRef} type="text" value={query}
-          onChange={e => setQuery(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") search(); }}
-          placeholder="GAME TITLE..."
-          className="w-full bg-zinc-950 border-2 border-green-800 text-green-300 font-terminal text-2xl p-4 uppercase focus:outline-none focus:border-green-500 placeholder-green-900"
-        />
+        <div className="relative">
+          <input ref={inputRef} type="text" value={query}
+            onChange={e => { setQuery(e.target.value); updateSuggestions(e.target.value, platform); }}
+            onKeyDown={e => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setActiveSuggestion(a => Math.min(a + 1, suggestions.length - 1));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setActiveSuggestion(a => Math.max(a - 1, -1));
+              } else if (e.key === "Enter") {
+                if (activeSuggestion >= 0 && suggestions[activeSuggestion]) {
+                  pickSuggestion(suggestions[activeSuggestion]);
+                } else {
+                  search();
+                }
+              } else if (e.key === "Escape") {
+                setShowSuggestions(false);
+              }
+            }}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+            placeholder="GAME TITLE..."
+            className="w-full bg-zinc-950 border-2 border-green-800 text-green-300 font-terminal text-2xl p-4 uppercase focus:outline-none focus:border-green-500 placeholder-green-900"
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <div ref={suggestRef}
+              className="absolute z-50 w-full bg-zinc-950 border-2 border-green-700 shadow-[0_4px_20px_rgba(34,197,94,0.2)] max-h-64 overflow-y-auto">
+              {suggestions.map((s, i) => (
+                <button
+                  key={`${s.title}-${s.platform}`}
+                  onMouseDown={() => pickSuggestion(s)}
+                  className={`w-full text-left px-4 py-3 font-terminal flex items-center justify-between gap-3 border-b border-zinc-900 transition-colors ${
+                    i === activeSuggestion
+                      ? 'bg-green-900/40 text-green-200'
+                      : 'text-green-400 hover:bg-zinc-900'
+                  }`}
+                >
+                  <span className="truncate uppercase text-sm">{s.title}</span>
+                  <span className="text-zinc-600 text-xs shrink-0">{s.platform}</span>
+                </button>
+              ))}
+              <div className="px-4 py-2 text-zinc-700 font-terminal text-xs border-t border-zinc-900">
+                ↑↓ navigate · Enter select · Esc close · or keep typing to free-search
+              </div>
+            </div>
+          )}
+        </div>
         <div className="flex gap-2">
-          <select value={platform} onChange={e => setPlatform(e.target.value)}
+          <select value={platform} onChange={e => { setPlatform(e.target.value); updateSuggestions(query, e.target.value); }}
             className="flex-1 bg-zinc-950 border-2 border-green-900 text-green-400 font-terminal text-xl p-3 focus:outline-none cursor-pointer">
             <option value="all">ALL PLATFORMS</option>
             {platforms.map(p => <option key={p} value={p}>{p}</option>)}
