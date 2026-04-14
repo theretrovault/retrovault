@@ -1,3 +1,13 @@
+/**
+ * GET /api/v1/grails
+ *
+ * Returns the Holy Grail tracker list.
+ *
+ * Auth: API key required (read permission)
+ *
+ * Query params:
+ *   status  'all' | 'hunting' | 'found' (default: 'all')
+ */
 import { NextRequest } from 'next/server'
 import { requireApiAuth, apiResponse, apiError } from '@/lib/apiAuth'
 import prisma from '@/lib/prisma'

@@ -1,3 +1,12 @@
+/**
+ * GET /api/v1/collection
+ *
+ * Returns a high-level summary of the entire collection: game counts, total value,
+ * P&L totals, grail/watchlist status, and play log stats.
+ *
+ * Auth: API key required (read permission)
+ * Powered by: Prisma/SQLite parallel aggregations
+ */
 import { NextRequest } from 'next/server'
 import { requireApiAuth, apiResponse, apiError } from '@/lib/apiAuth'
 import prisma from '@/lib/prisma'

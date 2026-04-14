@@ -1,3 +1,15 @@
+/**
+ * GET /api/v1/sales
+ *
+ * Returns sales and acquisition history with aggregate P&L totals.
+ *
+ * Auth: API key required (read permission)
+ *
+ * Query params:
+ *   type    'sales' | 'acquisitions' | 'both' (default: 'both')
+ *   limit   Max records per type (default 100, max 1000)
+ *   offset  Pagination offset
+ */
 import { NextRequest } from 'next/server'
 import { requireApiAuth, apiResponse, apiError } from '@/lib/apiAuth'
 import prisma from '@/lib/prisma'

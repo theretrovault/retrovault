@@ -1,3 +1,12 @@
+/**
+ * GET /api/v1/health
+ *
+ * System health check — returns database status, data file counts,
+ * version info, and scraper run status.
+ *
+ * Auth: API key required (read permission)
+ * Also available without auth at: /api/health
+ */
 import { NextRequest } from 'next/server';
 import { requireApiAuth, apiResponse } from '@/lib/apiAuth';
 

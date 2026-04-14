@@ -1,3 +1,11 @@
+/**
+ * GET /api/v1/watchlist
+ *
+ * Returns watchlist items enriched with current market prices from the catalog.
+ * alertTriggered=true when the current market price is at or below the alert threshold.
+ *
+ * Auth: API key required (read permission)
+ */
 import { NextRequest } from 'next/server'
 import { requireApiAuth, apiResponse, apiError } from '@/lib/apiAuth'
 import prisma from '@/lib/prisma'

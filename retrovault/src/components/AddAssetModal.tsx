@@ -1,4 +1,20 @@
 "use client";
+/**
+ * AddAssetModal — Add or edit a game in the collection
+ *
+ * Used for both "Add new asset" and "Edit existing asset" flows.
+ * The same modal handles both cases via the initialData prop.
+ *
+ * Key behaviors:
+ * - Autocomplete suggestions from the catalog (filtered by selected platform)
+ * - Suggestions stored in a ref to avoid re-renders on every keystroke
+ * - Platform recents tracked in localStorage for quick re-selection
+ * - Field component hoisted to module scope (prevents focus loss on re-render)
+ *
+ * @param onSave    Called with the completed form data. Caller handles the API write.
+ * @param onClose   Called to dismiss the modal (backdrop click or cancel).
+ * @param initialData  Pre-populate for edit mode. Omit for new asset.
+ */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { CONSOLES } from "@/data/consoles";

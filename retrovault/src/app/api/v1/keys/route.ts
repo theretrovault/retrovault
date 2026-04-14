@@ -1,3 +1,13 @@
+/**
+ * API Key Management
+ *
+ * GET    /api/v1/keys       List all API keys (write key required)
+ * POST   /api/v1/keys       Create a new API key (write key required)
+ * DELETE /api/v1/keys?id=X  Revoke an API key (write key required)
+ *
+ * Auth: write-permission API key required for all operations
+ * Note: The plaintext key is returned ONLY on POST — store it immediately.
+ */
 import { NextRequest } from 'next/server';
 import { requireApiAuth, apiResponse, apiError, getApiKeys, addApiKey, revokeApiKey } from '@/lib/apiAuth';
 

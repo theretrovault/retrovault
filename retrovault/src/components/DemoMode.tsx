@@ -1,4 +1,22 @@
 "use client";
+/**
+ * DemoMode — Guided feature tour
+ *
+ * Provides a step-by-step tour of RetroVault features. Navigates to the relevant
+ * page for each step automatically. Tour state survives page navigation via sessionStorage.
+ *
+ * Two entry points:
+ * 1. Manual: "▶ DEMO" button in the nav calls start()
+ * 2. Automatic: After Setup Wizard completes, DEMO_AUTOSTART_KEY is written to
+ *    localStorage. DemoProvider reads it on mount, builds a filtered step list
+ *    based on the user's enabled features, and auto-starts.
+ *
+ * Mode-aware filtering:
+ *   buildDemoSteps(features) returns only steps whose requires[] groups are enabled.
+ *   The Collector sees personal/collection steps; the Dealer sees business steps; etc.
+ *
+ * Export DEMO_AUTOSTART_KEY so Onboarding.tsx can write it without importing all of DemoMode.
+ */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";

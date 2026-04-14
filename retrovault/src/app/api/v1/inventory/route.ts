@@ -1,3 +1,19 @@
+/**
+ * GET /api/v1/inventory
+ *
+ * Returns paginated game catalog with optional filters.
+ *
+ * Auth: API key required (read permission)
+ *
+ * Query params:
+ *   platform   Filter to a specific platform (case-insensitive)
+ *   owned      'true' | 'false' — filter by ownership
+ *   q          Title search (substring match)
+ *   has_price  'true' — only games with market data
+ *   sort       'title' | 'platform' | 'marketLoose' | 'lastFetched'
+ *   limit      Max results (default 100, max 1000)
+ *   offset     Pagination offset (default 0)
+ */
 import { NextRequest } from 'next/server'
 import { requireApiAuth, apiResponse, apiError } from '@/lib/apiAuth'
 import prisma from '@/lib/prisma'

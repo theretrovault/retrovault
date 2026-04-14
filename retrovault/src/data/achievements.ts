@@ -1,3 +1,25 @@
+/**
+ * Achievement System — RetroVault
+ *
+ * 130+ achievements across 10 categories, 5 rarity tiers.
+ *
+ * Architecture:
+ * - ACHIEVEMENTS array: static definitions with a check() predicate
+ * - AchievementContext: snapshot of collection state passed to check()
+ * - evaluateAchievements(ctx): returns Set<string> of auto-unlocked IDs
+ * - Manual unlocks (secret achievements, action-triggered): stored in
+ *   localStorage under "rv-achievements-manual" and merged server-side
+ *   in /api/achievements
+ *
+ * Adding an achievement:
+ * 1. Add an entry to ACHIEVEMENTS with a unique id, category, rarity, and check()
+ * 2. If it requires new context data, add the field to AchievementContext
+ *    and populate it in /api/achievements route.ts buildContext()
+ * 3. For manual unlocks (check: _ => false), trigger from the relevant UI
+ *    component by writing to localStorage "rv-achievements-manual"
+ *
+ * Rarity points: Common=10, Uncommon=25, Rare=50, Epic=100, Legendary=250
+ */
 export type AchievementRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type AchievementCategory =
   | "collection" | "business" | "hunting" | "platform" | "social"
@@ -258,6 +280,11 @@ export const ACHIEVEMENTS: Achievement[] = [
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
+/**
+ * Evaluate all auto-checkable achievements against the current collection context.
+ * Secret achievements (check: _ => false) are skipped — they're unlocked manually
+ * from UI actions and stored in localStorage.
+ */
 export function evaluateAchievements(ctx: AchievementContext): Set<string> {
   const unlocked = new Set<string>();
   for (const a of ACHIEVEMENTS) {
@@ -271,6 +298,11 @@ export function getTotalPoints(unlockedIds: string[]): number {
     .reduce((s, a) => s + a.points, 0);
 }
 
+/**
+ * Completion % counts only auto-checkable achievements (not secret, not manual-only).
+ * Manual-only achievements (check: _ => false) are excluded so the % isn\'t
+ * artificially inflated by things the user can\'t organically discover.
+ */
 export function getCompletionPercent(unlockedIds: string[]): number {
   const autoCheckable = ACHIEVEMENTS.filter(a => !a.secret && a.check.toString() !== '_ => false');
   return autoCheckable.length > 0

@@ -1,3 +1,16 @@
+/**
+ * API Key Authentication — RetroVault v1 REST API
+ *
+ * Keys are stored as SHA-256 hashes in data/app.config.json (never plaintext).
+ * Two permission levels: 'read' (default) and 'write' (required for key management).
+ *
+ * Client usage:
+ *   Authorization: Bearer rvk_<key>       (standard)
+ *   X-RetroVault-Key: rvk_<key>           (alternative for clients that don't support Authorization)
+ *
+ * Key format: rvk_<64 hex chars>  (prefix 'rvk_' + 32 random bytes)
+ * Storage: SHA-256(key + salt) — timing-safe comparison via hash equality
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import fs from 'fs';
@@ -24,10 +37,12 @@ function saveConfig(cfg: any) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
 }
 
+/** SHA-256 hash with a static salt. Not bcrypt, but keys are long random strings so brute force isn't practical. */
 function hashKey(key: string): string {
   return crypto.createHash('sha256').update(key + 'retrovault-api-salt').digest('hex');
 }
 
+/** Generate a new cryptographically random API key. Returns the plaintext key (shown once) and its display prefix. */
 export function generateApiKey(): { key: string; prefix: string } {
   const key = 'rvk_' + crypto.randomBytes(32).toString('hex');
   return { key, prefix: key.slice(0, 12) };
@@ -38,6 +53,10 @@ export function getApiKeys(): ApiKey[] {
   return cfg.apiKeys || [];
 }
 
+/**
+ * Create a new API key and persist it. Returns the plaintext key — this is the ONLY time it’s available.
+ * Subsequent calls only have access to the hash and prefix.
+ */
 export function addApiKey(name: string, permissions: 'read' | 'write' = 'read'): { key: string; record: ApiKey } {
   const { key, prefix } = generateApiKey();
   const record: ApiKey = {
@@ -81,7 +100,14 @@ export function validateApiKey(key: string): ApiKey | null {
   return found || null;
 }
 
-// Middleware helper for v1 API routes
+/**
+ * Middleware guard for API v1 routes. Call at the top of every protected route handler:
+ *
+ *   const { error } = requireApiAuth(req);
+ *   if (error) return error;
+ *
+ * Pass requireWrite=true for endpoints that mutate data (e.g. key management).
+ */
 export function requireApiAuth(req: NextRequest, requireWrite = false): { error: NextResponse | null; key: ApiKey | null } {
   const authHeader = req.headers.get('authorization') || '';
   const xKey = req.headers.get('x-retrovault-key') || '';

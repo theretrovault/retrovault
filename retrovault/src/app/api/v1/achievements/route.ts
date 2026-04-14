@@ -1,3 +1,11 @@
+/**
+ * GET /api/v1/achievements
+ *
+ * Returns evaluated achievement status: auto-unlocked IDs (computed from
+ * collection context), manually unlocked IDs, and the full achievement catalog.
+ *
+ * Auth: API key required (read permission)
+ */
 import { NextRequest } from 'next/server';
 import { requireApiAuth, apiResponse } from '@/lib/apiAuth';
 import { ACHIEVEMENTS, getTotalPoints } from '@/data/achievements';
