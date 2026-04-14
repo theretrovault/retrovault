@@ -121,10 +121,63 @@ describe('Layout overflow — button rows must use flex-wrap', () => {
 
   it('Inventory Add Asset button has whitespace-nowrap', () => {
     const src = readFile(path.join(SRC, 'app/inventory/page.tsx'));
-    // The Add Asset button should not overflow — ensure whitespace-nowrap is set
-    const addAssetBtn = src.match(/\+ ADD ASSET[\s\S]{0,50}/)?.[0] ?? '';
-    // Check the button's className context has whitespace-nowrap
     const btnContext = src.match(/onClick={openNew}[^>]*className="[^"]*"/)?.[0] ?? '';
     expect(btnContext).toContain('whitespace-nowrap');
+  });
+
+  // Regression: Settings page SAVE ALL button was overflowing the page border on mobile
+  it('Settings page header uses flex-wrap so SAVE ALL button stays in frame', () => {
+    const src = readFile(path.join(SRC, 'app/settings/page.tsx'));
+    // The header must use flex-wrap (or flex-col sm:flex-row)
+    const headerMatch = src.match(/<header[^>]*>[\s\S]*?<\/header>/)?.[0] ?? '';
+    const hasWrap = headerMatch.includes('flex-wrap') || headerMatch.includes('flex-col');
+    expect(hasWrap).toBe(true);
+  });
+
+  it('Settings SAVE ALL button has whitespace-nowrap and shrink-0', () => {
+    const src = readFile(path.join(SRC, 'app/settings/page.tsx'));
+    // Find the save button context
+    const btnCtx = src.match(/SAVE ALL[\s\S]{0,200}/)?.[0] ?? '';
+    // Walk back to find the button className
+    const headerRegion = src.match(/<header[\s\S]*?<\/header>/)?.[0] ?? '';
+    expect(headerRegion).toContain('whitespace-nowrap');
+    expect(headerRegion).toContain('shrink-0');
+  });
+
+  // Guard against page-level headers with title+button that lack responsive wrapping
+  it('All page headers with title+button use flex-wrap or flex-col sm:flex-row', () => {
+    const HEADER_PAGES = [
+      'app/settings/page.tsx',
+      'app/inventory/page.tsx',
+      'app/sales/page.tsx',
+      'app/watchlist/page.tsx',
+      'app/grails/page.tsx',
+      'app/wishlist/page.tsx',
+    ];
+    const issues: string[] = [];
+    for (const rel of HEADER_PAGES) {
+      const fpath = path.join(SRC, rel);
+      if (!fs.existsSync(fpath)) continue;
+      const src = readFile(fpath);
+      const headerMatch = src.match(/<header[^>]*>[\s\S]*?<\/header>/)?.[0] ?? '';
+      if (!headerMatch) continue;
+      // Only flag if header has a button AND lacks responsive wrapping
+      const hasButton = headerMatch.includes('<button');
+      if (!hasButton) continue;
+      const hasResponsive = headerMatch.includes('flex-wrap') ||
+                            headerMatch.includes('flex-col') ||
+                            headerMatch.includes('sm:flex-row');
+      if (!hasResponsive) {
+        issues.push(`${rel}: <header> has a button but no responsive flex wrapping`);
+      }
+    }
+    if (issues.length > 0) {
+      throw new Error(
+        'Layout overflow risk in page headers:\n' +
+        issues.map(i => `  - ${i}`).join('\n') +
+        '\nFix: add flex-wrap or flex-col sm:flex-row to the header className.'
+      );
+    }
+    expect(issues).toHaveLength(0);
   });
 });

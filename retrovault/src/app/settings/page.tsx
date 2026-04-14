@@ -185,13 +185,13 @@ export default function SettingsPage() {
 
   return (
     <div className="w-full bg-black border-4 border-green-500 rounded p-6 shadow-[0_0_15px_rgba(34,197,94,0.3)] min-h-[80vh] flex flex-col space-y-6">
-      <header className="border-b-4 border-green-900 pb-6 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <span className="text-3xl">⚙️</span>
-          <h2 className="text-2xl sm:text-3xl text-green-400 tracking-widest uppercase">App Settings</h2>
+      <header className="border-b-4 border-green-900 pb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-3xl shrink-0">⚙️</span>
+          <h2 className="text-xl sm:text-3xl text-green-400 tracking-widest uppercase truncate">App Settings</h2>
         </div>
         <button onClick={() => save(config)} disabled={saving}
-          className={`px-6 py-2 font-terminal text-xl font-bold transition-colors border-2 ${saved ? "bg-emerald-600 text-black border-emerald-400" : "bg-green-600 hover:bg-green-500 text-black border-green-400"} disabled:opacity-50`}>
+          className={`shrink-0 px-4 sm:px-6 py-2 font-terminal text-sm sm:text-xl font-bold transition-colors border-2 whitespace-nowrap ${saved ? "bg-emerald-600 text-black border-emerald-400" : "bg-green-600 hover:bg-green-500 text-black border-green-400"} disabled:opacity-50`}>
           {saved ? "✓ SAVED!" : saving ? "SAVING..." : "SAVE ALL"}
         </button>
       </header>
