@@ -121,11 +121,34 @@ async function applyWizardConfig(answers: Answers) {
   if (!answers.mode) return;
   const meta = MODE_META[answers.mode];
 
+  // Check if this is a mode-change re-run (triggers secret achievement)
+  let isRerun = false;
+  try {
+    const cfgRes = await fetch("/api/config");
+    if (cfgRes.ok) {
+      const cfg = await cfgRes.json();
+      if (cfg.setupWizardMode && cfg.setupWizardMode !== answers.mode) {
+        isRerun = true;
+      }
+    }
+  } catch { /* ignore */ }
+
   // Build extra config from secondary answers
   const extraConfig: Record<string, unknown> = {
     setupWizardMode:    answers.mode,
     setupWizardVersion: WIZARD_VERSION,
   };
+
+  if (isRerun) {
+    // Unlock 'Change of Plans' secret achievement manually
+    try {
+      const existing = JSON.parse(localStorage.getItem("rv-achievements-manual") || "[]") as string[];
+      if (!existing.includes("setup_rerun")) {
+        existing.push("setup_rerun");
+        localStorage.setItem("rv-achievements-manual", JSON.stringify(existing));
+      }
+    } catch { /* ignore */ }
+  }
 
   if (answers.ownerName)      extraConfig.ownerName = answers.ownerName;
   if (answers.currency)       extraConfig.currency  = answers.currency;

@@ -118,9 +118,26 @@ function buildContext(): AchievementContext {
     uptimeDays = Math.floor((Date.now() - first.getTime()) / 86400000);
   }
 
-  // API keys
+  // API keys + setup wizard mode
   const cfg = read('app.config.json', {});
   const apiKeysCreated = (cfg.apiKeys || []).length;
+  const setupWizardMode = (cfg.setupWizardMode as 'collector' | 'dealer' | 'empire' | null) ?? null;
+  const setupWizardDone = !!cfg.setupWizardVersion;
+
+  // Wishlist (from SQLite via data file fallback — use JSON count for now)
+  // The wishlist is stored in SQLite, so we do a quick DB count
+  let wishlistCount = 0;
+  let wishlistFound = 0;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Database = require('better-sqlite3');
+    const path2 = require('path');
+    const dbPath = path2.join(process.cwd(), 'data', 'retrovault.db');
+    const db = new Database(dbPath, { readonly: true });
+    wishlistCount = (db.prepare('SELECT COUNT(*) as c FROM WishlistItem').get() as { c: number }).c;
+    wishlistFound = (db.prepare('SELECT COUNT(*) as c FROM WishlistItem WHERE foundAt IS NOT NULL').get() as { c: number }).c;
+    db.close();
+  } catch { /* DB not available, defaults to 0 */ }
 
   // Bug reports filed
   const bugReports = read('bug-reports.json', []);
@@ -187,6 +204,10 @@ function buildContext(): AchievementContext {
     csvImported,
     valueHistoryDays,
     uptimeDays,
+    setupWizardMode,
+    setupWizardDone,
+    wishlistCount,
+    wishlistFound,
   };
 }
 

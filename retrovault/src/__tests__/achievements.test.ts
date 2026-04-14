@@ -18,6 +18,10 @@ function makeContext(overrides: Partial<AchievementContext> = {}): AchievementCo
     ps1Owned: 0, ps2Owned: 0, gamecubeOwned: 0, xboxOwned: 0, switchOwned: 0,
     pspOwned: 0, ps3Owned: 0, xbox360Owned: 0, segaCdOwned: 0,
     scraperRuns: 0, dealsDismissed: 0, whatnotSellers: 0, streamsWatched: 0,
+    apiKeysCreated: 0, bugReportsFiled: 0, collectionExported: false, csvImported: false,
+    valueHistoryDays: 0, uptimeDays: 0,
+    setupWizardMode: null, setupWizardDone: false,
+    wishlistCount: 0, wishlistFound: 0,
     ...overrides
   };
 }

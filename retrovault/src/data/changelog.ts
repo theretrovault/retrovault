@@ -8,6 +8,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.1.3",
+    date: "2026-04-13",
+    title: "Mode & Wishlist achievements",
+    type: "feature",
+    changes: [
+      { category: "Achievements", items: [
+        "5 new Setup Wizard achievements: Choose Your Adventure, The Collector, The Dealer, The Empire Builder, Change of Plans (secret)",
+        "8 new Wishlist achievements: Window Shopping, Short List, Wish List Pro, Found One!, Making It Happen, The Fulfiller, Share the Love, Gotta Have It",
+        "'Change of Plans' secret achievement unlocks when you re-run the wizard and switch modes",
+        "Achievement context now includes setupWizardMode, setupWizardDone, wishlistCount, wishlistFound",
+      ]},
+    ],
+  },
+  {
     version: "2.1.2",
     date: "2026-04-13",
     title: "Post-wizard feature tour",

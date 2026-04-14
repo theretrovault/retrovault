@@ -84,6 +84,12 @@ export type AchievementContext = {
   csvImported: boolean;
   valueHistoryDays: number; // days of snapshot data
   uptimeDays: number;       // computed from value-history as proxy for system uptime
+  // Setup wizard
+  setupWizardMode: "collector" | "dealer" | "empire" | null;
+  setupWizardDone: boolean;
+  // Wishlist
+  wishlistCount: number;
+  wishlistFound: number;
 };
 
 const RARITIES: Record<AchievementRarity, { color: string; bg: string; border: string; label: string; points: number }> = {
@@ -231,6 +237,23 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "a_insurance",  name: "Properly Insured",    icon: "📋", category: "milestone",  rarity: "rare",      points: 50,  condition: "Generate an insurance report",       check: _ => false }, // triggered manually
   { id: "a_theme",      name: "Customizer",          icon: "🎨", category: "milestone",  rarity: "common",    points: 10,  condition: "Change the app theme",               check: _ => false }, // triggered manually
   { id: "a_auth",       name: "Locked Down",         icon: "🔐", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Enable app authentication",          check: _ => false }, // triggered manually
+
+  // ─── SETUP WIZARD & IDENTITY ─────────────────────────────────────────────────
+  { id: "setup_done",       name: "Choose Your Adventure",  icon: "🗺️",  category: "milestone", rarity: "common",    points: 10,  condition: "Complete the Setup Wizard",                            check: c => c.setupWizardDone },
+  { id: "setup_collector",  name: "The Collector",          icon: "🎮",  category: "milestone", rarity: "uncommon",  points: 25,  condition: "Set up RetroVault in Collector mode",                  check: c => c.setupWizardMode === 'collector' },
+  { id: "setup_dealer",     name: "The Dealer",             icon: "💰",  category: "milestone", rarity: "uncommon",  points: 25,  condition: "Set up RetroVault in Dealer mode",                     check: c => c.setupWizardMode === 'dealer' },
+  { id: "setup_empire",     name: "The Empire Builder",     icon: "🏆",  category: "milestone", rarity: "rare",      points: 50,  condition: "Set up RetroVault in Empire Builder mode",             check: c => c.setupWizardMode === 'empire' },
+  { id: "setup_rerun",      name: "Change of Plans",        icon: "🔄",  category: "secret",    rarity: "uncommon",  points: 25,  condition: "Secret: re-run the Setup Wizard and switch modes",     check: _ => false, secret: true }, // triggered manually
+
+  // ─── WISHLIST ─────────────────────────────────────────────────────────────────
+  { id: "wish_first",       name: "Window Shopping",        icon: "🎁",  category: "personal",  rarity: "common",    points: 10,  condition: "Add your first game to the Wishlist",                  check: c => c.wishlistCount >= 1 },
+  { id: "wish_five",        name: "Short List",              icon: "📝",  category: "personal",  rarity: "common",    points: 10,  condition: "Add 5 games to the Wishlist",                          check: c => c.wishlistCount >= 5 },
+  { id: "wish_ten",         name: "Wish List Pro",           icon: "📋",  category: "personal",  rarity: "uncommon",  points: 25,  condition: "Add 10 games to the Wishlist",                         check: c => c.wishlistCount >= 10 },
+  { id: "wish_found1",      name: "Found One!",              icon: "✅",  category: "personal",  rarity: "common",    points: 10,  condition: "Mark your first Wishlist game as Found",               check: c => c.wishlistFound >= 1 },
+  { id: "wish_found5",      name: "Making It Happen",        icon: "🎯",  category: "personal",  rarity: "uncommon",  points: 25,  condition: "Mark 5 Wishlist games as Found",                       check: c => c.wishlistFound >= 5 },
+  { id: "wish_found10",     name: "The Fulfiller",           icon: "🌟",  category: "personal",  rarity: "rare",      points: 50,  condition: "Mark 10 Wishlist games as Found",                      check: c => c.wishlistFound >= 10 },
+  { id: "wish_shared",      name: "Share the Love",          icon: "🔗",  category: "social",    rarity: "uncommon",  points: 25,  condition: "Share your Wishlist via public link",                  check: _ => false }, // triggered manually
+  { id: "wish_must_have",   name: "Gotta Have It",           icon: "⭐",  category: "personal",  rarity: "uncommon",  points: 25,  condition: "Add 5 Must-Have items to your Wishlist",               check: _ => false }, // triggered manually
 ];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────

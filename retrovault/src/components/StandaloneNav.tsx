@@ -97,7 +97,7 @@ export function StandaloneNav({ children }: { children: React.ReactNode }) {
           {/* Right controls */}
           <div className="flex items-center gap-2 shrink-0">
             <NavTooltip label="Demo Mode" description="Take a guided tour of RetroVault">
-            <button onClick={startDemo}
+            <button onClick={() => startDemo()}
               className="hidden md:flex items-center gap-1 px-3 py-2 font-terminal text-xs uppercase text-yellow-600 hover:text-yellow-400 border border-yellow-900/50 rounded-sm transition-colors">
               ▶ DEMO
             </button>
@@ -159,7 +159,7 @@ export function StandaloneNav({ children }: { children: React.ReactNode }) {
               </div>
             ))}
             <div className="pt-2 border-t border-green-900 flex gap-3">
-              <button onClick={startDemo} className="text-yellow-500 font-terminal text-sm px-3 py-2 border border-yellow-900/50">▶ DEMO</button>
+              <button onClick={() => startDemo()} className="text-yellow-500 font-terminal text-sm px-3 py-2 border border-yellow-900/50">▶ DEMO</button>
               <button onClick={toggleTooltips} className={`font-terminal text-sm px-3 py-2 border ${tooltipsEnabled ? "text-blue-400 border-blue-700" : "text-zinc-600 border-zinc-800"}`}>💡 TIPS</button>
               <Link href="/settings" onClick={() => setMenuOpen(false)} className="text-zinc-500 font-terminal text-sm px-3 py-2 border border-zinc-800">⚙️</Link>
             </div>

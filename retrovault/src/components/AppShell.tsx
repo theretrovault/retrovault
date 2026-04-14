@@ -159,7 +159,7 @@ function MCLayout({ children }: { children: React.ReactNode }) {
                 className="w-full text-left px-3 py-1 font-terminal text-xs text-orange-700 hover:text-orange-500 hover:bg-orange-900/10 transition-colors uppercase">
                 🐛 REPORT ISSUE
               </button>
-              <button onClick={startDemo}
+              <button onClick={() => startDemo()}
                 className="w-full text-left px-3 py-1 font-terminal text-xs text-yellow-600 hover:text-yellow-400 hover:bg-yellow-900/10 transition-colors uppercase">
                 ▶ DEMO MODE
               </button>
