@@ -17,6 +17,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DATABASE_URL=file:/app/data/retrovault.db
       # Add your API keys here (or use a .env file)
       # - YOUTUBE_API_KEY=AIza...
       # - GITHUB_ISSUES_TOKEN=github_pat_...

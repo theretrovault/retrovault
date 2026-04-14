@@ -52,11 +52,15 @@ COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/data/sample ./data/sample
 COPY --from=builder /app/prisma ./prisma
+# node_modules/.bin/prisma needed for migrate deploy at runtime
+COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
 # Only chown the directories nextjs needs to write to, not all of /app
 # (chown -R on node_modules is extremely slow due to tens of thousands of files)
 RUN mkdir -p data logs && \
-    chown -R nextjs:nodejs /app/data /app/logs /app/public
+    chown -R nextjs:nodejs /app/data /app/logs /app/public && \
+    chmod +x /app/scripts/docker-entrypoint.sh
 
 USER nextjs
 EXPOSE 3000
@@ -64,4 +68,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 CMD ["node_modules/.bin/next", "start", "-p", "3000"]
