@@ -400,6 +400,47 @@ Open `http://localhost:3000/health` in your browser for a full system status das
 
 ---
 
+## 🔗 Collection Sharing (Public View)
+
+RetroVault lets you share a **read-only public view** of your collection — great for conventions, trading, or just showing off.
+
+### How it works
+
+1. Go to **Share Collection** (Settings area or nav menu)
+2. Generate a random **share token** (or type your own)
+3. Optionally set a **Base URL** — your public domain, e.g. `https://retrovault.example.com`
+4. Click **Save & Generate QR** — your shareable URL is: `https://your-domain.com/public/<token>`
+
+Anyone with the link (or QR code scan) can browse your collection. No account required on their end.
+
+### What's visible to visitors
+
+| Visible | Hidden |
+|---|---|
+| Game titles, platforms, condition | Prices paid / market values |
+| CIB status | Sales history / P&L |
+| Collection stats & platform breakdown | Watchlist, business tools |
+| Showcase gallery | Personal notes |
+
+### Security model
+
+The public view is protected by **token-based security** — the URL itself is the credential. No passwords, no login.
+
+- The token is a random string stored in `data/app.config.json` alongside an optional `publicTokenExpiresAt` ISO timestamp
+- Visiting `/public/<token>` with a **wrong or missing token** returns a 404 — the page doesn't exist as far as the visitor is concerned
+- Visiting a valid token that has **expired** shows a friendly "Link Expired" page instead of the collection
+- There is **no rate limiting** on guessing tokens by default, so use a long random token (the built-in generator produces a ~22-char alphanumeric string, which provides ~130 bits of entropy — effectively unguessable)
+- To **revoke access**, generate a new token and save. Old links instantly stop working
+- To **set an expiry**, choose a duration (7 days, 1 month, 3 months, 1 year, or Never) on the Share page before saving. Saving resets the clock from the current time
+- The route bypasses the app's login auth — it's intentionally public, but only to token-holders within the expiry window
+
+### LAN vs. internet sharing
+
+- **LAN only:** Leave Base URL blank. The QR code will reference your local IP. Only people on your network can open it.
+- **Internet sharing:** Set Base URL to your public domain and ensure port 80/443 is forwarded or you're using a tunnel (e.g. Cloudflare Tunnel). See the [Cloud / VPS](#️-cloud--vps-digitalocean-linode-hetzner-etc) section.
+
+---
+
 ## Getting help
 
 - [GitHub Discussions](https://github.com/theretrovault/retrovault/discussions) — setup help and questions

@@ -1,5 +1,25 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+
+const EXPIRY_OPTIONS = [
+  { label: "7 days",   days: 7 },
+  { label: "1 month",  days: 30 },
+  { label: "3 months", days: 90 },
+  { label: "1 year",   days: 365 },
+  { label: "Never",    days: 0 },
+];
+
+function expiryLabel(iso: string | undefined): string {
+  if (!iso) return "No expiry set";
+  const d = new Date(iso);
+  const now = new Date();
+  if (d < now) return "⚠️ Expired";
+  const days = Math.ceil((d.getTime() - now.getTime()) / 86400000);
+  if (days === 1) return "Expires tomorrow";
+  if (days < 30) return `Expires in ${days} days`;
+  const months = Math.floor(days / 30);
+  return `Expires in ~${months} month${months > 1 ? "s" : ""}`;
+}
 
 export default function SharePage() {
   const [config, setConfig] = useState<any>(null);
@@ -7,6 +27,7 @@ export default function SharePage() {
   const [qrSvg, setQrSvg] = useState("");
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [expiryDays, setExpiryDays] = useState(30);
 
   useEffect(() => {
     fetch("/api/config").then(r => r.json()).then(d => {
@@ -32,10 +53,14 @@ export default function SharePage() {
 
   const save = async () => {
     setSaving(true);
+    const expiresAt = expiryDays > 0
+      ? new Date(Date.now() + expiryDays * 86400000).toISOString()
+      : null;
     await fetch("/api/config", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...config, publicToken: token })
+      body: JSON.stringify({ ...config, publicToken: token, publicTokenExpiresAt: expiresAt })
     });
+    setConfig((prev: any) => ({ ...prev, publicToken: token, publicTokenExpiresAt: expiresAt }));
     setSaving(false);
     await generateQr();
   };
@@ -54,6 +79,8 @@ export default function SharePage() {
     URL.revokeObjectURL(url);
   };
 
+  const isExpired = config?.publicTokenExpiresAt && new Date(config.publicTokenExpiresAt) < new Date();
+
   if (!config) return <div className="text-green-500 font-terminal animate-pulse text-xl text-center py-16">LOADING...</div>;
 
   return (
@@ -66,6 +93,8 @@ export default function SharePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Setup */}
         <div className="space-y-5">
+
+          {/* Visibility list */}
           <div className="bg-zinc-950 border border-zinc-700 p-4 space-y-3">
             <p className="text-zinc-400 font-terminal text-sm uppercase">What visitors can see:</p>
             <ul className="space-y-1 font-terminal text-sm">
@@ -73,6 +102,15 @@ export default function SharePage() {
                 <li key={s} className={s.startsWith("✅") ? "text-zinc-300" : "text-zinc-600"}>{s}</li>
               ))}
             </ul>
+          </div>
+
+          {/* Security blurb */}
+          <div className="bg-zinc-950 border border-zinc-800 px-4 py-3 flex gap-3 items-start">
+            <span className="text-green-700 text-lg shrink-0 mt-0.5">🔒</span>
+            <p className="text-zinc-500 font-terminal text-xs leading-relaxed">
+              Your link is secured by the token — only people with the exact URL can view it.
+              Wrong token = 404, no hints. To revoke access, generate a new token.
+            </p>
           </div>
 
           {/* Token */}
@@ -88,6 +126,32 @@ export default function SharePage() {
               </button>
             </div>
             <p className="text-zinc-700 font-terminal text-xs mt-1">Your public URL will be: /public/{token || "your-token"}</p>
+          </div>
+
+          {/* Expiry */}
+          <div>
+            <label className="block text-zinc-400 font-terminal text-sm uppercase mb-2">Link Expiry</label>
+            <div className="flex gap-2 flex-wrap">
+              {EXPIRY_OPTIONS.map(opt => (
+                <button key={opt.days} onClick={() => setExpiryDays(opt.days)}
+                  className={`px-3 py-1.5 font-terminal text-xs border transition-colors ${
+                    expiryDays === opt.days
+                      ? "text-green-400 border-green-600 bg-green-900/20"
+                      : "text-zinc-500 border-zinc-700 hover:border-zinc-500"
+                  }`}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {config.publicTokenExpiresAt && (
+              <p className={`font-terminal text-xs mt-2 ${isExpired ? "text-red-500" : "text-zinc-600"}`}>
+                Current: {expiryLabel(config.publicTokenExpiresAt)}
+                {!isExpired && <span className="text-zinc-700"> · Saving will reset the clock</span>}
+              </p>
+            )}
+            {!config.publicTokenExpiresAt && (
+              <p className="text-zinc-700 font-terminal text-xs mt-2">No expiry set · Saving will apply selected duration</p>
+            )}
           </div>
 
           {/* Public URL base */}

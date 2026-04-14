@@ -11,8 +11,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Don't guard the login page itself
-    if (pathname === "/login") {
+    // Don't guard the login page or public share pages
+    if (pathname === "/login" || pathname.startsWith("/public/")) {
       setAuthState("authenticated");
       return;
     }

@@ -2,18 +2,36 @@ import { notFound } from "next/navigation";
 import fs from "fs";
 import path from "path";
 
-type Props = { params: { token: string } };
+export const dynamic = 'force-dynamic';
 
-export default function PublicCollectionPage({ params }: Props) {
+type Props = { params: Promise<{ token: string }> };
+
+export default async function PublicCollectionPage({ params }: Props) {
+  const { token } = await params;
   const configPath = path.join(process.cwd(), "data", "app.config.json");
   if (!fs.existsSync(configPath)) return notFound();
 
   const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-  if (!config.publicToken || config.publicToken !== params.token) return notFound();
+  if (!config.publicToken || config.publicToken !== token) return notFound();
+
+  // Check expiry if set
+  const expired = config.publicTokenExpiresAt && new Date(config.publicTokenExpiresAt) < new Date();
+  if (expired) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-green-400 font-terminal flex items-center justify-center p-6">
+        <div className="max-w-md text-center border-4 border-zinc-800 p-10">
+          <div className="text-5xl mb-4">⏳</div>
+          <h1 className="text-2xl uppercase tracking-widest text-zinc-500 mb-3">Link Expired</h1>
+          <p className="text-zinc-600 text-sm">This collection share link has expired. Ask the owner to generate a new one.</p>
+        </div>
+      </div>
+    );
+  }
 
   const invPath = path.join(process.cwd(), "data", "inventory.json");
   const inventory = fs.existsSync(invPath) ? JSON.parse(fs.readFileSync(invPath, "utf8")) : [];
-  const owned = inventory.filter((i: any) => (i.copies || []).length > 0 && !i.isDigital);
+  const allItems = Array.isArray(inventory) ? inventory : (inventory.items || []);
+  const owned = allItems.filter((i: any) => (i.copies || []).length > 0 && !i.isDigital);
 
   const platforms = [...new Set(owned.map((i: any) => i.platform))] as string[];
   const platformCounts: Record<string, number> = {};
@@ -31,6 +49,28 @@ export default function PublicCollectionPage({ params }: Props) {
             {config.ownerName ? `${config.ownerName}'s Collection` : (config.appName || "RetroVault")}
           </h1>
           <p className="text-zinc-500 text-sm">{owned.length} games across {platforms.length} platforms</p>
+
+          {config.shareContact && (config.contactEmail || config.contactPhone || config.ownerName) && (
+            <div className="mt-5 pt-4 border-t border-green-900 flex flex-wrap justify-center gap-4">
+              {config.ownerName && (
+                <span className="flex items-center gap-1.5 text-zinc-400 text-sm font-terminal">
+                  <span className="text-green-700">👤</span> {config.ownerName}
+                </span>
+              )}
+              {config.contactEmail && (
+                <a href={`mailto:${config.contactEmail}`}
+                  className="flex items-center gap-1.5 text-green-400 hover:text-green-200 text-sm font-terminal transition-colors underline underline-offset-2">
+                  <span>✉️</span> {config.contactEmail}
+                </a>
+              )}
+              {config.contactPhone && (
+                <a href={`tel:${config.contactPhone}`}
+                  className="flex items-center gap-1.5 text-green-400 hover:text-green-200 text-sm font-terminal transition-colors underline underline-offset-2">
+                  <span>📞</span> {config.contactPhone}
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Platform breakdown */}
@@ -69,8 +109,19 @@ export default function PublicCollectionPage({ params }: Props) {
           );
         })}
 
-        <div className="mt-8 text-center text-zinc-700 text-xs border-t border-zinc-900 pt-4">
-          Powered by RetroVault · Read-only public view · Prices and business data not shown
+        <div className="mt-8 text-center text-zinc-700 text-xs border-t border-zinc-900 pt-4 space-y-1">
+          <p>Powered by RetroVault · Read-only public view · Prices and business data not shown</p>
+          {config.githubRepo && (
+            <p>
+              <a
+                href={`https://github.com/${config.githubRepo}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-zinc-600 hover:text-green-600 transition-colors underline underline-offset-2">
+                github.com/{config.githubRepo}
+              </a>
+            </p>
+          )}
         </div>
       </div>
     </div>

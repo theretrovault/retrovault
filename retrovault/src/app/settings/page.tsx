@@ -27,6 +27,7 @@ type Config = {
   fetchScheduleHour: number; priceDataSource: string;
   githubRepo: string;
   features: Features;
+  contactEmail: string; contactPhone: string; shareContact: boolean;
 };
 
 const THEME_COLORS = ["green","blue","purple","orange","cyan","yellow","pink"];
@@ -238,6 +239,21 @@ export default function SettingsPage() {
         {input("appName", "App Name")}
         {input("tagline", "Tagline")}
         {input("ownerName", "Collection Owner Name", "text", "e.g. John's Collection")}
+        {input("contactEmail", "Contact Email", "email", "shown on your public share page if enabled")}
+        {input("contactPhone", "Contact Phone", "tel", "optional — shown on your public share page if enabled")}
+        <div className="flex items-center gap-3">
+          <button onClick={() => setConfig({ ...config, shareContact: !config.shareContact })}
+            className={`w-10 h-6 rounded-full border-2 transition-colors relative ${
+              config.shareContact ? "bg-green-600 border-green-400" : "bg-zinc-800 border-zinc-600"
+            }`}>
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${
+              config.shareContact ? "left-4" : "left-0.5"
+            }`} />
+          </button>
+          <label className="text-zinc-400 font-terminal text-sm uppercase cursor-pointer" onClick={() => setConfig({ ...config, shareContact: !config.shareContact })}>
+            Show contact info on public share page
+          </label>
+        </div>
         <div>
           <label className="block text-zinc-400 font-terminal text-sm mb-1 uppercase">Theme Color</label>
           <div className="flex gap-2 flex-wrap">

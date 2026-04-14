@@ -160,10 +160,25 @@ export function StandaloneNav({ children }: { children: React.ReactNode }) {
                 )}
               </div>
             ))}
-            <div className="pt-2 border-t border-green-900 flex gap-3">
-              <button onClick={() => startDemo()} className="text-yellow-500 font-terminal text-sm px-3 py-2 border border-yellow-900/50">▶ DEMO</button>
-              <button onClick={toggleTooltips} className={`font-terminal text-sm px-3 py-2 border ${tooltipsEnabled ? "text-blue-400 border-blue-700" : "text-zinc-600 border-zinc-800"}`}>💡 TIPS</button>
-              <Link href="/settings" onClick={() => setMenuOpen(false)} className="text-zinc-500 font-terminal text-sm px-3 py-2 border border-zinc-800">⚙️</Link>
+            {/* System items on mobile */}
+            <div className="pt-2 border-t border-green-900">
+              <div className="grid grid-cols-2 gap-1 mb-2">
+                {SYSTEM_ITEMS.map(item => (
+                  <Link key={item.href} href={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className={`flex items-center gap-2 px-3 py-2 font-terminal text-sm rounded-sm transition-colors ${
+                      isActive(item.href) ? "text-black bg-green-500" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40"
+                    }`}>
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </Link>
+                ))}
+              </div>
+              <div className="flex gap-3 pt-2 border-t border-zinc-900">
+                <button onClick={() => startDemo()} className="text-yellow-500 font-terminal text-sm px-3 py-2 border border-yellow-900/50">▶ DEMO</button>
+                <button onClick={toggleTooltips} className={`font-terminal text-sm px-3 py-2 border ${tooltipsEnabled ? "text-blue-400 border-blue-700" : "text-zinc-600 border-zinc-800"}`}>💡 TIPS</button>
+                {authEnabled && <button onClick={logout} className="text-red-700 font-terminal text-sm px-3 py-2 border border-red-900/50">⏻ LOGOUT</button>}
+              </div>
             </div>
           </div>
         )}
