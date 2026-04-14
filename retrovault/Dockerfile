@@ -10,6 +10,8 @@ FROM node:22-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Ensure prisma directory is present (needed for generate)
+COPY prisma ./prisma
 
 # Create minimal data stubs for build
 RUN mkdir -p data && \
@@ -21,6 +23,10 @@ RUN mkdir -p data && \
     echo '{"sales":[],"acquisitions":[]}' > data/sales.json && \
     echo '{"sellers":[],"streams":[]}' > data/whatnot.json && \
     echo '[]' > data/scrapers.json
+
+# Generate Prisma client (required before build so types are available)
+ENV DATABASE_URL="file:./data/retrovault.db"
+RUN npx prisma generate
 
 # Build WITHOUT standalone mode (simpler, more compatible)
 RUN npm run build
@@ -45,6 +51,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/data/sample ./data/sample
+COPY --from=builder /app/prisma ./prisma
 
 # Only chown the directories nextjs needs to write to, not all of /app
 # (chown -R on node_modules is extremely slow due to tens of thousands of files)
