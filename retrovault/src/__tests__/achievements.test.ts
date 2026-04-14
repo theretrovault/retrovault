@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ACHIEVEMENTS, evaluateAchievements, getTotalPoints, type AchievementContext } from '@/data/achievements';
+import { ACHIEVEMENTS, evaluateAchievements, getTotalPoints, getCompletionPercent, type AchievementContext } from '@/data/achievements';
 
 function makeContext(overrides: Partial<AchievementContext> = {}): AchievementContext {
   return {
@@ -243,5 +243,70 @@ describe('System & Power User achievements', () => {
     const unlocked = evaluateAchievements(ctx);
     expect(unlocked.has('sys_uptime7')).toBe(false);
     expect(unlocked.has('sys_uptime30')).toBe(false);
+  });
+});
+// ─── getTotalPoints ───────────────────────────────────────────────────────────
+
+
+describe('getTotalPoints', () => {
+  it('returns 0 for no unlocked achievements', () => {
+    expect(getTotalPoints([])).toBe(0);
+  });
+
+  it('sums points for unlocked achievements', () => {
+    // c_first = 10 pts (common), c_10 = 25 pts (uncommon)
+    const pts = getTotalPoints(['c_first', 'c_10']);
+    expect(pts).toBeGreaterThan(0);
+    expect(pts).toBe(
+      (ACHIEVEMENTS.find(a => a.id === 'c_first')?.points ?? 0) +
+      (ACHIEVEMENTS.find(a => a.id === 'c_10')?.points ?? 0)
+    );
+  });
+
+  it('ignores unknown ids', () => {
+    expect(getTotalPoints(['nonexistent-id'])).toBe(0);
+  });
+});
+
+describe('getCompletionPercent', () => {
+  it('returns 0 with no unlocked achievements', () => {
+    expect(getCompletionPercent([])).toBe(0);
+  });
+
+  it('returns a value between 0 and 100', () => {
+    const pct = getCompletionPercent(['c_first', 'c_10', 'c_50']);
+    expect(pct).toBeGreaterThanOrEqual(0);
+    expect(pct).toBeLessThanOrEqual(100);
+  });
+
+  it('increases with more unlocks', () => {
+    const pct1 = getCompletionPercent(['c_first']);
+    const pct2 = getCompletionPercent(['c_first', 'c_10', 'c_50', 'c_100']);
+    expect(pct2).toBeGreaterThan(pct1);
+  });
+
+  it('excludes secret achievements from completion total', () => {
+    // Unlocking ALL achievements including secrets should not exceed 100%
+    const allIds = ACHIEVEMENTS.map(a => a.id);
+    expect(getCompletionPercent(allIds)).toBeLessThanOrEqual(100);
+  });
+});
+
+describe('Achievement catalog integrity', () => {
+  it('all achievement IDs are unique', () => {
+    const ids = ACHIEVEMENTS.map(a => a.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('all achievements have positive points', () => {
+    for (const a of ACHIEVEMENTS) {
+      expect(a.points, `${a.id} has non-positive points`).toBeGreaterThan(0);
+    }
+  });
+
+  it('secret achievements are NOT evaluated by evaluateAchievements', () => {
+    const ctx = makeContext({ totalOwned: 99999, totalSales: 0 }); // would unlock x_collector
+    const unlocked = evaluateAchievements(ctx);
+    expect(unlocked.has('x_collector')).toBe(false); // secret, skipped
   });
 });

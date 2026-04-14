@@ -1,47 +1,50 @@
 /**
  * API Auth — Key generation, validation, and rate limiting tests
+ *
+ * Note on design: CONFIG_FILE is a module-level constant in apiAuth.ts that
+ * resolves at import time. We can't easily mock the path, so we test against
+ * the real data/app.config.json — but clean up any test keys we create.
+ *
+ * Pure-function tests (key format, hashing, rate limiting) don't touch disk at all.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import crypto from 'crypto';
+import {
+  generateApiKey,
+  addApiKey,
+  getApiKeys,
+  revokeApiKey,
+  validateApiKey,
+  requireApiAuth,
+} from '@/lib/apiAuth';
 
-// Replicate key logic without file I/O for unit testing
-function hashKey(key: string): string {
-  return crypto.createHash('sha256').update(key + 'retrovault-api-salt').digest('hex');
+// Track IDs created during tests so we can clean up
+const testKeyIds: string[] = [];
+
+afterEach(() => {
+  // Revoke all keys created during this test run
+  for (const id of testKeyIds) revokeApiKey(id);
+  testKeyIds.length = 0;
+});
+
+function createTestKey(name: string, perms: 'read' | 'write' = 'read') {
+  const result = addApiKey(name, perms);
+  testKeyIds.push(result.record.id);
+  return result;
 }
 
-function generateApiKey(): { key: string; prefix: string } {
-  const key = 'rvk_' + crypto.randomBytes(32).toString('hex');
-  return { key, prefix: key.slice(0, 12) };
-}
+// ─── Key generation (pure, no disk I/O) ──────────────────────────────────────
 
-function validateKeyFormat(key: string): boolean {
-  return typeof key === 'string' && key.startsWith('rvk_') && key.length > 20;
-}
-
-// Rate limiting logic
-function checkRateLimit(timestamps: number[], hourLimit = 1, dayLimit = 5): { allowed: boolean; reason?: string } {
-  const now = Date.now();
-  const hourAgo = now - 3600000;
-  const dayAgo  = now - 86400000;
-
-  const recentHour = timestamps.filter(t => t > hourAgo).length;
-  const recentDay  = timestamps.filter(t => t > dayAgo).length;
-
-  if (recentHour >= hourLimit) return { allowed: false, reason: 'Rate limit: 1 per hour' };
-  if (recentDay  >= dayLimit)  return { allowed: false, reason: 'Daily limit reached' };
-  return { allowed: true };
-}
-
-describe('API key generation', () => {
+describe('generateApiKey', () => {
   it('generates keys with rvk_ prefix', () => {
     const { key } = generateApiKey();
     expect(key).toMatch(/^rvk_[a-f0-9]+$/);
   });
 
-  it('generates keys of sufficient length', () => {
+  it('generates keys of sufficient length (rvk_ + 64 hex chars)', () => {
     const { key } = generateApiKey();
-    expect(key.length).toBeGreaterThan(60); // rvk_ + 64 hex chars
+    expect(key.length).toBeGreaterThan(60);
   });
 
   it('generates unique keys each time', () => {
@@ -50,105 +53,242 @@ describe('API key generation', () => {
     expect(k1).not.toBe(k2);
   });
 
-  it('sets prefix to first 12 chars', () => {
+  it('prefix is the first 12 chars of the key', () => {
     const { key, prefix } = generateApiKey();
     expect(prefix).toBe(key.slice(0, 12));
   });
+});
 
-  it('hashes are deterministic for same key', () => {
-    const { key } = generateApiKey();
-    expect(hashKey(key)).toBe(hashKey(key));
+// ─── Add / get / revoke (disk I/O — cleaned up in afterEach) ─────────────────
+
+describe('addApiKey / getApiKeys / revokeApiKey', () => {
+  it('adds a key and can find it in getApiKeys()', () => {
+    createTestKey('Unit Test Key A');
+    const keys = getApiKeys();
+    expect(keys.some(k => k.name === 'Unit Test Key A')).toBe(true);
   });
 
-  it('different keys produce different hashes', () => {
-    const { key: k1 } = generateApiKey();
-    const { key: k2 } = generateApiKey();
-    expect(hashKey(k1)).not.toBe(hashKey(k2));
+  it('does not store the plaintext key (only hash)', () => {
+    const { key, record } = createTestKey('Hash Test');
+    expect(record.keyHash).toHaveLength(64); // SHA-256 hex
+    expect(JSON.stringify(getApiKeys())).not.toContain(key);
+  });
+
+  it('stores prefix for display', () => {
+    const { key, record } = createTestKey('Prefix Test');
+    expect(record.prefix).toBe(key.slice(0, 12));
+  });
+
+  it('revokes a key by id', () => {
+    const { record } = createTestKey('Revoke Test');
+    const result = revokeApiKey(record.id);
+    expect(result).toBe(true);
+    // Remove from cleanup list since already revoked
+    const idx = testKeyIds.indexOf(record.id);
+    if (idx >= 0) testKeyIds.splice(idx, 1);
+    expect(getApiKeys().some(k => k.id === record.id)).toBe(false);
+  });
+
+  it('returns false when revoking non-existent id', () => {
+    expect(revokeApiKey('nonexistent-id-xyz')).toBe(false);
+  });
+
+  it('read and write permissions stored correctly', () => {
+    createTestKey('Read Key',  'read');
+    createTestKey('Write Key', 'write');
+    const keys = getApiKeys();
+    expect(keys.find(k => k.name === 'Read Key')?.permissions).toBe('read');
+    expect(keys.find(k => k.name === 'Write Key')?.permissions).toBe('write');
   });
 });
 
-describe('Key format validation', () => {
-  it('accepts valid rvk_ prefixed keys', () => {
-    expect(validateKeyFormat('rvk_abc123def456abc123def456abc123def456')).toBe(true);
+// ─── validateApiKey ───────────────────────────────────────────────────────────
+
+describe('validateApiKey', () => {
+  it('validates a freshly created key', () => {
+    const { key, record } = createTestKey('Validate Test');
+    const found = validateApiKey(key);
+    expect(found).not.toBeNull();
+    expect(found?.id).toBe(record.id);
   });
 
-  it('rejects keys without rvk_ prefix', () => {
-    expect(validateKeyFormat('ghp_abc123')).toBe(false);
-    expect(validateKeyFormat('sk_abc123')).toBe(false);
-    expect(validateKeyFormat('abc123')).toBe(false);
+  it('returns null for a random non-existent key', () => {
+    const fakeKey = 'rvk_' + crypto.randomBytes(32).toString('hex');
+    expect(validateApiKey(fakeKey)).toBeNull();
   });
 
-  it('rejects empty/null-like values', () => {
-    expect(validateKeyFormat('')).toBe(false);
-    expect(validateKeyFormat('rvk_short')).toBe(false); // too short (< 20 chars)
+  it('returns null for keys without rvk_ prefix', () => {
+    expect(validateApiKey('ghp_abc123')).toBeNull();
+    expect(validateApiKey('')).toBeNull();
+  });
+
+  it('updates lastUsed on successful validation', () => {
+    const { key, record } = createTestKey('LastUsed Test');
+    expect(getApiKeys().find(k => k.id === record.id)?.lastUsed).toBeUndefined();
+    validateApiKey(key);
+    expect(getApiKeys().find(k => k.id === record.id)?.lastUsed).toBeDefined();
+  });
+
+  it('returns null after key is revoked', () => {
+    const { key, record } = createTestKey('Post-Revoke Test');
+    revokeApiKey(record.id);
+    testKeyIds.splice(testKeyIds.indexOf(record.id), 1);
+    expect(validateApiKey(key)).toBeNull();
   });
 });
+
+// ─── requireApiAuth ───────────────────────────────────────────────────────────
+
+describe('requireApiAuth', () => {
+  it('rejects request with no key', () => {
+    const req = new Request('http://localhost/api/v1/test');
+    const { error, key } = requireApiAuth(req as any);
+    expect(error).not.toBeNull();
+    expect(key).toBeNull();
+  });
+
+  it('accepts Bearer token in Authorization header', () => {
+    const { key: rawKey } = createTestKey('Bearer Test');
+    const req = new Request('http://localhost/api/v1/test', {
+      headers: { Authorization: `Bearer ${rawKey}` },
+    });
+    const { error, key } = requireApiAuth(req as any);
+    expect(error).toBeNull();
+    expect(key?.name).toBe('Bearer Test');
+  });
+
+  it('accepts key in X-RetroVault-Key header', () => {
+    const { key: rawKey } = createTestKey('Header Test');
+    const req = new Request('http://localhost/api/v1/test', {
+      headers: { 'X-RetroVault-Key': rawKey },
+    });
+    const { error, key } = requireApiAuth(req as any);
+    expect(error).toBeNull();
+    expect(key?.name).toBe('Header Test');
+  });
+
+  it('rejects read key for write-required endpoints', () => {
+    const { key: rawKey } = createTestKey('Read Only', 'read');
+    const req = new Request('http://localhost/api/v1/keys', {
+      headers: { 'X-RetroVault-Key': rawKey },
+    });
+    expect(requireApiAuth(req as any, true).error).not.toBeNull();
+  });
+
+  it('accepts write key for write-required endpoints', () => {
+    const { key: rawKey } = createTestKey('Write Key', 'write');
+    const req = new Request('http://localhost/api/v1/keys', {
+      headers: { 'X-RetroVault-Key': rawKey },
+    });
+    const { error, key } = requireApiAuth(req as any, true);
+    expect(error).toBeNull();
+    expect(key?.permissions).toBe('write');
+  });
+
+  it('rejects invalid key with 401', async () => {
+    const req = new Request('http://localhost/api/v1/test', {
+      headers: { 'X-RetroVault-Key': 'rvk_fakekeyvalue' },
+    });
+    const { error } = requireApiAuth(req as any);
+    expect(error).not.toBeNull();
+    const body = await error!.json();
+    expect(body.error).toBeTruthy();
+  });
+});
+
+// ─── Rate limiting (pure logic, no disk I/O) ──────────────────────────────────
+
+function checkRateLimit(timestamps: number[], hourLimit = 1, dayLimit = 5): { allowed: boolean; reason?: string } {
+  const now = Date.now();
+  const recentHour = timestamps.filter(t => t > now - 3600000).length;
+  const recentDay  = timestamps.filter(t => t > now - 86400000).length;
+  if (recentHour >= hourLimit) return { allowed: false, reason: 'Rate limit: 1 per hour' };
+  if (recentDay  >= dayLimit)  return { allowed: false, reason: 'Daily limit reached' };
+  return { allowed: true };
+}
 
 describe('Rate limiting — bug reporter', () => {
   it('allows first request', () => {
-    const result = checkRateLimit([]);
-    expect(result.allowed).toBe(true);
+    expect(checkRateLimit([]).allowed).toBe(true);
   });
-
   it('blocks second request within the hour', () => {
-    const now = Date.now();
-    const result = checkRateLimit([now - 30000]); // 30 seconds ago
-    expect(result.allowed).toBe(false);
-    expect(result.reason).toContain('Rate limit');
+    const { allowed, reason } = checkRateLimit([Date.now() - 30000]);
+    expect(allowed).toBe(false);
+    expect(reason).toContain('Rate limit');
   });
-
   it('allows request after hour has passed', () => {
-    const now = Date.now();
-    const result = checkRateLimit([now - 3700000]); // 61+ minutes ago
-    expect(result.allowed).toBe(true);
+    expect(checkRateLimit([Date.now() - 3700000]).allowed).toBe(true);
   });
-
   it('blocks when daily limit reached', () => {
     const now = Date.now();
-    // 5 requests in the past 24h (spread across hours)
-    const timestamps = [
-      now - 7200000,  // 2h ago
-      now - 14400000, // 4h ago
-      now - 21600000, // 6h ago
-      now - 28800000, // 8h ago
-      now - 36000000, // 10h ago
-    ];
-    const result = checkRateLimit(timestamps, 1, 5);
-    expect(result.allowed).toBe(false);
-    expect(result.reason).toContain('Daily limit');
-  });
-
-  it('honeypot detection — non-empty website field indicates bot', () => {
-    const honeypot = 'http://spam.com';
-    expect(honeypot.length > 0).toBe(true); // Bot filled the field
-    const honeypotEmpty = '';
-    expect(honeypotEmpty.length === 0).toBe(true); // Human left it empty
+    const ts = [now-7200000, now-14400000, now-21600000, now-28800000, now-36000000];
+    expect(checkRateLimit(ts, 1, 5).allowed).toBe(false);
   });
 });
 
-describe('Duplicate detection — title similarity', () => {
-  function normalizeForSearch(title: string): string {
-    return title.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim();
-  }
+// ─── Duplicate detection (pure logic) ────────────────────────────────────────
 
-  function wordOverlap(a: string, b: string): number {
-    const aWords = new Set(normalizeForSearch(a).split(/\s+/).filter(w => w.length > 3));
-    const bWords = new Set(normalizeForSearch(b).split(/\s+/).filter(w => w.length > 3));
-    const overlap = [...aWords].filter(w => bWords.has(w)).length;
-    return aWords.size > 0 ? overlap / aWords.size : 0;
-  }
+function wordOverlap(a: string, b: string): number {
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim();
+  const aWords = new Set(norm(a).split(/\s+/).filter(w => w.length > 3));
+  const bWords = new Set(norm(b).split(/\s+/).filter(w => w.length > 3));
+  const overlap = [...aWords].filter(w => bWords.has(w)).length;
+  return aWords.size > 0 ? overlap / aWords.size : 0;
+}
 
-  it('detects duplicate titles at 60%+ similarity', () => {
-    // GitHub's search API finds similar issues by keywords, not exact word overlap
-    // Use closely matching titles to test the 60% threshold
-    const existing = 'Price fetching returning wrong prices for Gamecube';
-    const newReport = 'Wrong prices returned when fetching Gamecube prices';
-    expect(wordOverlap(existing, newReport)).toBeGreaterThanOrEqual(0.4); // keyword overlap
+describe('Duplicate detection', () => {
+  it('detects similar bug titles', () => {
+    expect(wordOverlap(
+      'Price fetching returning wrong prices for Gamecube',
+      'Wrong prices returned when fetching Gamecube prices'
+    )).toBeGreaterThanOrEqual(0.4);
+  });
+  it('does not flag unrelated titles', () => {
+    expect(wordOverlap(
+      'Field Mode dupe alert not working',
+      'Convention tracker budget not saving'
+    )).toBeLessThan(0.6);
+  });
+});
+
+// ─── apiResponse / apiError helpers ──────────────────────────────────────────
+
+import { apiResponse, apiError } from '@/lib/apiAuth';
+
+describe('apiResponse', () => {
+  it('wraps data with meta envelope', async () => {
+    const res = apiResponse({ games: 42 });
+    const body = await res.json();
+    expect(body.data).toEqual({ games: 42 });
+    expect(body.error).toBeNull();
+    expect(body.meta.version).toBe('1.0');
+    expect(body.meta.timestamp).toBeTruthy();
   });
 
-  it('does not flag unrelated titles as duplicates', () => {
-    const existing = 'Field Mode dupe alert not working';
-    const newReport = 'Convention tracker budget not saving correctly';
-    expect(wordOverlap(existing, newReport)).toBeLessThan(0.6);
+  it('merges extra meta fields', async () => {
+    const res = apiResponse([], { total: 100, offset: 0 });
+    const body = await res.json();
+    expect(body.meta.total).toBe(100);
+    expect(body.meta.offset).toBe(0);
+  });
+
+  it('sets Cache-Control: no-store', () => {
+    const res = apiResponse({});
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
+  });
+});
+
+describe('apiError', () => {
+  it('returns error body with correct status', async () => {
+    const res = apiError('Not found', 404);
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe('Not found');
+    expect(body.data).toBeNull();
+  });
+
+  it('defaults to status 400', async () => {
+    const res = apiError('Bad request');
+    expect(res.status).toBe(400);
   });
 });

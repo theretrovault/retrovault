@@ -221,3 +221,28 @@ describe('Scheduler — tick-based design invariants', () => {
     expect(fires).toBe(4); // 0:00, 6:00, 12:00, 18:00
   });
 });
+
+// ─── getSchedulerStatus ───────────────────────────────────────────────────────
+
+import { getSchedulerStatus, reloadSchedules } from '@/lib/scheduler';
+
+describe('getSchedulerStatus', () => {
+  it('returns an object (may be empty on fresh install)', () => {
+    const status = getSchedulerStatus();
+    expect(typeof status).toBe('object');
+  });
+
+  it('each entry has scheduled boolean and cronExpr', () => {
+    const status = getSchedulerStatus();
+    for (const [, entry] of Object.entries(status)) {
+      expect(typeof entry.scheduled).toBe('boolean');
+      expect(entry.cronExpr === null || typeof entry.cronExpr === 'string').toBe(true);
+    }
+  });
+});
+
+describe('reloadSchedules', () => {
+  it('does not throw (no-op function)', () => {
+    expect(() => reloadSchedules()).not.toThrow();
+  });
+});
