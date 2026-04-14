@@ -41,4 +41,5 @@ src/lib/markdown.ts
 /src/generated/prisma
 # SQLite database files
 *.db
-data/retrovault.db
+data/retrovault.db*.db-shm
+*.db-wal
