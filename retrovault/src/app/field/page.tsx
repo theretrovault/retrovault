@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { ALL_PLATFORMS } from "@/data/platformGroups";
+import {
+  buildFieldCache, readFieldCache, clearFieldCache, searchFieldCache,
+  type FieldCacheData, type CachedGame,
+} from "@/lib/fieldCache";
 
 type PriceResult = {
   title: string;
@@ -19,6 +23,9 @@ type PriceResult = {
   // Stale/cached price info
   stale?: boolean;       // true if price is from cached inventory data, not a live scrape
   lastFetched?: string;  // ISO date of last successful scrape
+  // Wishlist metadata (from offline cache)
+  wishlistPriority?: number | null;
+  wishlistNotes?: string | null;
 };
 
 type OwnedItem = {
@@ -71,6 +78,11 @@ export default function FieldPage() {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   // Pre-seeded with all known platforms so the select works before inventory loads
   const [platforms, setPlatforms] = useState<string[]>(ALL_PLATFORMS);
+  // Offline cache state
+  const [fieldCache,    setFieldCache]    = useState<FieldCacheData | null>(null);
+  const [cacheMeta,     setCacheMeta]     = useState<{ cachedAt: string; count: number } | null>(null);
+  const [caching,       setCaching]       = useState(false);
+  const [cacheProgress, setCacheProgress] = useState("");
   const [suggestions, setSuggestions] = useState<{ title: string; platform: string }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
@@ -95,9 +107,65 @@ export default function FieldPage() {
     fetch("/api/sales?type=watchlist").then(r => r.json()).then(d => {
       if (Array.isArray(d)) setWatchlist(d);
     }).catch(() => {});
+    // Load offline cache metadata on mount
+    readFieldCache().then(cache => {
+      if (cache) {
+        setFieldCache(cache);
+        setCacheMeta({ cachedAt: cache.cachedAt, count: cache.games.length });
+        // Also populate catalog from cache so autocomplete works offline
+        if (catalogRef.current.length === 0) {
+          catalogRef.current = cache.games.map(g => ({ title: g.title, platform: g.platform }));
+        }
+      }
+    }).catch(() => {});
   }, []);
 
   // Debounced suggestion filtering — pure client-side, no network
+  // Convert a cached game to PriceResult for display
+  const cachedToResult = (g: CachedGame, offline: boolean): PriceResult => ({
+    title:        g.title,
+    platform:     g.platform,
+    loose:        g.marketLoose  != null ? String(g.marketLoose)  : null,
+    cib:          g.marketCib    != null ? String(g.marketCib)    : null,
+    newPrice:     g.marketNew    != null ? String(g.marketNew)    : null,
+    source:       'inventory',
+    owned:        g.owned,
+    paidTotal:    g.paidTotal,
+    paidEach:     g.paidEach,
+    conditions:   g.conditions,
+    watchlisted:  g.onWatchlist,
+    watchlistPrice: g.watchlistPrice != null ? String(g.watchlistPrice) : undefined,
+    stale:        offline,
+    lastFetched:  g.lastFetched ?? undefined,
+    // Wishlist info passed via notes field for display
+    ...(g.onWishlist ? { wishlistPriority: g.wishlistPriority, wishlistNotes: g.wishlistNotes } : {}),
+  });
+
+  // Build the offline cache — triggered by the Cache button
+  const handleBuildCache = async () => {
+    setCaching(true);
+    setCacheProgress('Starting...');
+    try {
+      const { count, sizeKb } = await buildFieldCache((step, _pct) => setCacheProgress(step));
+      const cache = await readFieldCache();
+      setFieldCache(cache);
+      setCacheMeta(cache ? { cachedAt: cache.cachedAt, count } : null);
+      setCacheProgress(`✓ ${count} games cached (${sizeKb}KB)`);
+      if (cache) catalogRef.current = cache.games.map(g => ({ title: g.title, platform: g.platform }));
+    } catch (e: any) {
+      setCacheProgress(`Error: ${e.message}`);
+    } finally {
+      setCaching(false);
+    }
+  };
+
+  const handleClearCache = async () => {
+    await clearFieldCache();
+    setFieldCache(null);
+    setCacheMeta(null);
+    setCacheProgress('');
+  };
+
   const updateSuggestions = (q: string, plat: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!q || q.length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
@@ -143,6 +211,17 @@ export default function FieldPage() {
 
     const q = titleQ.toLowerCase();
     const platFilter = plat !== "all";
+
+    // ── Offline-first: if we have a field cache and appear to be offline, use it immediately ──
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+    if (isOffline && fieldCache) {
+      const cached = searchFieldCache(fieldCache, titleQ, plat);
+      if (cached.length > 0) {
+        setResults(cached.map(g => cachedToResult(g, true)));
+      }
+      setSearching(false);
+      return;
+    }
 
     // Check own inventory first (instant, no network)
     const owned = inventory.filter(i =>
@@ -220,8 +299,17 @@ export default function FieldPage() {
         }]);
       }
     } catch (e: any) {
-      // AbortError = client-side timeout, try cached
+      // AbortError = client-side timeout — try field cache first, then inventory
       if (e?.name === 'AbortError') {
+        if (fieldCache) {
+          const cachedResults = searchFieldCache(fieldCache, titleQ, plat);
+          if (cachedResults.length > 0) {
+            setResults(cachedResults.map(g => cachedToResult(g, true)));
+            setSearching(false);
+            return;
+          }
+        }
+        // Fallback: inventory state
         const cached = inventory.find(i =>
           i.title.toLowerCase().includes(q) && (!platFilter || i.platform === plat)
         );
@@ -230,7 +318,7 @@ export default function FieldPage() {
             title: cached.title, platform: cached.platform,
             loose: cached.marketLoose || null, cib: cached.marketCib || null,
             newPrice: cached.marketNew || null,
-            source: "inventory",
+            source: 'inventory',
             owned: (cached.copies || []).length,
             paidTotal: 0, paidEach: [], conditions: [],
             watchlisted: watchlist.some(w => w.id === cached.id),
@@ -250,9 +338,50 @@ export default function FieldPage() {
   return (
     <div className="min-h-screen bg-black p-4 max-w-2xl mx-auto">
       {/* Header */}
-      <div className="text-center mb-6">
+      <div className="text-center mb-4">
         <h1 className="font-terminal text-3xl text-green-400 uppercase tracking-widest mb-1">🔦 Field Mode</h1>
         <p className="text-zinc-600 font-terminal text-sm">Quick price check · Dupe alert · Should I buy?</p>
+      </div>
+
+      {/* Offline Cache Panel */}
+      <div className="mb-5 border border-zinc-800 bg-zinc-950 p-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-0">
+            {cacheMeta ? (
+              <div className="font-terminal text-xs">
+                <span className="text-green-600">📦 Offline cache ready</span>
+                <span className="text-zinc-600 ml-2">
+                  {cacheMeta.count} games · cached {new Date(cacheMeta.cachedAt).toLocaleDateString()} {new Date(cacheMeta.cachedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            ) : (
+              <div className="font-terminal text-xs text-zinc-600">
+                No offline cache — tap Cache before entering the show
+              </div>
+            )}
+            {cacheProgress && (
+              <div className="font-terminal text-xs text-yellow-600 mt-1">{cacheProgress}</div>
+            )}
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={handleBuildCache}
+              disabled={caching}
+              className="px-3 py-1.5 font-terminal text-xs border border-green-700 text-green-400 hover:bg-green-950 disabled:opacity-50 transition-colors whitespace-nowrap"
+            >
+              {caching ? '⏳ Caching...' : '📥 Cache for Offline'}
+            </button>
+            {cacheMeta && (
+              <button
+                onClick={handleClearCache}
+                className="px-3 py-1.5 font-terminal text-xs border border-zinc-800 text-zinc-600 hover:text-red-400 hover:border-red-800 transition-colors"
+                title="Clear offline cache"
+              >
+                × Clear
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Search */}
@@ -383,6 +512,17 @@ export default function FieldPage() {
             {r.watchlisted && (
               <div className="border border-yellow-700 bg-yellow-950/20 px-4 py-2 font-terminal text-xl text-yellow-400">
                 ⭐ ON YOUR WATCHLIST{r.watchlistPrice ? ` — alert at $${r.watchlistPrice}` : ""}
+              </div>
+            )}
+
+            {/* Wishlist badge */}
+            {r.wishlistPriority != null && (
+              <div className="border border-pink-800 bg-pink-950/20 px-4 py-2 font-terminal text-xl text-pink-400">
+                🎁 ON YOUR WISHLIST
+                {r.wishlistPriority === 1 && <span className="ml-2 text-yellow-400 text-sm">⭐ Must-Have</span>}
+                {r.wishlistPriority === 2 && <span className="ml-2 text-green-500 text-sm">🎮 Want</span>}
+                {r.wishlistPriority === 3 && <span className="ml-2 text-zinc-500 text-sm">📦 Someday</span>}
+                {r.wishlistNotes && <p className="text-xs text-zinc-500 mt-0.5">{r.wishlistNotes}</p>}
               </div>
             )}
 

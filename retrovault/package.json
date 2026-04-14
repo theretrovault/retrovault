@@ -1,6 +1,6 @@
 {
   "name": "second-brain",
-  "version": "2.1.20",
+  "version": "2.1.21",
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
