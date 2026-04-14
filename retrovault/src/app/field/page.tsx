@@ -216,7 +216,7 @@ export default function FieldPage() {
                 setShowSuggestions(false);
               }
             }}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
             placeholder="GAME TITLE..."
             className="w-full bg-zinc-950 border-2 border-green-800 text-green-300 font-terminal text-2xl p-4 uppercase focus:outline-none focus:border-green-500 placeholder-green-900"
@@ -227,7 +227,7 @@ export default function FieldPage() {
               {suggestions.map((s, i) => (
                 <button
                   key={`${s.title}-${s.platform}`}
-                  onMouseDown={() => pickSuggestion(s)}
+                  onPointerDown={e => { e.preventDefault(); pickSuggestion(s); }}
                   className={`w-full text-left px-4 py-3 font-terminal flex items-center justify-between gap-3 border-b border-zinc-900 transition-colors ${
                     i === activeSuggestion
                       ? 'bg-green-900/40 text-green-200'
