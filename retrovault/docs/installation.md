@@ -12,19 +12,26 @@ The simplest way to run RetroVault on any OS. Requires [Docker Desktop](https://
 git clone https://github.com/theretrovault/retrovault.git
 cd retrovault/retrovault
 
-# First-time setup: create your data directory
-mkdir -p ../retrovault-data
-cp data/sample/app.config.sample.json ../retrovault-data/app.config.json
-
-# Start RetroVault
+# Start RetroVault — database and config are created automatically on first run
 docker compose up -d
 
 # Open http://localhost:3000
+# The Setup Wizard will launch automatically on your first visit
 ```
 
 ### Docker — data and API keys
 
-Your collection lives in `../retrovault-data/` (outside the container, persists across updates).
+Your collection lives in a Docker named volume (`retrovault_retrovault-data`). Docker manages permissions automatically — no manual setup needed.
+
+To find where data is stored on disk:
+```bash
+docker volume inspect retrovault_retrovault-data
+```
+
+To back up your data:
+```bash
+docker run --rm -v retrovault_retrovault-data:/data -v $(pwd):/backup alpine tar czf /backup/retrovault-backup.tar.gz /data
+```
 
 API keys are optional — RetroVault works without them. To enable YouTube videos and in-app bug reporting:
 

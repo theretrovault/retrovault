@@ -10,10 +10,12 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Persist your collection data outside the container
-      # On first run, copy data/sample/app.config.sample.json → ./retrovault-data/app.config.json
-      - ./retrovault-data:/app/data
-      - ./retrovault-logs:/app/logs
+      # Named volumes — Docker manages permissions automatically.
+      # Your data persists across container rebuilds.
+      # To find data on disk: docker volume inspect retrovault_retrovault-data
+      # To use a bind mount instead: replace with - ./retrovault-data:/app/data
+      - retrovault-data:/app/data
+      - retrovault-logs:/app/logs
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -39,8 +41,8 @@ services:
     container_name: retrovault-price-fetcher
     restart: "no"  # Managed by the cron service below
     volumes:
-      - ./retrovault-data:/app/data
-      - ./retrovault-logs:/app/logs
+      - retrovault-data:/app/data
+      - retrovault-logs:/app/logs
     entrypoint: ["node", "scripts/bg-fetch.mjs"]
     profiles:
       - cron  # Only starts with: docker compose --profile cron up
@@ -53,12 +55,15 @@ services:
     container_name: retrovault-event-scraper
     restart: "no"
     volumes:
-      - ./retrovault-data:/app/data
-      - ./retrovault-logs:/app/logs
+      - retrovault-data:/app/data
+      - retrovault-logs:/app/logs
     entrypoint: ["node", "scripts/scrape-events.mjs"]
     profiles:
       - cron
 
+# Named volumes are managed by Docker — permissions are handled automatically.
+# Data location: docker volume inspect retrovault_retrovault-data
+# Backup: docker run --rm -v retrovault_retrovault-data:/data -v $(pwd):/backup alpine tar czf /backup/retrovault-backup.tar.gz /data
 volumes:
   retrovault-data:
   retrovault-logs:

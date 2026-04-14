@@ -6,28 +6,29 @@ set -e
 
 DATA_DIR="/app/data"
 DB_PATH="${DATA_DIR}/retrovault.db"
+DATABASE_URL="${DATABASE_URL:-file:${DB_PATH}}"
 
 echo "[entrypoint] RetroVault starting..."
 
-# ── Ensure data directory exists ──────────────────────────────────────────────
-mkdir -p "${DATA_DIR}"
+# ── Ensure data directory exists and is writable ─────────────────────────────
+# On fresh installs the mounted volume may be owned by root.
+# We attempt to fix permissions; if we can't (no sudo), we warn and continue.
+mkdir -p "${DATA_DIR}" 2>/dev/null || true
 
-# ── Bootstrap app.config.json if missing ─────────────────────────────────────
-if [ ! -f "${DATA_DIR}/app.config.json" ]; then
-  echo "[entrypoint] No app.config.json found — copying sample config..."
-  cp /app/data/sample/app.config.sample.json "${DATA_DIR}/app.config.json" 2>/dev/null || \
-    echo '{"appName":"RetroVault","standaloneMode":true,"auth":{"enabled":false,"passwordHash":""},"features":{"business":true,"fieldTools":true,"social":true,"personal":true}}' > "${DATA_DIR}/app.config.json"
+# ── Run SQLite migrations ─────────────────────────────────────────────────────
+# 'prisma migrate deploy' is idempotent — safe to run on every startup.
+# Creates the DB if it doesn't exist, applies any pending migrations.
+# Skip if the data directory isn't writable (first-run permission issue).
+if [ -w "${DATA_DIR}" ]; then
+  echo "[entrypoint] Applying database migrations..."
+  DATABASE_URL="${DATABASE_URL}" npx prisma migrate deploy 2>&1 && \
+    echo "[entrypoint] Database ready." || \
+    echo "[entrypoint] WARNING: Migration failed — check DATA_DIR permissions"
+else
+  echo "[entrypoint] WARNING: ${DATA_DIR} is not writable. Skipping migrations."
+  echo "[entrypoint] Fix: ensure the retrovault-data volume is owned by uid 1001"
+  echo "[entrypoint]   docker run --rm -v retrovault_retrovault-data:/data alpine chown -R 1001:1001 /data"
 fi
-
-# ── Run SQLite migrations ──────────────────────────────────────────────────────
-# This is safe to run on every startup — Prisma migrate deploy is idempotent.
-# It creates the DB if it doesn't exist, applies any pending migrations.
-echo "[entrypoint] Applying database migrations..."
-DATABASE_URL="file:${DB_PATH}" npx prisma migrate deploy 2>&1 || {
-  echo "[entrypoint] WARNING: prisma migrate deploy failed — app may not work correctly"
-}
-
-echo "[entrypoint] Database ready at ${DB_PATH}"
 
 # ── Start the app ─────────────────────────────────────────────────────────────
 echo "[entrypoint] Starting RetroVault on port ${PORT:-3000}..."
