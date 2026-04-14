@@ -8,6 +8,32 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.1.0",
+    date: "2026-04-13",
+    title: "Wishlist, SQLite backend, smart price fetching",
+    type: "feature",
+    changes: [
+      { category: "New Feature", items: [
+        "Wishlist — priority-tiered want-list separate from the dealer-focused Watchlist",
+        "Three tiers: ⭐ Must-Have, 🎮 Want, 📦 Someday",
+        "Mark items as Found with one click",
+        "Public shareable link — share your wishlist with friends and family for gift-giving",
+      ]},
+      { category: "Backend", items: [
+        "SQLite database via Prisma — instant queries, scales to 100k+ games",
+        "Full relational schema: 17 models covering every feature area",
+        "Migration script: import existing JSON data in under 1 second",
+        "API v1 routes (collection, inventory, sales, grails, watchlist) converted to Prisma queries",
+      ]},
+      { category: "Price Fetching", items: [
+        "Smart bg-fetch: only fetches owned physical games (not entire 26k catalog)",
+        "Prioritization: never-fetched → oldest → highest market value",
+        "Configurable daily limit via FETCH_LIMIT env var (default: 500)",
+        "Shows age label and estimated runtime before starting",
+      ]},
+    ],
+  },
+  {
     version: "2.0.7",
     date: "2026-04-13",
     title: "Developer Guide + Docker first-run fix",

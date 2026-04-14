@@ -1,40 +1,56 @@
-import { NextRequest } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { requireApiAuth, apiResponse, apiError } from '@/lib/apiAuth';
+import { NextRequest } from 'next/server'
+import { requireApiAuth, apiResponse, apiError } from '@/lib/apiAuth'
+import prisma from '@/lib/prisma'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
-  const { error } = requireApiAuth(req);
-  if (error) return error;
+  const { error } = requireApiAuth(req)
+  if (error) return error
 
-  const { searchParams } = new URL(req.url);
-  const type   = searchParams.get('type') || 'both';
-  const limit  = Math.min(parseInt(searchParams.get('limit') || '100'), 1000);
-  const offset = parseInt(searchParams.get('offset') || '0');
+  const { searchParams } = new URL(req.url)
+  const type   = searchParams.get('type') || 'both'
+  const limit  = Math.min(parseInt(searchParams.get('limit') || '100'), 1000)
+  const offset = parseInt(searchParams.get('offset') || '0')
 
-  const p = path.join(process.cwd(), 'data', 'sales.json');
-  if (!fs.existsSync(p)) return apiResponse({ sales: [], acquisitions: [] });
+  try {
+    const [
+      sales,
+      acquisitions,
+      salesAgg,
+      acqAgg,
+      salesTotal,
+      acqTotal,
+    ] = await Promise.all([
+      type !== 'acquisitions'
+        ? prisma.sale.findMany({ orderBy: { saleDate: 'desc' }, skip: offset, take: limit })
+        : Promise.resolve([]),
+      type !== 'sales'
+        ? prisma.acquisition.findMany({ orderBy: { purchaseDate: 'desc' }, skip: offset, take: limit })
+        : Promise.resolve([]),
+      prisma.sale.aggregate({ _sum: { salePrice: true } }),
+      prisma.acquisition.aggregate({ _sum: { cost: true } }),
+      prisma.sale.count(),
+      prisma.acquisition.count(),
+    ])
 
-  const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-  const sales = (data.sales || []).slice(offset, offset + limit);
-  const acquisitions = (data.acquisitions || []).slice(offset, offset + limit);
+    const revenue = salesAgg._sum.salePrice ?? 0
+    const spent   = acqAgg._sum.cost ?? 0
 
-  const result: any = {};
-  if (type === 'sales' || type === 'both') result.sales = sales;
-  if (type === 'acquisitions' || type === 'both') result.acquisitions = acquisitions;
+    const result: Record<string, unknown> = {}
+    if (type === 'sales' || type === 'both') result.sales = sales
+    if (type === 'acquisitions' || type === 'both') result.acquisitions = acquisitions
 
-  const saleRevenue = (data.sales || []).reduce((s: number, sl: any) => s + (parseFloat(sl.salePrice) || 0), 0);
-  const totalCost = (data.acquisitions || []).reduce((s: number, a: any) => s + (parseFloat(a.cost) || 0), 0);
-
-  return apiResponse(result, {
-    totals: {
-      salesCount: data.sales?.length || 0,
-      acquisitionsCount: data.acquisitions?.length || 0,
-      revenue: Math.round(saleRevenue * 100) / 100,
-      spent: Math.round(totalCost * 100) / 100,
-      profit: Math.round((saleRevenue - totalCost) * 100) / 100,
-    }
-  });
+    return apiResponse(result, {
+      totals: {
+        salesCount:        salesTotal,
+        acquisitionsCount: acqTotal,
+        revenue:           Math.round(revenue * 100) / 100,
+        spent:             Math.round(spent   * 100) / 100,
+        profit:            Math.round((revenue - spent) * 100) / 100,
+      },
+    })
+  } catch (e: any) {
+    return apiError(e.message || 'Failed to load sales', 500)
+  }
 }

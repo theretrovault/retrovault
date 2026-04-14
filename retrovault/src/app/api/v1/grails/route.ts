@@ -1,26 +1,34 @@
-import { NextRequest } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { requireApiAuth, apiResponse } from '@/lib/apiAuth';
+import { NextRequest } from 'next/server'
+import { requireApiAuth, apiResponse, apiError } from '@/lib/apiAuth'
+import prisma from '@/lib/prisma'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
-  const { error } = requireApiAuth(req);
-  if (error) return error;
+  const { error } = requireApiAuth(req)
+  if (error) return error
 
-  const { searchParams } = new URL(req.url);
-  const status = searchParams.get('status') || 'all';
+  const { searchParams } = new URL(req.url)
+  const status = searchParams.get('status') || 'all'
 
-  const p = path.join(process.cwd(), 'data', 'grails.json');
-  let data = fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : [];
+  try {
+    const where =
+      status === 'hunting' ? { acquiredAt: null } :
+      status === 'found'   ? { NOT: { acquiredAt: null } } :
+      {}
 
-  if (status === 'hunting') data = data.filter((g: any) => !g.acquiredAt);
-  if (status === 'found') data = data.filter((g: any) => !!g.acquiredAt);
+    const [data, huntingCount, foundCount] = await Promise.all([
+      prisma.grail.findMany({ where, orderBy: [{ priority: 'asc' }, { createdAt: 'desc' }] }),
+      prisma.grail.count({ where: { acquiredAt: null } }),
+      prisma.grail.count({ where: { NOT: { acquiredAt: null } } }),
+    ])
 
-  return apiResponse(data, {
-    total: data.length,
-    hunting: data.filter((g: any) => !g.acquiredAt).length,
-    found: data.filter((g: any) => !!g.acquiredAt).length,
-  });
+    return apiResponse(data, {
+      total:   data.length,
+      hunting: huntingCount,
+      found:   foundCount,
+    })
+  } catch (e: any) {
+    return apiError(e.message || 'Failed to load grails', 500)
+  }
 }

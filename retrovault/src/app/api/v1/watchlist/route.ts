@@ -1,33 +1,41 @@
-import { NextRequest } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { requireApiAuth, apiResponse } from '@/lib/apiAuth';
+import { NextRequest } from 'next/server'
+import { requireApiAuth, apiResponse, apiError } from '@/lib/apiAuth'
+import prisma from '@/lib/prisma'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
-  const { error } = requireApiAuth(req);
-  if (error) return error;
+  const { error } = requireApiAuth(req)
+  if (error) return error
 
-  const p = path.join(process.cwd(), 'data', 'watchlist.json');
-  const data = fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : [];
-  
-  const invPath = path.join(process.cwd(), 'data', 'inventory.json');
-  const inventory = fs.existsSync(invPath) ? JSON.parse(fs.readFileSync(invPath, 'utf8')) : [];
-  const invMap = Object.fromEntries(inventory.map((i: any) => [i.id, i]));
+  try {
+    const items = await prisma.watchlistItem.findMany({
+      orderBy: { createdAt: 'desc' },
+    })
 
-  const enriched = data.map((item: any) => {
-    const inv = invMap[item.id];
-    const market = inv ? parseFloat(inv.marketLoose || '0') : 0;
-    const target = parseFloat(item.alertPrice || '0');
-    return {
-      ...item,
-      currentPrice: market || null,
-      alertTriggered: market > 0 && target > 0 && market <= target,
-      priceDifference: market > 0 && target > 0 ? Math.round((market - target) * 100) / 100 : null,
-    };
-  });
+    // Enrich with current market prices from Game catalog
+    const gameIds = items.map(i => i.gameId).filter((id): id is string => !!id)
+    const games = gameIds.length > 0
+      ? await prisma.game.findMany({ where: { id: { in: gameIds } }, select: { id: true, marketLoose: true } })
+      : []
+    const priceMap = Object.fromEntries(games.map(g => [g.id, g.marketLoose]))
 
-  const alerts = enriched.filter((i: any) => i.alertTriggered);
-  return apiResponse(enriched, { total: enriched.length, alertsTriggered: alerts.length });
+    const enriched = items.map(item => {
+      const market = item.gameId ? (priceMap[item.gameId] ?? null) : null
+      const target = item.alertPrice
+      return {
+        ...item,
+        currentPrice:    market,
+        alertTriggered:  market != null && market > 0 && target > 0 && market <= target,
+        priceDifference: market != null && target > 0
+          ? Math.round((market - target) * 100) / 100
+          : null,
+      }
+    })
+
+    const alerts = enriched.filter(i => i.alertTriggered)
+    return apiResponse(enriched, { total: enriched.length, alertsTriggered: alerts.length })
+  } catch (e: any) {
+    return apiError(e.message || 'Failed to load watchlist', 500)
+  }
 }

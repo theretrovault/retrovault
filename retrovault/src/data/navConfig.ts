@@ -124,7 +124,8 @@ export const NAV_GROUPS: NavGroup[] = [
     alwaysOn: false,
     items: [
       { href: "/playlog", label: "Play Log", icon: "🎮", feature: "personal" },
-      { href: "/grails", label: "Grail List", icon: "🏴‍☠️", feature: "personal" },
+      { href: "/grails",   label: "Grail List", icon: "🏴‍☠️", feature: "personal" },
+      { href: "/wishlist", label: "Wishlist",   icon: "🎁",         feature: "personal" },
     ],
   }
 ];

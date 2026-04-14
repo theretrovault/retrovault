@@ -270,3 +270,25 @@ model ValueSnapshot {
 
   createdAt  DateTime @default(now())
 }
+
+// ─── Wishlist ──────────────────────────────────────────────────────────────────
+
+model WishlistItem {
+  id       String    @id @default(cuid())
+  title    String
+  platform String
+  gameId   String?
+  priority Int       @default(2) // 1=must-have 2=want 3=someday
+  notes    String?
+  addedAt  DateTime  @default(now())
+  foundAt  DateTime?
+
+  @@index([priority])
+}
+
+model WishlistShare {
+  id        String   @id @default(cuid())
+  token     String   @unique @default(cuid())
+  label     String   @default("My Wishlist")
+  createdAt DateTime @default(now())
+}

@@ -1,67 +1,88 @@
-import { NextRequest } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { requireApiAuth, apiResponse, apiError } from '@/lib/apiAuth';
+import { NextRequest } from 'next/server'
+import { requireApiAuth, apiResponse, apiError } from '@/lib/apiAuth'
+import prisma from '@/lib/prisma'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
-  const { error } = requireApiAuth(req);
-  if (error) return error;
+  const { error } = requireApiAuth(req)
+  if (error) return error
 
   try {
-    const read = (f: string, fb: any = []) => {
-      const p = path.join(process.cwd(), 'data', f);
-      if (!fs.existsSync(p)) return fb;
-      return JSON.parse(fs.readFileSync(p, 'utf8'));
-    };
+    const [
+      totalGames,
+      ownedGames,
+      digitalGames,
+      platformGroups,
+      valueAgg,
+      cibAgg,
+      copiesAgg,
+      salesAgg,
+      salesCount,
+      grailsActive,
+      grailsFound,
+      watchlistCount,
+      playlogTotal,
+      playlogBeaten,
+      playlogPlaying,
+      playlogBacklog,
+    ] = await Promise.all([
+      prisma.game.count(),
+      prisma.game.count({ where: { copies: { some: {} }, isDigital: false } }),
+      prisma.game.count({ where: { copies: { some: {} }, isDigital: true } }),
+      prisma.game.groupBy({ by: ['platform'], where: { copies: { some: {} } } }),
+      prisma.game.aggregate({ _sum: { marketLoose: true }, where: { copies: { some: {} }, isDigital: false } }),
+      prisma.game.aggregate({ _sum: { marketCib: true }, where: { copies: { some: {} }, isDigital: false } }),
+      prisma.gameCopy.aggregate({ _sum: { priceAcquired: true } }),
+      prisma.sale.aggregate({ _sum: { salePrice: true } }),
+      prisma.sale.count(),
+      prisma.grail.count({ where: { acquiredAt: null } }),
+      prisma.grail.count({ where: { NOT: { acquiredAt: null } } }),
+      prisma.watchlistItem.count(),
+      prisma.playLogEntry.count(),
+      prisma.playLogEntry.count({ where: { status: 'beat' } }),
+      prisma.playLogEntry.count({ where: { status: 'playing' } }),
+      prisma.playLogEntry.count({ where: { status: 'backlog' } }),
+    ])
 
-    const inventory = read('inventory.json');
-    const sales = read('sales.json', { sales: [], acquisitions: [] });
-    const grails = read('grails.json');
-    const playlog = read('playlog.json');
-    const watchlist = read('watchlist.json');
-
-    const owned = inventory.filter((i: any) => (i.copies || []).length > 0 && !i.isDigital);
-    const totalValue = owned.reduce((s: number, i: any) => s + (parseFloat(i.marketLoose || '0') || 0), 0);
-    const totalCib   = owned.reduce((s: number, i: any) => s + (parseFloat(i.marketCib || '0') || parseFloat(i.marketLoose || '0') || 0), 0);
-    const totalPaid  = owned.reduce((s: number, i: any) =>
-      s + (i.copies || []).reduce((cs: number, c: any) => cs + (parseFloat(c.priceAcquired) || 0), 0), 0);
-    const platforms = [...new Set(owned.map((i: any) => i.platform))];
-    const saleRevenue = (sales.sales || []).reduce((s: number, sl: any) => s + (parseFloat(sl.salePrice) || 0), 0);
+    const totalValue  = valueAgg._sum.marketLoose ?? 0
+    const totalCib    = (cibAgg._sum.marketCib ?? 0) || totalValue
+    const totalPaid   = copiesAgg._sum.priceAcquired ?? 0
+    const saleRevenue = salesAgg._sum.salePrice ?? 0
+    const platforms   = platformGroups.map(p => p.platform)
 
     return apiResponse({
       games: {
-        total: inventory.length,
-        owned: owned.length,
+        total: totalGames,
+        owned: ownedGames,
         platforms: platforms.length,
-        digital: inventory.filter((i: any) => i.isDigital && (i.copies || []).length > 0).length,
+        digital: digitalGames,
       },
       value: {
-        loose: Math.round(totalValue * 100) / 100,
-        cib: Math.round(totalCib * 100) / 100,
-        paid: Math.round(totalPaid * 100) / 100,
+        loose:          Math.round(totalValue  * 100) / 100,
+        cib:            Math.round(totalCib    * 100) / 100,
+        paid:           Math.round(totalPaid   * 100) / 100,
         unrealizedGain: Math.round((totalValue - totalPaid) * 100) / 100,
       },
       business: {
-        totalSales: (sales.sales || []).length,
+        totalSales:  salesCount,
         saleRevenue: Math.round(saleRevenue * 100) / 100,
         totalProfit: Math.round((saleRevenue - totalPaid) * 100) / 100,
       },
       hunting: {
-        grailsActive: grails.filter((g: any) => !g.acquiredAt).length,
-        grailsFound: grails.filter((g: any) => !!g.acquiredAt).length,
-        watchlistItems: watchlist.length,
+        grailsActive,
+        grailsFound,
+        watchlistItems: watchlistCount,
       },
       personal: {
-        playlogGames: playlog.length,
-        gamesBeaten: playlog.filter((p: any) => p.status === 'beat').length,
-        currentlyPlaying: playlog.filter((p: any) => p.status === 'playing').length,
-        backlog: playlog.filter((p: any) => p.status === 'backlog').length,
+        playlogGames:     playlogTotal,
+        gamesBeaten:      playlogBeaten,
+        currentlyPlaying: playlogPlaying,
+        backlog:          playlogBacklog,
       },
       platforms,
-    });
+    })
   } catch (e: any) {
-    return apiError(e.message || 'Failed to compute collection stats', 500);
+    return apiError(e.message || 'Failed to compute collection stats', 500)
   }
 }
