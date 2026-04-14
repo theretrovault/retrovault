@@ -59,6 +59,24 @@ type GameItem = {
   copies: GameCopy[];
 };
 
+// Hoisted to module scope — prevents focus loss on re-render
+function SortHeader({
+  field, label, className = "", sortField, sortOrder, onSort,
+}: {
+  field: string; label: string; className?: string;
+  sortField: string; sortOrder: string;
+  onSort: (field: string) => void;
+}) {
+  return (
+    <th
+      className={`p-3 cursor-pointer hover:bg-zinc-800 select-none ${className}`}
+      onClick={() => onSort(field)}
+    >
+      {label} {sortField === field && (sortOrder === "asc" ? "▲" : "▼")}
+    </th>
+  );
+}
+
 export default function InventoryPage() {
   const { platforms: enabledPlatforms } = useAppConfig();
   const [items, setItems] = useState<GameItem[]>([]);
@@ -602,11 +620,11 @@ export default function InventoryPage() {
   const updateCopy = (id: string, u: Partial<GameCopy>) => setFormCopies((p) => p.map((c) => c.id === id ? { ...c, ...u } : c));
   const removeCopy = (id: string) => setFormCopies((p) => p.filter((c) => c.id !== id));
 
-  const SortHeader = ({ field, label, className = "" }: { field: string; label: string; className?: string }) => (
-    <th className={`p-3 cursor-pointer hover:bg-zinc-800 select-none ${className}`} onClick={() => { setSortField(field); setSortOrder(sortField === field && sortOrder === "asc" ? "desc" : "asc"); }}>
-      {label} {sortField === field && (sortOrder === "asc" ? "▲" : "▼")}
-    </th>
-  );
+  // SortHeader hoisted to module scope above
+  const handleSort = (field: string) => {
+    setSortField(field);
+    setSortOrder(sortField === field && sortOrder === 'asc' ? 'desc' : 'asc');
+  };
 
   return (
     <div className="w-full bg-black border-4 border-green-500 rounded p-6 shadow-[0_0_15px_rgba(34,197,94,0.3)] min-h-[80vh] flex flex-col">
@@ -709,13 +727,13 @@ export default function InventoryPage() {
           <table className="w-full text-left font-terminal text-lg whitespace-nowrap min-w-[1100px]">
             <thead className="sticky top-0 bg-zinc-900 border-b-2 border-green-800 text-green-500 uppercase z-10">
               <tr>
-                <SortHeader field="platform" label="System" />
-                <SortHeader field="title" label="Title" />
-                <SortHeader field="qty" label="QTY" />
-                <SortHeader field="totalPaid" label="Paid" />
-                <SortHeader field="totalMarket" label="Market" className="text-blue-400" />
-                <SortHeader field="sellScore" label="Sell" className="text-emerald-400" />
-                <SortHeader field="buyScore" label="Buy" className="text-yellow-400" />
+                <SortHeader field="platform" label="System" sortField={sortField} sortOrder={sortOrder} onSort={handleSort} />
+                <SortHeader field="title" label="Title" sortField={sortField} sortOrder={sortOrder} onSort={handleSort} />
+                <SortHeader field="qty" label="QTY" sortField={sortField} sortOrder={sortOrder} onSort={handleSort} />
+                <SortHeader field="totalPaid" label="Paid" sortField={sortField} sortOrder={sortOrder} onSort={handleSort} />
+                <SortHeader field="totalMarket" label="Market" className="text-blue-400" sortField={sortField} sortOrder={sortOrder} onSort={handleSort} />
+                <SortHeader field="sellScore" label="Sell" className="text-emerald-400" sortField={sortField} sortOrder={sortOrder} onSort={handleSort} />
+                <SortHeader field="buyScore" label="Buy" className="text-yellow-400" sortField={sortField} sortOrder={sortOrder} onSort={handleSort} />
                 <th className="p-3 text-center text-purple-400">VIBE</th>
                 <th className="p-3 text-center text-pink-400" title="Nostalgia Score">💖</th>
                 <th className="p-3 text-center">Actions</th>

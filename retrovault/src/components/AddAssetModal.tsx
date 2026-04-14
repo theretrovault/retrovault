@@ -40,6 +40,20 @@ type Props = {
   title?: string;
 };
 
+// ── Hoisted outside AddAssetModal to prevent focus loss on re-render ─────────
+// Defining components inside render functions causes React to unmount+remount
+// them on every state change, stealing focus from active inputs.
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-sm text-zinc-400 font-terminal mb-1 uppercase">
+        {label}{error && <span className="text-red-500 ml-1">— {error}</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
 export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET" }: Props) {
   const [platform, setPlatform] = useState(initialData?.platform || "");
   const [titleInput, setTitleInput] = useState(initialData?.title || "");
@@ -157,15 +171,6 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
 
   const inputCls = (err?: string) =>
     `w-full bg-black border-2 ${err ? "border-red-700" : "border-green-800"} text-green-300 p-2 font-terminal text-xl focus:outline-none focus:border-green-400`;
-
-  const Field = ({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) => (
-    <div>
-      <label className="block text-sm text-zinc-400 font-terminal mb-1 uppercase">
-        {label}{error && <span className="text-red-500 ml-1">— {error}</span>}
-      </label>
-      {children}
-    </div>
-  );
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 backdrop-blur-sm overflow-y-auto py-8"

@@ -28,6 +28,16 @@ type AcqEntry = {
 
 type FormMode = 'sale' | 'acquisition' | null;
 
+// Hoisted to module scope — prevents focus loss on re-render
+function Kpi({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="bg-zinc-950 border-2 border-green-800 p-5 rounded-sm text-center">
+      <div className="text-green-600 font-terminal text-sm mb-1">{label}</div>
+      <div className={`font-terminal font-bold ${color}`} style={{ fontSize: 'clamp(1.2rem,3vw,2.5rem)' }}>{value}</div>
+    </div>
+  );
+}
+
 export default function SalesPage() {
   const [sales, setSales] = useState<SaleEntry[]>([]);
   const [acquisitions, setAcquisitions] = useState<AcqEntry[]>([]);
@@ -129,12 +139,7 @@ export default function SalesPage() {
     </div>
   );
 
-  const Kpi = ({label, value, color}: {label: string; value: string; color: string}) => (
-    <div className="bg-zinc-950 border-2 border-green-800 p-5 rounded-sm text-center">
-      <div className="text-green-600 font-terminal text-sm mb-1">{label}</div>
-      <div className={`font-terminal font-bold ${color}`} style={{fontSize:'clamp(1.2rem,3vw,2.5rem)'}}>{value}</div>
-    </div>
-  );
+  // Kpi hoisted to module scope above
 
   return (
     <div className="w-full bg-black border-4 border-green-500 rounded p-6 shadow-[0_0_15px_rgba(34,197,94,0.3)] min-h-[80vh] flex flex-col space-y-6">

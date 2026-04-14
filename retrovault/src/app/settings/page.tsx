@@ -127,6 +127,16 @@ function BugReportingSettings({ config, setConfig }: { config: any; setConfig: (
   );
 }
 
+// Hoisted outside SettingsPage to prevent focus loss on re-render
+function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-zinc-950 border-2 border-green-800 rounded-sm p-6 space-y-5">
+      <h3 className="text-green-400 font-terminal text-2xl uppercase border-b border-green-900 pb-2">{icon} {title}</h3>
+      {children}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [config, setConfig] = useState<Config | null>(null);
@@ -169,13 +179,6 @@ export default function SettingsPage() {
       <input type={type} className="w-full bg-black border-2 border-green-800 text-green-300 p-2 font-terminal text-xl focus:outline-none focus:border-green-400"
         placeholder={placeholder} value={(config as any)[key] || ""}
         onChange={e => setConfig({ ...config, [key]: e.target.value })} />
-    </div>
-  );
-
-  const Section = ({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) => (
-    <div className="bg-zinc-950 border-2 border-green-800 rounded-sm p-6 space-y-5">
-      <h3 className="text-green-400 font-terminal text-2xl uppercase border-b border-green-900 pb-2">{icon} {title}</h3>
-      {children}
     </div>
   );
 
