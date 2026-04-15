@@ -23,15 +23,26 @@
 [data-color="red"]     { --p:#f87171; --pd:#7f1d1d; --pg:rgba(239,68,68,0.4);  --pbg:#0a0000; --cbg:#180000; }
 [data-color="gold"]    { --p:#f59e0b; --pd:#713f12; --pg:rgba(234,179,8,0.4);  --pbg:#0a0800; --cbg:#1a1200; }
 /* ── Light Mode — [data-mode="light"] on <html> ── */
-/* Overrides bg vars to light backgrounds; accent color stays vibrant */
+/* In light mode, swap neon accent colors for dark, readable variants per palette */
 [data-mode="light"] {
   --pbg: #f8fafc;     /* slate-50 */
   --cbg: #ffffff;     /* white */
 
-  /* Text overrides for light mode — accents become their dark variant */
-  --text-primary: color-mix(in srgb, var(--p) 70%, #000);
-  --text-muted: color-mix(in srgb, var(--p) 40%, #555);
+  /* Default (green) — swap neon green-400 → forest green-800 */
+  --p:  #166534;      /* green-800 — readable on white */
+  --pd: #14532d;      /* green-900 */
+  --pg: rgba(22,101,52,0.15);
 }
+/* Per-palette light mode overrides — dark, readable versions of each accent */
+[data-mode="light"]:not([data-color]),
+[data-mode="light"][data-color="green"]   { --p:#166534; --pd:#14532d; --pg:rgba(22,101,52,0.15); }
+[data-mode="light"][data-color="blue"]    { --p:#1d4ed8; --pd:#1e3a8a; --pg:rgba(29,78,216,0.15); }
+[data-mode="light"][data-color="purple"]  { --p:#7e22ce; --pd:#581c87; --pg:rgba(126,34,206,0.15); }
+[data-mode="light"][data-color="amber"]   { --p:#b45309; --pd:#92400e; --pg:rgba(180,83,9,0.15); }
+[data-mode="light"][data-color="magenta"] { --p:#9d174d; --pd:#831843; --pg:rgba(157,23,77,0.15); }
+[data-mode="light"][data-color="cyan"]    { --p:#0e7490; --pd:#164e63; --pg:rgba(14,116,144,0.15); }
+[data-mode="light"][data-color="red"]     { --p:#b91c1c; --pd:#7f1d1d; --pg:rgba(185,28,28,0.15); }
+[data-mode="light"][data-color="gold"]    { --p:#92400e; --pd:#78350f; --pg:rgba(146,64,14,0.15); }
 
 [data-mode="light"] body {
   background-color: #f8fafc !important;

@@ -16,7 +16,7 @@ import Link from "next/link";
 import { Onboarding, ONBOARDING_KEY } from "@/components/Onboarding";
 
 type Features = {
-  collection: boolean; business: boolean; fieldTools: boolean;
+  collection: boolean; business: boolean; fieldTools: boolean; windowShop: boolean; system: boolean;
   social: boolean; personal: boolean;
 };
 

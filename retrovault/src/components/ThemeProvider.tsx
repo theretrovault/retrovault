@@ -91,13 +91,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleMode = () => {
     const newMode: ThemeMode = theme.mode === 'dark' ? 'light' : 'dark';
-    // Swap to a compatible style if needed
     const styleTheme = STYLE_THEMES.find(t => t.id === theme.styleId);
-    const newStyle = (newMode === 'light' && styleTheme?.modes === 'dark')
-      ? 'terminal'
-      : (newMode === 'dark' && styleTheme?.modes === 'light')
-      ? 'terminal'
-      : theme.styleId;
+    let newStyle = theme.styleId;
+    if (newMode === 'light') {
+      // Dark-only styles fall back to paper (soft, readable)
+      if (!styleTheme || styleTheme.modes === 'dark') newStyle = 'paper';
+    } else {
+      // Light-only styles fall back to terminal
+      if (styleTheme?.modes === 'light') newStyle = 'terminal';
+    }
     setTheme({ ...theme, mode: newMode, styleId: newStyle });
   };
 
