@@ -212,24 +212,31 @@ All 137+ tests live in `src/__tests__/`. When adding a feature:
 
 ## 6. How CI/CD Works
 
-Three GitHub Actions workflows run on every push to `master`:
+RetroVault now uses a multi-lane workflow model:
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `test.yml` | Every push | Runs all 116+ unit tests |
-| `build.yml` | Every push | Verifies Next.js production build |
-| `docker.yml` | Dockerfile/config changes | Builds Docker image + smoke test |
+| `ci.yml` | Pushes to `master`, `autopush`, `nightly`, `prod` and all PRs | Runs the full validation gate: install, env bootstrap, tests, build |
+| `deploy-dev.yml` | Pushes to `autopush` or manual dispatch | Deploys the dev runtime over SSH using the `dev` GitHub environment |
+| `promote-nightly.yml` | Pushes to `autopush` or manual dispatch | Validates `autopush`, fast-forwards `nightly`, then deploys nightly over SSH |
+| `promote-prod.yml` | Manual dispatch | Validates `nightly`, fast-forwards `prod`, then deploys production over SSH |
+| `release.yml` | Version tags like `v2.1.0` | Validates the tagged commit and creates a GitHub Release |
 
-Two additional workflows trigger only on **version tags** (`v*.*.*`):
+GitHub environment setup now matters for deploy workflows:
+- `dev`
+- `nightly`
+- `production`
 
-| Workflow | Trigger | What it does |
-|---|---|---|
-| `release.yml` | `git push origin v2.1.0` | Creates GitHub Release with changelog notes |
-| `publish-image.yml` | `git push origin v2.1.0` | Builds + pushes `ghcr.io/theretrovault/retrovault:latest` to GHCR |
+Recommended secret names:
+- `DEPLOY_HOST`
+- `DEPLOY_USER`
+- `DEPLOY_SSH_KEY`
+- optional `DEPLOY_PORT`
 
-**Branch protection:** Direct pushes to `master` are blocked. All changes go through PRs. The `test` and `build` status checks must pass before merge.
+Recommended environment variable:
+- `DEPLOY_APP_DIR`
 
-**You (as org admin) have a bypass** — you can push directly to master when needed.
+**Branch protection:** During transition, `master` may still have the legacy protection/ruleset attached. The target model is to move the real protected-release posture to `prod`, keep `nightly` gated, and leave `autopush` as the fast integration lane.
 
 ---
 
@@ -272,7 +279,7 @@ npm version major   # 2.x.x → 3.0.0
 ```bash
 git add src/data/changelog.ts package.json
 git commit -m "🚀 Release v2.1.0 — Brief description"
-git push origin master
+git push origin autopush
 ```
 
 ### Step 4 — Tag the release

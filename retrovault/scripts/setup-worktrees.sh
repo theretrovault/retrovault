@@ -44,9 +44,9 @@ ensure_worktree() {
   git worktree add "$dir" "$branch"
 }
 
-ensure_branch prod master
-ensure_branch nightly prod
-ensure_branch autopush nightly
+ensure_branch prod origin/prod
+ensure_branch nightly origin/nightly
+ensure_branch autopush origin/autopush
 
 ensure_worktree autopush
 ensure_worktree nightly

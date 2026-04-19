@@ -33,9 +33,9 @@ try {
   run(`git commit -m "${msg}"`);
   console.log(`✅ Committed: ${msg}`);
 
-  // Push
-  run('git push origin master');
-  console.log('✅ Pushed to github.com/theretrovault/retrovault');
+  // Push to the fast integration lane by default
+  run('git push origin autopush');
+  console.log('✅ Pushed to github.com/theretrovault/retrovault (autopush)');
 
 } catch (e) {
   console.error('❌ Git sync failed:', e.message);
