@@ -1,11 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ALL_PLATFORMS } from "@/data/platformGroups";
+import { ALL_PLATFORMS, RETRO_DEFAULTS } from "@/data/platformGroups";
 import {
   buildFieldCache, readFieldCache, clearFieldCache, searchFieldCache,
   type FieldCacheData, type CachedGame,
 } from "@/lib/fieldCache";
+import {
+  CONDITION_OPTIONS,
+  type CopyCondition,
+  findInventoryMatch,
+  buildFieldCopy,
+  buildAcquisitionEntry,
+} from "@/lib/fieldMode";
 
 type PriceResult = {
   title: string;
@@ -20,6 +27,7 @@ type PriceResult = {
   conditions: string[]; // condition label per copy (Loose, CIB, etc.)
   watchlisted: boolean;
   watchlistPrice?: string;
+  id?: string;
   // Stale/cached price info
   stale?: boolean;       // true if price is from cached inventory data, not a live scrape
   lastFetched?: string;  // ISO date of last successful scrape
@@ -83,6 +91,10 @@ export default function FieldPage() {
   const [cacheMeta,     setCacheMeta]     = useState<{ cachedAt: string; count: number } | null>(null);
   const [caching,       setCaching]       = useState(false);
   const [cacheProgress, setCacheProgress] = useState("");
+  const [saveStatus, setSaveStatus] = useState("");
+  const [savingKey, setSavingKey] = useState("");
+  const [enabledPlatforms, setEnabledPlatforms] = useState<string[]>(RETRO_DEFAULTS);
+  const [fieldCondition, setFieldCondition] = useState<CopyCondition>("Loose");
   const [suggestions, setSuggestions] = useState<{ title: string; platform: string }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
@@ -106,6 +118,9 @@ export default function FieldPage() {
     }).catch(() => {});
     fetch("/api/sales?type=watchlist").then(r => r.json()).then(d => {
       if (Array.isArray(d)) setWatchlist(d);
+    }).catch(() => {});
+    fetch('/api/config').then(r => r.json()).then(cfg => {
+      if (Array.isArray(cfg?.platforms) && cfg.platforms.length > 0) setEnabledPlatforms(cfg.platforms);
     }).catch(() => {});
     // Load offline cache metadata on mount
     readFieldCache().then(cache => {
@@ -332,6 +347,169 @@ export default function FieldPage() {
 
   const search = () => doSearch(query, platform);
 
+  const normalizeMoney = (val: string | null) => {
+    if (!val || val === 'N/A') return '';
+    const num = parseFloat(val);
+    return Number.isFinite(num) ? num.toFixed(2) : '';
+  };
+
+  const refreshFieldData = async () => {
+    try {
+      const [invRes, watchRes, configRes] = await Promise.all([
+        fetch('/api/inventory'),
+        fetch('/api/sales?type=watchlist'),
+        fetch('/api/config').catch(() => null),
+      ]);
+      const inv = await invRes.json();
+      const watch = await watchRes.json();
+      const config = configRes ? await configRes.json() : null;
+      if (Array.isArray(inv)) {
+        setInventory(inv);
+        const owned = Array.from(new Set(inv.map((i: OwnedItem) => i.platform))).sort() as string[];
+        const rest = ALL_PLATFORMS.filter(p => !owned.includes(p));
+        setPlatforms([...owned, ...rest]);
+        catalogRef.current = inv.map(i => ({ title: i.title, platform: i.platform }));
+      }
+      if (Array.isArray(watch)) setWatchlist(watch);
+      if (Array.isArray(config?.platforms) && config.platforms.length > 0) setEnabledPlatforms(config.platforms);
+    } catch {}
+  };
+
+  const ensurePlatformEnabled = async (platformName: string) => {
+    const cfgRes = await fetch('/api/config');
+    const cfg = await cfgRes.json().catch(() => ({}));
+    const currentPlatforms: string[] = Array.isArray(cfg?.platforms) && cfg.platforms.length > 0
+      ? cfg.platforms
+      : enabledPlatforms;
+
+    if (currentPlatforms.includes(platformName)) return false;
+
+    const updatedPlatforms = [...new Set([...currentPlatforms, platformName])];
+    const saveRes = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...cfg, platforms: updatedPlatforms })
+    });
+    if (!saveRes.ok) throw new Error(`Could not enable ${platformName}`);
+    setEnabledPlatforms(updatedPlatforms);
+    return true;
+  };
+
+  const saveToInventory = async (r: PriceResult, copyDetails?: { condition: CopyCondition; priceAcquired: string }) => {
+    const mode = copyDetails ? 'purchase' : 'inventory';
+    const key = `${mode}:${r.title}:${r.platform}`;
+    setSavingKey(key);
+    setSaveStatus('');
+    try {
+      const platformWasEnabled = await ensurePlatformEnabled(r.platform);
+      const condition = copyDetails?.condition || fieldCondition;
+      const newCopy = copyDetails ? buildFieldCopy(condition, copyDetails.priceAcquired || '0.00') : null;
+      const existing = findInventoryMatch(inventory, r.title, r.platform);
+
+      let res: Response;
+      let copyAwareMessage = '';
+
+      if (existing) {
+        const updatedCopies = newCopy ? [...(existing.copies || []), newCopy] : (existing.copies || []);
+        res = await fetch('/api/inventory', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...existing,
+            copies: updatedCopies,
+            marketLoose: normalizeMoney(r.loose),
+            marketCib: normalizeMoney(r.cib),
+            marketNew: normalizeMoney(r.newPrice),
+            lastFetched: new Date().toISOString(),
+          }),
+        });
+        copyAwareMessage = newCopy
+          ? ` Added a copy to your existing ${r.title} entry.`
+          : ` Updated your existing ${r.title} entry instead of creating a duplicate.`;
+      } else {
+        const payload = {
+          title: r.title,
+          platform: r.platform,
+          isDigital: false,
+          copies: newCopy ? [newCopy] : [],
+          marketLoose: normalizeMoney(r.loose),
+          marketCib: normalizeMoney(r.cib),
+          marketNew: normalizeMoney(r.newPrice),
+          lastFetched: new Date().toISOString(),
+        };
+        res = await fetch('/api/inventory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        copyAwareMessage = newCopy
+          ? ` Created a new game entry with 1 owned copy.`
+          : ` Created a new game entry in your Vault.`;
+      }
+
+      if (!res.ok) throw new Error(copyDetails ? 'Failed to save purchase to inventory' : 'Failed to save to inventory');
+
+      if (copyDetails) {
+        const acqRes = await fetch('/api/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'acquisitions',
+            action: 'add',
+            item: buildAcquisitionEntry({
+              title: r.title,
+              platform: r.platform,
+              priceAcquired: copyDetails.priceAcquired || '0.00',
+              notes: `Field purchase · ${condition}`,
+            })
+          }),
+        });
+        if (!acqRes.ok) throw new Error('Saved inventory but failed to log acquisition');
+      }
+
+      setSaveStatus(
+        `${copyDetails ? '🛒 Bought' : '📦 Added'} ${r.title} (${r.platform})${platformWasEnabled ? `, and enabled ${r.platform}` : ''}.${copyAwareMessage}`
+      );
+      await refreshFieldData();
+    } catch (e: any) {
+      setSaveStatus(`Error: ${e.message || 'Could not save to inventory'}`);
+    } finally {
+      setSavingKey('');
+    }
+  };
+
+  const saveToWatchlist = async (r: PriceResult) => {
+    const key = `watchlist:${r.title}:${r.platform}`;
+    setSavingKey(key);
+    setSaveStatus('');
+    try {
+      const platformWasEnabled = await ensurePlatformEnabled(r.platform);
+      const targetBuyPrice = normalizeMoney(r.loose) || normalizeMoney(r.cib) || '0.00';
+      const res = await fetch('/api/sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'watchlist',
+          action: 'add',
+          item: {
+            title: r.title,
+            platform: r.platform,
+            targetBuyPrice,
+            alertPrice: targetBuyPrice,
+            notes: 'Added from Field Mode',
+          }
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to add to watchlist');
+      setSaveStatus(`⭐ Added ${r.title} (${r.platform}) to Target Radar${platformWasEnabled ? `, and enabled ${r.platform}` : ''}.`);
+      await refreshFieldData();
+    } catch (e: any) {
+      setSaveStatus(`Error: ${e.message || 'Could not add to watchlist'}`);
+    } finally {
+      setSavingKey('');
+    }
+  };
+
   const askNum = parseFloat(askPrice);
   const hasAsk = !isNaN(askNum) && askNum > 0;
 
@@ -458,7 +636,21 @@ export default function FieldPage() {
             />
           </div>
         </div>
+
+        <div className="flex gap-2 items-center">
+          <span className="text-zinc-500 font-terminal text-sm uppercase">Condition:</span>
+          <select value={fieldCondition} onChange={e => setFieldCondition(e.target.value as CopyCondition)}
+            className="flex-1 bg-zinc-950 border-2 border-blue-900 text-blue-300 font-terminal text-lg p-3 focus:outline-none cursor-pointer">
+            {CONDITION_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
       </div>
+
+      {saveStatus && (
+        <div className="mb-4 border border-cyan-800 bg-cyan-950/20 px-4 py-3 font-terminal text-sm text-cyan-300">
+          {saveStatus}
+        </div>
+      )}
 
       {/* Results */}
       {results.length > 0 && results.map((r, i) => {
@@ -531,6 +723,71 @@ export default function FieldPage() {
               <div className="border border-yellow-800 bg-yellow-950/20 px-3 py-2 font-terminal text-xs text-yellow-600">
                 ⚠️ Live price unavailable (network timeout) — showing cached price
                 {r.lastFetched && ` from ${new Date(r.lastFetched).toLocaleDateString()}`}
+              </div>
+            )}
+
+            {r.source === "pricecharting" && (
+              <div className="space-y-3">
+                {!enabledPlatforms.includes(r.platform) && (
+                  <div className="border border-purple-800 bg-purple-950/20 px-4 py-2 font-terminal text-sm text-purple-300">
+                    🕹️ {r.platform} isn’t currently enabled. Field Mode will enable it automatically when you save, or you can do it now.
+                    <button
+                      onClick={async () => {
+                        const key = `enable:${r.platform}`;
+                        setSavingKey(key);
+                        setSaveStatus('');
+                        try {
+                          await ensurePlatformEnabled(r.platform);
+                          setSaveStatus(`🕹️ Enabled ${r.platform} for RetroVault.`);
+                        } catch (e: any) {
+                          setSaveStatus(`Error: ${e.message || 'Could not enable platform'}`);
+                        } finally {
+                          setSavingKey('');
+                        }
+                      }}
+                      disabled={savingKey === `enable:${r.platform}`}
+                      className="ml-3 px-3 py-1 font-terminal text-xs border border-purple-700 text-purple-300 hover:bg-purple-950/40 disabled:opacity-50 transition-colors"
+                    >
+                      {savingKey === `enable:${r.platform}` ? '...' : `Enable ${r.platform}`}
+                    </button>
+                  </div>
+                )}
+
+                {findInventoryMatch(inventory, r.title, r.platform) && (
+                  <div className="border border-blue-800 bg-blue-950/20 px-4 py-2 font-terminal text-sm text-blue-300">
+                    📦 You already have this game record. Saving here will update that entry, and Bought It will add a new copy to it.
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => saveToInventory(r)}
+                    disabled={savingKey === `inventory:${r.title}:${r.platform}`}
+                    className="px-3 py-2 font-terminal text-sm border border-cyan-700 text-cyan-300 hover:bg-cyan-950/30 disabled:opacity-50 transition-colors"
+                  >
+                    {savingKey === `inventory:${r.title}:${r.platform}` ? '...' : '📦 Add to Vault'}
+                  </button>
+                  <button
+                    onClick={() => saveToWatchlist(r)}
+                    disabled={savingKey === `watchlist:${r.title}:${r.platform}`}
+                    className="px-3 py-2 font-terminal text-sm border border-yellow-700 text-yellow-300 hover:bg-yellow-950/30 disabled:opacity-50 transition-colors"
+                  >
+                    {savingKey === `watchlist:${r.title}:${r.platform}` ? '...' : '⭐ Add to Watchlist'}
+                  </button>
+                  <button
+                    onClick={() => saveToInventory(r, { condition: fieldCondition, priceAcquired: askPrice || '0.00' })}
+                    disabled={savingKey === `purchase:${r.title}:${r.platform}`}
+                    className="px-3 py-2 font-terminal text-sm border border-emerald-700 text-emerald-300 hover:bg-emerald-950/30 disabled:opacity-50 transition-colors"
+                  >
+                    {savingKey === `purchase:${r.title}:${r.platform}` ? '...' : '🛒 Bought It'}
+                  </button>
+                </div>
+
+                {askPrice && (
+                  <div className="font-terminal text-xs text-zinc-500">
+                    Bought It will save acquisition cost at <span className="text-yellow-400">${parseFloat(askPrice || '0').toFixed(2)}</span> with condition <span className="text-blue-400">{fieldCondition}</span>.
+                  </div>
+                )}
               </div>
             )}
 

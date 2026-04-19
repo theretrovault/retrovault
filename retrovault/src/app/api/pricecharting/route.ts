@@ -151,13 +151,16 @@ function timeoutSignal(ms: number): AbortSignal {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const q = searchParams.get('q');
+  const qParam = searchParams.get('q')?.trim();
+  const titleParam = searchParams.get('title')?.trim();
+  const platformParam = searchParams.get('platform')?.trim();
+  const q = qParam || [titleParam, platformParam].filter(Boolean).join(' ').trim();
   
   if (!q) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });
   }
 
-  const queryTitle = q;
+  const queryTitle = titleParam || q;
   const signal = timeoutSignal(FETCH_TIMEOUT_MS);
 
   try {
@@ -297,7 +300,11 @@ export async function GET(request: Request) {
     }
     
     if (directResult) {
-      return NextResponse.json(directResult);
+      return NextResponse.json({
+        ...directResult,
+        title: directResult.matchedTitle || titleParam || queryTitle,
+        platform: platformParam || null,
+      });
     }
 
     // Strategy 2: Fuzzy search fallback
@@ -375,6 +382,8 @@ export async function GET(request: Request) {
     const clean = (s: string | null) => s ? s.replace('$', '').trim() : 'N/A';
 
     return NextResponse.json({
+      title: matchedTitle || titleParam || queryTitle,
+      platform: platformParam || null,
       loose: clean(loosePrice),
       cib: clean(cibPrice),
       new: clean(newPrice),
