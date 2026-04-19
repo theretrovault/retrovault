@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import { resolveDataPath } from '@/lib/runtimePaths';
 
 export const dynamic = 'force-dynamic';
 
-const filePath = path.join(process.cwd(), 'data', 'goals.json');
+const filePath = resolveDataPath('goals.json');
 
 function getData() {
   if (!fs.existsSync(filePath)) return { priorities: {} };

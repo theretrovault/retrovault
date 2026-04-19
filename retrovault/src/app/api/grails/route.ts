@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import { resolveDataPath } from '@/lib/runtimePaths';
 
 export const dynamic = 'force-dynamic';
 
-const FILE = path.join(process.cwd(), 'data', 'grails.json');
+const FILE = resolveDataPath('grails.json');
 
 type GrailEntry = {
   id: string;

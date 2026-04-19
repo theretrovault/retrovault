@@ -15,9 +15,9 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import { getScrapersPath, LOGS_DIR } from './runtimePaths';
 
-const DATA_FILE  = path.join(process.cwd(), 'data', 'scrapers.json');
-const LOGS_DIR   = path.join(process.cwd(), 'logs');
+const DATA_FILE  = getScrapersPath();
 
 type Scraper = {
   id: string;

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import { resolveDataPath } from '@/lib/runtimePaths';
 
-const dataFilePath = path.join(process.cwd(), 'data', 'inventory.json');
+const dataFilePath = resolveDataPath('inventory.json');
 
 function getInventory() {
   if (!fs.existsSync(dataFilePath)) {

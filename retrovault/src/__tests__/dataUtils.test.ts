@@ -2,9 +2,9 @@
  * Data Utilities Tests — src/lib/data.ts
  *
  * Tests the file I/O helpers used by API routes.
- * DATA_DIR is evaluated at module load time (process.cwd()/data), so these
- * tests use the real data/ directory with test-prefixed filenames that are
- * cleaned up in afterEach.
+ * DATA_DIR is evaluated at module load time via runtimePaths, so these
+ * tests use the current workspace data/ directory with test-prefixed filenames
+ * that are cleaned up in afterEach.
  */
 
 import { describe, it, expect, afterEach } from 'vitest';

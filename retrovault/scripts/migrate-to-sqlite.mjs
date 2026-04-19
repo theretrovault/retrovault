@@ -18,8 +18,9 @@ const require = createRequire(import.meta.url);
 const Database = require('better-sqlite3');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR  = path.join(__dirname, '..', 'data');
-const DB_PATH   = path.join(DATA_DIR, 'retrovault.db');
+const ROOT = path.join(__dirname, '..');
+const DATA_DIR  = process.env.RETROVAULT_DATA_DIR || path.join(ROOT, 'data');
+const DB_PATH   = process.env.RETROVAULT_DB_PATH || path.join(DATA_DIR, 'retrovault.db');
 const DRY_RUN   = process.argv.includes('--dry-run');
 
 function loadJson(file, fallback = []) {

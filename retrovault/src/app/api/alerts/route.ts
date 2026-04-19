@@ -1,15 +1,9 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readDataFile } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
-const ROOT = process.cwd();
-const read = (file: string, fallback: any = []) => {
-  const p = path.join(ROOT, 'data', file);
-  if (!fs.existsSync(p)) return fallback;
-  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return fallback; }
-};
+const read = <T,>(file: string, fallback: T): T => readDataFile(file, fallback);
 
 type Alert = {
   id: string;
@@ -23,9 +17,9 @@ type Alert = {
 };
 
 export async function GET() {
-  const watchlist = read('watchlist.json', []);
-  const inventory = read('inventory.json', []);
-  const grails = read('grails.json', []);
+  const watchlist = read<any[]>('watchlist.json', []);
+  const inventory = read<any[]>('inventory.json', []);
+  const grails = read<any[]>('grails.json', []);
 
   const alerts: Alert[] = [];
   const now = new Date().toISOString();

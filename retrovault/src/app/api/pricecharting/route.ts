@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 import fs from 'fs';
-import path from 'path';
+import { getConfigPath } from '@/lib/runtimePaths';
 
 function getRegion(): string {
   try {
-    const cfg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'data', 'app.config.json'), 'utf8'));
+    const cfg = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'));
     return (cfg.region || 'NTSC').toUpperCase();
   } catch { return 'NTSC'; }
 }

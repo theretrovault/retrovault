@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - autopush
+      - nightly
+      - prod
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup env data
+        run: node scripts/setup-env-data.mjs
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run build
+        run: npm run build

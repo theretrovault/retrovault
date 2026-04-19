@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+import { DATA_DIR } from '@/lib/runtimePaths';
 
 export const dynamic = 'force-dynamic';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
 const LOGS_DIR = path.join(process.cwd(), 'logs');
 
 function fileSize(filePath: string): number {

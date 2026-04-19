@@ -14,6 +14,7 @@ type AppConfig = {
   standaloneMode: boolean;
   features: Features;
   platforms: string[];
+  runtimeEnv: string;
 };
 
 const DEFAULTS: AppConfig = {
@@ -26,6 +27,7 @@ const DEFAULTS: AppConfig = {
   standaloneMode: true,
   features: DEFAULT_FEATURES,
   platforms: RETRO_DEFAULTS,
+  runtimeEnv: "development",
 };
 
 const AppConfigContext = createContext<AppConfig>(DEFAULTS);

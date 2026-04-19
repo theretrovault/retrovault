@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import { resolveDataPath } from '@/lib/runtimePaths';
 
 export const dynamic = 'force-dynamic';
 
-const CL_FILE = path.join(process.cwd(), 'data', 'craigslist-deals.json');
-const REDDIT_FILE = path.join(process.cwd(), 'data', 'reddit-alerts.json');
+const CL_FILE = resolveDataPath('craigslist-deals.json');
+const REDDIT_FILE = resolveDataPath('reddit-alerts.json');
 
 function load(file: string) {
   if (!fs.existsSync(file)) return [];

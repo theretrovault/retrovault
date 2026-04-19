@@ -4,12 +4,10 @@
  */
 
 import fs from 'fs';
-import path from 'path';
-
-const DATA_DIR = path.join(process.cwd(), 'data');
+import { DATA_DIR, resolveDataPath } from './runtimePaths';
 
 export function readDataFile<T>(filename: string, fallback: T): T {
-  const filePath = path.join(DATA_DIR, filename);
+  const filePath = resolveDataPath(filename);
   if (!fs.existsSync(filePath)) return fallback;
   try {
     return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
@@ -20,10 +18,10 @@ export function readDataFile<T>(filename: string, fallback: T): T {
 }
 
 export function writeDataFile(filename: string, data: unknown): void {
-  const filePath = path.join(DATA_DIR, filename);
+  const filePath = resolveDataPath(filename);
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
 export function dataFileExists(filename: string): boolean {
-  return fs.existsSync(path.join(DATA_DIR, filename));
+  return fs.existsSync(resolveDataPath(filename));
 }

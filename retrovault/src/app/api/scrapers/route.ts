@@ -3,12 +3,13 @@ import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { getScrapersPath } from '@/lib/runtimePaths';
 // Scheduler imported dynamically to avoid bundling child_process in client paths
 
 export const dynamic = 'force-dynamic';
 
 const execAsync = promisify(exec);
-const SCRAPERS_FILE = path.join(process.cwd(), 'data', 'scrapers.json');
+const SCRAPERS_FILE = getScrapersPath();
 const LOGS_DIR = path.join(process.cwd(), 'logs');
 
 type Scraper = {

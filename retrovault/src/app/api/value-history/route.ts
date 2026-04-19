@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import { resolveDataPath } from '@/lib/runtimePaths';
 
 export const dynamic = 'force-dynamic';
 
-const FILE = path.join(process.cwd(), 'data', 'value-history.json');
+const FILE = resolveDataPath('value-history.json');
 
 export async function GET() {
   if (!fs.existsSync(FILE)) return NextResponse.json([]);

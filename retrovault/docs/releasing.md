@@ -38,10 +38,17 @@ npm version minor  # or patch, major
 
 ### 3. Commit everything
 
+For now, RetroVault is moving toward a 3-lane promotion model:
+- `autopush` = active integration/dev lane
+- `nightly` = stabilized pre-prod lane
+- `prod` = production lane
+
+Until the GitHub automation is fully wired, make release commits on the intended branch explicitly.
+
 ```bash
 git add -A
-git commit -m "🚀 Release v2.1.0 — Brief description"
-git push origin master
+git commit -m "🚀 Release v2.1.0 - Brief description"
+git push origin prod
 ```
 
 ### 4. Tag the release
@@ -51,10 +58,13 @@ git tag v2.1.0
 git push origin v2.1.0
 ```
 
-The GitHub Actions `release.yml` workflow triggers automatically on tag push:
-- Runs the full test suite (must pass)
-- Creates a GitHub Release with release notes
-- Links to the tag and shows the diff
+The target release automation is:
+- CI on branch pushes
+- promotion from `autopush` -> `nightly`
+- manual promotion from `nightly` -> `prod`
+- release tagging from `prod`
+
+If that workflow is not yet fully present in the repo, treat this document as the intended operating model and verify branch, tests, and build manually before tagging.
 
 ### 5. Verify
 
@@ -72,7 +82,7 @@ Check `github.com/theretrovault/retrovault/releases` — the new release should 
 
 ## What makes a good release
 
-- All 116+ tests passing
+- All tests passing
 - `npm run build` succeeds
 - Changelog updated with user-facing description
 - No sensitive data in committed files

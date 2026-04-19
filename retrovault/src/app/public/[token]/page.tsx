@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import fs from "fs";
-import path from "path";
+import { getConfigPath, resolveDataPath } from "@/lib/runtimePaths";
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +8,7 @@ type Props = { params: Promise<{ token: string }> };
 
 export default async function PublicCollectionPage({ params }: Props) {
   const { token } = await params;
-  const configPath = path.join(process.cwd(), "data", "app.config.json");
+  const configPath = getConfigPath();
   if (!fs.existsSync(configPath)) return notFound();
 
   const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -28,7 +28,7 @@ export default async function PublicCollectionPage({ params }: Props) {
     );
   }
 
-  const invPath = path.join(process.cwd(), "data", "inventory.json");
+  const invPath = resolveDataPath("inventory.json");
   const inventory = fs.existsSync(invPath) ? JSON.parse(fs.readFileSync(invPath, "utf8")) : [];
   const allItems = Array.isArray(inventory) ? inventory : (inventory.items || []);
   const owned = allItems.filter((i: any) => (i.copies || []).length > 0 && !i.isDigital);

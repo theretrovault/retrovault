@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import { resolveDataPath } from '@/lib/runtimePaths';
 
 export const dynamic = 'force-dynamic';
 
-const FILE = path.join(process.cwd(), 'data', 'whatnot.json');
+const FILE = resolveDataPath('whatnot.json');
 
 type Seller = {
   username: string; displayName: string; specialty: string;

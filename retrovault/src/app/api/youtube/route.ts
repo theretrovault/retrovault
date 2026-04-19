@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import { resolveDataPath } from '@/lib/runtimePaths';
 
 export const dynamic = 'force-dynamic';
 
-const CACHE_FILE = path.join(process.cwd(), 'data', 'youtube-cache.json');
+const CACHE_FILE = resolveDataPath('youtube-cache.json');
 const CACHE_TTL_DAYS = 30; // re-fetch after 30 days
 
 type CachedVideo = {

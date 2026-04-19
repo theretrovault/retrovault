@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { getConfigPath, resolveDataPath } from '@/lib/runtimePaths';
 
 export const dynamic = 'force-dynamic';
 
-const RATE_FILE = path.join(process.cwd(), 'data', 'bug-reports.json');
+const RATE_FILE = resolveDataPath('bug-reports.json');
 function getGithubRepo(): string {
   try {
-    const cfg = JSON.parse(require('fs').readFileSync(require('path').join(process.cwd(), 'data', 'app.config.json'), 'utf8'));
+    const cfg = JSON.parse(require('fs').readFileSync(getConfigPath(), 'utf8'));
     return cfg.githubRepo || 'theretrovault/retrovault';
   } catch { return 'theretrovault/retrovault'; }
 }

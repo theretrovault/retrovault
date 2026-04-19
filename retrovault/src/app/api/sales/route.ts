@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import { resolveDataPath } from '@/lib/runtimePaths';
 
-const salesPath = path.join(process.cwd(), 'data', 'sales.json');
-const acqPath = path.join(process.cwd(), 'data', 'acquisitions.json');
-const watchlistPath = path.join(process.cwd(), 'data', 'watchlist.json');
+const salesPath = resolveDataPath('sales.json');
+const acqPath = resolveDataPath('acquisitions.json');
+const watchlistPath = resolveDataPath('watchlist.json');
 
 export const dynamic = 'force-dynamic';
 

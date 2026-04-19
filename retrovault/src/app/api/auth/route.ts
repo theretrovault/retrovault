@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { getConfigPath } from '@/lib/runtimePaths';
 
 export const dynamic = 'force-dynamic';
 
-const CONFIG_PATH = path.join(process.cwd(), 'data', 'app.config.json');
+const CONFIG_PATH = getConfigPath();
 const SESSION_COOKIE = 'rv-session';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'retrovault-local-secret-change-me';
 const SESSION_TTL_HOURS = 72;

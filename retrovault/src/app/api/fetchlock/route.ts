@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import { resolveDataPath } from '@/lib/runtimePaths';
 
 export const dynamic = 'force-dynamic';
 
-const lockFile = path.join(process.cwd(), 'data', 'fetch.lock');
+const lockFile = resolveDataPath('fetch.lock');
 
 export async function GET() {
   const locked = fs.existsSync(lockFile);

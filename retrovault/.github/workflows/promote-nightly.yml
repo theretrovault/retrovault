@@ -1,0 +1,56 @@
+name: Promote autopush to nightly
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - autopush
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup env data
+        run: node scripts/setup-env-data.mjs
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run build
+        run: npm run build
+
+  promote:
+    needs: validate
+    if: github.ref == 'refs/heads/autopush'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fast-forward nightly to autopush
+        run: |
+          git fetch origin autopush nightly
+          git checkout nightly || git checkout -b nightly origin/nightly
+          git merge --ff-only origin/autopush
+          git push origin nightly

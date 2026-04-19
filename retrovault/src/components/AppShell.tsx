@@ -17,6 +17,7 @@ import { BugReportModal } from "@/components/BugReportModal";
 import { ToastProvider } from "@/components/Toast";
 import { WhatsNew } from "@/components/WhatsNew";
 import { Onboarding } from "@/components/Onboarding";
+import { EnvironmentBadge } from "@/components/EnvironmentBadge";
 
 function LogoutButton({ logout }: { logout: () => void }) {
   const [authEnabled, setAuthEnabled] = useState(false);
@@ -123,11 +124,12 @@ function MCLayout({ children }: { children: React.ReactNode }) {
         {sidebarOpen ? (
           <>
             {/* Logo */}
-            <div className="mb-5 mt-6 px-2">
+            <div className="mb-5 mt-6 px-2 space-y-2">
               <h1 className="text-green-500 font-terminal text-base tracking-widest uppercase drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]">
                 M1SS10N C0NTR0L
               </h1>
               <p className="text-green-900 font-terminal text-xs mt-0.5">v1.0.0 ONLINE</p>
+              <EnvironmentBadge />
             </div>
 
             {/* Grouped nav */}

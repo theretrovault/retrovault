@@ -4,9 +4,13 @@
 
 set -e
 
-DATA_DIR="/app/data"
-DB_PATH="${DATA_DIR}/retrovault.db"
+DATA_DIR="${RETROVAULT_DATA_DIR:-/app/data}"
+DB_PATH="${RETROVAULT_DB_PATH:-${DATA_DIR}/retrovault.db}"
 DATABASE_URL="${DATABASE_URL:-file:${DB_PATH}}"
+
+export RETROVAULT_DATA_DIR="${DATA_DIR}"
+export RETROVAULT_DB_PATH="${DB_PATH}"
+export DATABASE_URL
 
 echo "[entrypoint] RetroVault starting..."
 

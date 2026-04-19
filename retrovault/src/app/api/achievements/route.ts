@@ -1,39 +1,35 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
 import { evaluateAchievements, type AchievementContext } from '@/data/achievements';
+import { readDataFile, writeDataFile } from '@/lib/data';
+import { resolveDataPath } from '@/lib/runtimePaths';
 
 export const dynamic = 'force-dynamic';
 
-const ROOT = process.cwd();
-const read = (file: string, fallback: any = []) => {
-  const p = path.join(ROOT, 'data', file);
-  if (!fs.existsSync(p)) return fallback;
-  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return fallback; }
-};
+const read = <T,>(file: string, fallback: T): T => readDataFile(file, fallback);
 
 // Manually unlocked achievements (stored in data/achievements-unlocked.json)
-const UNLOCKED_FILE = path.join(ROOT, 'data', 'achievements-unlocked.json');
+const UNLOCKED_FILE = resolveDataPath('achievements-unlocked.json');
 function loadManual(): string[] {
   if (!fs.existsSync(UNLOCKED_FILE)) return [];
   return JSON.parse(fs.readFileSync(UNLOCKED_FILE, 'utf8'));
 }
 function saveManual(ids: string[]) {
-  fs.writeFileSync(UNLOCKED_FILE, JSON.stringify([...new Set(ids)], null, 2));
+  writeDataFile('achievements-unlocked.json', [...new Set(ids)]);
 }
 
 function buildContext(): AchievementContext {
-  const inventory = read('inventory.json', []);
-  const sales = read('sales.json', { sales: [], acquisitions: [] });
-  const favorites = read('favorites.json', { people: [], favorites: {}, regrets: {} });
-  const playlog = read('playlog.json', []);
-  const grails = read('grails.json', []);
-  const watchlist = read('watchlist.json', []);
-  const tags = read('tags.json', { gameTags: {}, platformTags: {}, mentions: {} });
-  const events = read('events.json', []);
-  const whatnot = read('whatnot.json', { sellers: [], streams: [] });
-  const scrapers = read('scrapers.json', []);
-  const clDeals = read('craigslist-deals.json', []);
+  const inventory = read<any[]>('inventory.json', []);
+  const sales = read<{ sales: any[]; acquisitions: any[] }>('sales.json', { sales: [], acquisitions: [] });
+  const favorites = read<{ people: any[]; favorites: Record<string, string[]>; regrets: Record<string, string[]> }>('favorites.json', { people: [], favorites: {}, regrets: {} });
+  const playlog = read<any[]>('playlog.json', []);
+  const grails = read<any[]>('grails.json', []);
+  const watchlist = read<any[]>('watchlist.json', []);
+  const tags = read<{ gameTags: Record<string, string[]>; platformTags: Record<string, string[]>; mentions: Record<string, any[]> }>('tags.json', { gameTags: {}, platformTags: {}, mentions: {} });
+  const events = read<any[]>('events.json', []);
+  const whatnot = read<{ sellers: any[]; streams: any[] }>('whatnot.json', { sellers: [], streams: [] });
+  const scrapers = read<any[]>('scrapers.json', []);
+  const clDeals = read<any[]>('craigslist-deals.json', []);
 
   const owned = inventory.filter((i: any) => (i.copies || []).length > 0 && !i.isDigital);
   const platforms = [...new Set(owned.map((i: any) => i.platform))] as string[];
@@ -109,7 +105,7 @@ function buildContext(): AchievementContext {
   const scraperRuns = scrapers.filter((s: any) => s.lastRun !== null).length;
 
   // Value history days (proxy for uptime)
-  const valueHistory = read('value-history.json', []);
+  const valueHistory = read<any[]>('value-history.json', []);
   const valueHistoryDays = valueHistory.length;
   // Uptime = days since first value snapshot
   let uptimeDays = 0;
@@ -119,7 +115,7 @@ function buildContext(): AchievementContext {
   }
 
   // API keys + setup wizard mode
-  const cfg = read('app.config.json', {});
+  const cfg = read<Record<string, any>>('app.config.json', {});
   const apiKeysCreated = (cfg.apiKeys || []).length;
   const setupWizardMode = (cfg.setupWizardMode as 'collector' | 'dealer' | 'empire' | null) ?? null;
   const setupWizardDone = !!cfg.setupWizardVersion;
@@ -131,8 +127,7 @@ function buildContext(): AchievementContext {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Database = require('better-sqlite3');
-    const path2 = require('path');
-    const dbPath = path2.join(process.cwd(), 'data', 'retrovault.db');
+    const dbPath = resolveDataPath('retrovault.db');
     const db = new Database(dbPath, { readonly: true });
     wishlistCount = (db.prepare('SELECT COUNT(*) as c FROM WishlistItem').get() as { c: number }).c;
     wishlistFound = (db.prepare('SELECT COUNT(*) as c FROM WishlistItem WHERE foundAt IS NOT NULL').get() as { c: number }).c;
@@ -140,7 +135,7 @@ function buildContext(): AchievementContext {
   } catch { /* DB not available, defaults to 0 */ }
 
   // Bug reports filed
-  const bugReports = read('bug-reports.json', []);
+  const bugReports = read<any[]>('bug-reports.json', []);
   const bugReportsFiled = bugReports.length;
 
   // Export/import flags (check for non-empty data files as proxy)

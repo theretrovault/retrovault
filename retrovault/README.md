@@ -1,7 +1,7 @@
 # 👾 RetroVault
 
-[![CI](https://github.com/theretrovault/retrovault/actions/workflows/test.yml/badge.svg)](https://github.com/theretrovault/retrovault/actions/workflows/test.yml)
-[![Build](https://github.com/theretrovault/retrovault/actions/workflows/build.yml/badge.svg)](https://github.com/theretrovault/retrovault/actions/workflows/build.yml)
+[![CI](https://github.com/theretrovault/retrovault/actions/workflows/ci.yml/badge.svg)](https://github.com/theretrovault/retrovault/actions/workflows/ci.yml)
+[![Release](https://github.com/theretrovault/retrovault/actions/workflows/release.yml/badge.svg)](https://github.com/theretrovault/retrovault/actions/workflows/release.yml)
 [![Version](https://img.shields.io/badge/version-2.0.0-22c55e?style=flat-square)](retrovault/src/data/changelog.ts)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square)](https://typescriptlang.org)
@@ -145,7 +145,7 @@ Open [http://localhost:3000](http://localhost:3000) and start adding games.
 ```bash
 git clone https://github.com/theretrovault/retrovault.git
 cd retrovault/retrovault
-cp data/sample/app.config.sample.json data/app.config.json
+node scripts/setup-env-data.mjs
 npm install
 npm run dev
 ```
@@ -179,13 +179,18 @@ All your collection data lives in `data/` on your machine. **None of it is commi
 
 ```
 data/
-├── app.config.json      ← your settings
-├── inventory.json       ← your game catalog + prices
-├── sales.json           ← P&L transaction log
-├── goals.json           ← platform completion goals
-├── grails.json          ← holy grail wish list
-├── playlog.json         ← what you've played/beaten
-└── ...
+├── prod/
+│   ├── retrovault.db    ← production SQLite DB
+│   ├── app.config.json  ← production settings
+│   └── ...
+├── dev/
+│   ├── retrovault.db    ← dev SQLite DB
+│   ├── app.config.json  ← dev settings
+│   └── ...
+└── nightly/
+    ├── retrovault.db    ← nightly SQLite DB
+    ├── app.config.json  ← nightly settings
+    └── ...
 ```
 
 To back up your collection: `cp -r data/ ~/my-retrovault-backup/`  
@@ -203,7 +208,8 @@ RetroVault runs well on a Raspberry Pi, a spare box on your LAN, or any Linux se
 # Install pm2 for process management
 npm install -g pm2
 
-# Build and start
+# Build and start managed runtimes
+node scripts/setup-env-data.mjs
 npm run build
 pm2 start ecosystem.config.js
 
@@ -225,7 +231,7 @@ PWA-ready — add it to your phone's home screen for a native-feeling Field Mode
 | `scripts/scrape-craigslist.mjs` | Local Craigslist game deal alerts |
 | `scripts/scrape-reddit.mjs` | r/gameswap alerts for your watchlist |
 | `scripts/snapshot-value.mjs` | Record daily collection value (run daily) |
-| `scripts/deploy.sh` | Pull → build → reload pm2 in one command |
+| `scripts/deploy.sh` | Env-aware deploy helper for `prod`, `dev`, or `nightly` |
 
 ---
 

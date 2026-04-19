@@ -14,9 +14,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import fs from 'fs';
-import path from 'path';
+import { getConfigPath } from './runtimePaths';
 
-const CONFIG_FILE = path.join(process.cwd(), 'data', 'app.config.json');
+const CONFIG_FILE = getConfigPath();
 
 export type ApiKey = {
   id: string;

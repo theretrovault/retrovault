@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { getConfigPath, getRuntimeLabel } from '@/lib/runtimePaths';
 
 export const dynamic = 'force-dynamic';
 
-const filePath = path.join(process.cwd(), 'data', 'app.config.json');
+const filePath = getConfigPath();
 
 const DEFAULTS = {
   appName: "RetroVault",
@@ -37,7 +37,11 @@ function saveConfig(data: any) {
 export async function GET() {
   const config = getConfig();
   // Never expose password hash
-  const safe = { ...config, auth: { ...config.auth, passwordHash: config.auth?.passwordHash ? '(set)' : '' } };
+  const safe = {
+    ...config,
+    runtimeEnv: getRuntimeLabel(),
+    auth: { ...config.auth, passwordHash: config.auth?.passwordHash ? '(set)' : '' }
+  };
   return NextResponse.json(safe, { headers: { 'Cache-Control': 'no-store' } });
 }
 

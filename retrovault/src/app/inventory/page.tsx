@@ -1212,14 +1212,14 @@ export default function InventoryPage() {
                 }, {
                   icon: "🏠", title: "INFRASTRUCTURE",
                   content: [
-                    "Next.js 16 app in /workspace/second-brain. Production managed by pm2.",
-                    "Dev: npm run dev (port 3000). Production: pm2 start ecosystem.config.js.",
+                    "Next.js 16 app in /workspace/retrovault. Production managed by pm2 with env-specific apps.",
+                    "Dev: npm run dev. Managed runtimes: pm2 start ecosystem.config.js (prod 3000, dev 3001, nightly 3002).",
                     "nginx reverse proxy config at nginx.conf.example — copy to sites-available and enable.",
-                    "Data files live in data/ (gitignored except structure files).",
+                    "Runtime data lives in data/<env>/ for prod, dev, and nightly.",
                     "8 scraper scripts in scripts/. Cron schedules managed via Scraper Control Center (/scrapers).",
                     "Auto-commit to GitHub via scripts/git-sync.mjs (cron: every 6 hours).",
                     "PWA manifest at public/manifest.json. SSH key at ~/.ssh/id_github_retrovault.",
-                    "GitHub repo: github.com/theretrovault/retrovault (private). Deploy: bash scripts/deploy.sh.",
+                    "GitHub repo: github.com/theretrovault/retrovault (private). Deploy: bash scripts/deploy.sh [prod|dev|nightly].",
                   ]
                 }].map(section => (
                   <div key={section.title} className="bg-zinc-900 border border-zinc-700 rounded-sm p-4">
