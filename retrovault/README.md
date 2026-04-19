@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/theretrovault/retrovault/actions/workflows/ci.yml/badge.svg)](https://github.com/theretrovault/retrovault/actions/workflows/ci.yml)
 [![Release](https://github.com/theretrovault/retrovault/actions/workflows/release.yml/badge.svg)](https://github.com/theretrovault/retrovault/actions/workflows/release.yml)
+[![Dev Deploy](https://github.com/theretrovault/retrovault/actions/workflows/deploy-dev.yml/badge.svg)](https://github.com/theretrovault/retrovault/actions/workflows/deploy-dev.yml)
 [![Version](https://img.shields.io/badge/version-2.0.0-22c55e?style=flat-square)](retrovault/src/data/changelog.ts)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square)](https://typescriptlang.org)

@@ -2,24 +2,20 @@
 
 This turns the `autopush` / `nightly` / `prod` model from documentation into an actual repo policy.
 
-## 1. Create branches
+## 1. Branches
 
-Local branches now exist in the working repo:
+Branches now exist locally and on origin:
 - `prod`
 - `nightly`
 - `autopush`
 
-Next step is to push them to origin once the current workstream is committed cleanly:
-
-```bash
-git checkout master
-git pull origin master
-git push origin prod nightly autopush
-```
+Current remote state:
+- `master` still exists and currently points at the same commit
+- `prod`, `nightly`, and `autopush` are now published and ready for protections/workflows
 
 Optional later cleanup:
 - make `prod` the default branch
-- retire `master` after docs, badges, and integrations are moved
+- retire `master` after docs, badges, integrations, and branch protections are fully migrated
 
 ## 2. Create local worktrees
 
@@ -33,6 +29,8 @@ Expected directories:
 - `../retrovault-prod`
 
 ## 3. Configure branch protection
+
+Also see `docs/github-admin-next-steps.md` for the current observed protection state and recommended migration order.
 
 ### `autopush`
 Recommended:
@@ -79,10 +77,23 @@ Target mapping:
 - `nightly` -> nightly runtime (`retrovault-nightly`, port 3002)
 - `prod` -> prod runtime (`retrovault-prod`, port 3000)
 
+Recommended secrets/variables for future deploy jobs:
+- `DEPLOY_HOST`
+- `DEPLOY_USER`
+- `DEPLOY_SSH_KEY`
+- optional per-environment app dir or worktree path variables
+
+Recommended deploy shape:
+- checkout branch
+- run CI gate
+- SSH to target host
+- `cd` into correct worktree/app dir
+- run `bash scripts/deploy.sh <env> <branch>`
+
 ## 7. Verify release flow
 
-After branch creation:
-1. push to `autopush`
+Now that branches exist on origin:
+1. push a small change to `autopush`
 2. confirm `ci.yml` runs
 3. confirm `promote-nightly.yml` can fast-forward `nightly`
 4. manually run `promote-prod.yml`

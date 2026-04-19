@@ -54,3 +54,20 @@ jobs:
           git checkout nightly || git checkout -b nightly origin/nightly
           git merge --ff-only origin/autopush
           git push origin nightly
+
+  deploy-nightly:
+    needs: promote
+    runs-on: ubuntu-latest
+    environment: nightly
+    if: github.ref == 'refs/heads/autopush'
+    steps:
+      - name: Deploy nightly runtime over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            cd ${{ vars.DEPLOY_APP_DIR || '/home/apesch/.openclaw/workspace/retrovault' }}
+            bash scripts/deploy.sh nightly nightly
