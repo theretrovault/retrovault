@@ -49,3 +49,34 @@ export function buildAcquisitionEntry(input: {
     notes: input.notes || 'Logged from Field Mode',
   };
 }
+
+export function getWatchlistTargetPresets(askPrice: string, loosePrice: string | null) {
+  const ask = parseFloat(askPrice || '0');
+  const loose = parseFloat(loosePrice || '0');
+
+  return {
+    askPrice: ask > 0 ? ask.toFixed(2) : null,
+    belowAsk10: ask > 0 ? (ask * 0.9).toFixed(2) : null,
+    marketMinus20: loose > 0 ? (loose * 0.8).toFixed(2) : null,
+  };
+}
+
+export function getFieldEmptyState(params: {
+  query: string;
+  platform: string;
+  isOffline: boolean;
+  hadTimeout: boolean;
+}) {
+  if (!params.query.trim()) return 'Search for a title to start.';
+  if (params.isOffline) return 'Offline and no cached match found. Cache this platform before the next show.';
+  if (params.hadTimeout) return 'Live price lookup timed out. Try again, or use your offline cache if you have one.';
+  if (params.platform !== 'all') return `No match found for ${params.query} on ${params.platform}. Check spelling or try ALL PLATFORMS.`;
+  return `No match found for ${params.query}. Check spelling or try a specific platform.`;
+}
+
+export function getMatchConfidence(confidence?: number) {
+  if (typeof confidence !== 'number' || Number.isNaN(confidence)) return null;
+  if (confidence >= 0.95) return 'High confidence match';
+  if (confidence >= 0.75) return 'Likely match, verify title';
+  return 'Low confidence, verify before saving';
+}

@@ -12,6 +12,9 @@ import {
   findInventoryMatch,
   buildFieldCopy,
   buildAcquisitionEntry,
+  getWatchlistTargetPresets,
+  getFieldEmptyState,
+  getMatchConfidence,
 } from "@/lib/fieldMode";
 
 type PriceResult = {
@@ -95,6 +98,8 @@ export default function FieldPage() {
   const [savingKey, setSavingKey] = useState("");
   const [enabledPlatforms, setEnabledPlatforms] = useState<string[]>(RETRO_DEFAULTS);
   const [fieldCondition, setFieldCondition] = useState<CopyCondition>("Loose");
+  const [lastSearchIssue, setLastSearchIssue] = useState<{ isOffline: boolean; hadTimeout: boolean } | null>(null);
+  const [needsCacheRefresh, setNeedsCacheRefresh] = useState(false);
   const [suggestions, setSuggestions] = useState<{ title: string; platform: string }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
@@ -223,6 +228,7 @@ export default function FieldPage() {
     setSuggestions([]);
     setSearching(true);
     setResults([]);
+    setLastSearchIssue(null);
 
     const q = titleQ.toLowerCase();
     const platFilter = plat !== "all";
@@ -233,6 +239,8 @@ export default function FieldPage() {
       const cached = searchFieldCache(fieldCache, titleQ, plat);
       if (cached.length > 0) {
         setResults(cached.map(g => cachedToResult(g, true)));
+      } else {
+        setLastSearchIssue({ isOffline: true, hadTimeout: false });
       }
       setSearching(false);
       return;
@@ -298,6 +306,7 @@ export default function FieldPage() {
           }]);
         }
         // else: no result, leave results empty
+        setLastSearchIssue({ isOffline: false, hadTimeout: res.status === 408 });
         setSearching(false);
         return;
       }
@@ -311,7 +320,10 @@ export default function FieldPage() {
           source: "pricecharting",
           owned: 0, paidTotal: 0, paidEach: [], conditions: [],
           watchlisted: false,
+          wishlistNotes: getMatchConfidence(d.confidence) || undefined,
         }]);
+      } else {
+        setLastSearchIssue({ isOffline: false, hadTimeout: false });
       }
     } catch (e: any) {
       // AbortError = client-side timeout — try field cache first, then inventory
@@ -339,6 +351,8 @@ export default function FieldPage() {
             watchlisted: watchlist.some(w => w.id === cached.id),
             stale: true, lastFetched: cached.lastFetched,
           }]);
+        } else {
+          setLastSearchIssue({ isOffline: false, hadTimeout: true });
         }
       }
     }
@@ -470,6 +484,7 @@ export default function FieldPage() {
       setSaveStatus(
         `${copyDetails ? '🛒 Bought' : '📦 Added'} ${r.title} (${r.platform})${platformWasEnabled ? `, and enabled ${r.platform}` : ''}.${copyAwareMessage}`
       );
+      setNeedsCacheRefresh(!!cacheMeta);
       await refreshFieldData();
     } catch (e: any) {
       setSaveStatus(`Error: ${e.message || 'Could not save to inventory'}`);
@@ -502,6 +517,7 @@ export default function FieldPage() {
       });
       if (!res.ok) throw new Error('Failed to add to watchlist');
       setSaveStatus(`⭐ Added ${r.title} (${r.platform}) to Target Radar${platformWasEnabled ? `, and enabled ${r.platform}` : ''}.`);
+      setNeedsCacheRefresh(!!cacheMeta);
       await refreshFieldData();
     } catch (e: any) {
       setSaveStatus(`Error: ${e.message || 'Could not add to watchlist'}`);
@@ -652,6 +668,21 @@ export default function FieldPage() {
         </div>
       )}
 
+      {needsCacheRefresh && (
+        <div className="mb-4 border border-amber-800 bg-amber-950/20 px-4 py-3 font-terminal text-sm text-amber-300">
+          📦 Your offline cache is now stale. Rebuild it before going offline again.
+          <button
+            onClick={async () => {
+              await handleBuildCache();
+              setNeedsCacheRefresh(false);
+            }}
+            className="ml-3 px-3 py-1 font-terminal text-xs border border-amber-700 text-amber-300 hover:bg-amber-950/40 transition-colors"
+          >
+            Refresh Cache Now
+          </button>
+        </div>
+      )}
+
       {/* Results */}
       {results.length > 0 && results.map((r, i) => {
         const looseNum = r.loose ? parseFloat(r.loose) : null;
@@ -783,6 +814,46 @@ export default function FieldPage() {
                   </button>
                 </div>
 
+                {r.wishlistNotes && (
+                  <div className="font-terminal text-xs text-zinc-500">
+                    🔎 {r.wishlistNotes}
+                  </div>
+                )}
+
+                {(() => {
+                  const presets = getWatchlistTargetPresets(askPrice, r.loose);
+                  return (
+                    <div className="flex flex-wrap gap-2">
+                      {presets.askPrice && (
+                        <button
+                          onClick={() => setAskPrice(presets.askPrice || '')}
+                          className="px-2 py-1 font-terminal text-xs border border-zinc-700 text-zinc-400 hover:text-green-300 hover:border-green-700 transition-colors"
+                        >
+                          Use Ask ${presets.askPrice}
+                        </button>
+                      )}
+                      {presets.belowAsk10 && (
+                        <button
+                          onClick={() => saveToWatchlist({ ...r, loose: presets.belowAsk10 })}
+                          disabled={savingKey === `watchlist:${r.title}:${r.platform}`}
+                          className="px-2 py-1 font-terminal text-xs border border-yellow-900 text-yellow-400 hover:bg-yellow-950/30 transition-colors"
+                        >
+                          Watch at 10% below ask (${presets.belowAsk10})
+                        </button>
+                      )}
+                      {presets.marketMinus20 && (
+                        <button
+                          onClick={() => saveToWatchlist({ ...r, loose: presets.marketMinus20 })}
+                          disabled={savingKey === `watchlist:${r.title}:${r.platform}`}
+                          className="px-2 py-1 font-terminal text-xs border border-yellow-900 text-yellow-400 hover:bg-yellow-950/30 transition-colors"
+                        >
+                          Watch at 20% below market (${presets.marketMinus20})
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {askPrice && (
                   <div className="font-terminal text-xs text-zinc-500">
                     Bought It will save acquisition cost at <span className="text-yellow-400">${parseFloat(askPrice || '0').toFixed(2)}</span> with condition <span className="text-blue-400">{fieldCondition}</span>.
@@ -829,7 +900,14 @@ export default function FieldPage() {
       })}
 
       {!searching && results.length === 0 && query && (
-        <div className="text-center text-zinc-700 font-terminal text-xl py-8">No results. Try a different title or check spelling.</div>
+        <div className="text-center text-zinc-700 font-terminal text-xl py-8">
+          {getFieldEmptyState({
+            query,
+            platform,
+            isOffline: lastSearchIssue?.isOffline || false,
+            hadTimeout: lastSearchIssue?.hadTimeout || false,
+          })}
+        </div>
       )}
     </div>
   );

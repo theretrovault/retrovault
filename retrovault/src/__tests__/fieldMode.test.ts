@@ -3,6 +3,9 @@ import {
   findInventoryMatch,
   getCopyFlags,
   buildAcquisitionEntry,
+  getWatchlistTargetPresets,
+  getFieldEmptyState,
+  getMatchConfidence,
 } from '@/lib/fieldMode';
 
 describe('Field Mode helpers', () => {
@@ -44,5 +47,26 @@ describe('Field Mode helpers', () => {
       notes: 'Logged from Field Mode',
     });
     expect(entry.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('builds watchlist presets from ask and market prices', () => {
+    expect(getWatchlistTargetPresets('10', '20')).toEqual({
+      askPrice: '10.00',
+      belowAsk10: '9.00',
+      marketMinus20: '16.00',
+    });
+  });
+
+  it('returns useful empty-state messages', () => {
+    expect(getFieldEmptyState({ query: 'Wii Sports', platform: 'Wii', isOffline: false, hadTimeout: false }))
+      .toContain('No match found for Wii Sports on Wii');
+    expect(getFieldEmptyState({ query: 'Wii Sports', platform: 'all', isOffline: true, hadTimeout: false }))
+      .toContain('Offline and no cached match found');
+  });
+
+  it('maps confidence scores to clear labels', () => {
+    expect(getMatchConfidence(0.98)).toBe('High confidence match');
+    expect(getMatchConfidence(0.8)).toBe('Likely match, verify title');
+    expect(getMatchConfidence(0.4)).toBe('Low confidence, verify before saving');
   });
 });
