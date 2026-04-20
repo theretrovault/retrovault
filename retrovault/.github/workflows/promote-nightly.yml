@@ -31,6 +31,9 @@ jobs:
       - name: Run build
         run: npm run build
 
+      - name: Smoke test build artifacts
+        run: npm run smoke:release
+
   promote:
     needs: validate
     if: github.ref == 'refs/heads/autopush'
@@ -71,3 +74,4 @@ jobs:
           script: |
             cd ${{ vars.DEPLOY_APP_DIR || '/home/apesch/.openclaw/workspace/retrovault' }}
             bash scripts/deploy.sh nightly nightly
+            npm run smoke:release -- --base-url "${{ vars.NIGHTLY_PUBLIC_BASE_URL || 'https://nightly.peschpit.com' }}"

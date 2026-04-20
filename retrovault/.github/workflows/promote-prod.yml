@@ -30,6 +30,9 @@ jobs:
       - name: Run build
         run: npm run build
 
+      - name: Smoke test build artifacts
+        run: npm run smoke:release
+
   promote:
     needs: validate
     runs-on: ubuntu-latest
@@ -68,3 +71,4 @@ jobs:
           script: |
             cd ${{ vars.DEPLOY_APP_DIR || '/home/apesch/.openclaw/workspace/retrovault' }}
             bash scripts/deploy.sh prod prod
+            npm run smoke:release -- --base-url "${{ vars.PROD_PUBLIC_BASE_URL || 'https://retrovault.peschpit.com' }}"

@@ -1,26 +1,16 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import { resolveDataPath } from '@/lib/runtimePaths';
-
-const dataFilePath = resolveDataPath('inventory.json');
-
-function getInventory() {
-  if (!fs.existsSync(dataFilePath)) {
-    return [];
-  }
-  const data = fs.readFileSync(dataFilePath, 'utf8');
-  return JSON.parse(data);
-}
-
-function saveInventory(data: any[]) {
-  fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
-}
+import {
+  createInventoryCompat,
+  deleteInventoryCompat,
+  readInventoryCompat,
+  updateInventoryCompat,
+} from '@/lib/storageCompat';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const inventory = getInventory();
+    const inventory = await readInventoryCompat();
     return NextResponse.json(inventory, {
       headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
     });
@@ -32,15 +22,9 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const newItem = await request.json();
-    const inventory = getInventory();
-    
-    // Assign a random ID
-    newItem.id = Math.random().toString(36).substring(2, 10);
-    
-    inventory.push(newItem);
-    saveInventory(inventory);
-    
-    return NextResponse.json(newItem, { status: 201 });
+    newItem.id = newItem.id || Math.random().toString(36).substring(2, 10);
+    const created = await createInventoryCompat(newItem);
+    return NextResponse.json(created, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: "Failed to add item" }, { status: 500 });
   }
@@ -49,17 +33,13 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const updatedItem = await request.json();
-    const inventory = getInventory();
-    
-    const index = inventory.findIndex((item: any) => item.id === updatedItem.id);
-    if (index === -1) {
+    const inventory = await readInventoryCompat();
+    const existing = inventory.find((item: any) => item.id === updatedItem.id);
+    if (!existing) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
-    
-    // Preserve existing priceHistory and merge today's prices
-    const existing = inventory[index];
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    
+
+    const today = new Date().toISOString().split('T')[0];
     const existingHistory = existing.priceHistory || {};
     const newHistory = {
       ...existingHistory,
@@ -68,14 +48,12 @@ export async function PUT(request: Request) {
         cib: updatedItem.marketCib || null,
         new: updatedItem.marketNew || null,
         graded: updatedItem.marketGraded || null,
-        fetchedAt: new Date().toISOString()
-      }
+        fetchedAt: new Date().toISOString(),
+      },
     };
-    
-    inventory[index] = { ...updatedItem, priceHistory: newHistory };
-    saveInventory(inventory);
-    
-    return NextResponse.json(inventory[index]);
+
+    const updated = await updateInventoryCompat({ ...updatedItem, priceHistory: newHistory });
+    return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json({ error: "Failed to update item" }, { status: 500 });
   }
@@ -90,16 +68,11 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
     }
     
-    let inventory = getInventory();
-    const initialLength = inventory.length;
-    inventory = inventory.filter((item: any) => item.id !== id);
-    
-    if (inventory.length === initialLength) {
+    const deleted = await deleteInventoryCompat(id);
+    if (!deleted) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
-    
-    saveInventory(inventory);
-    
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: "Failed to delete item" }, { status: 500 });

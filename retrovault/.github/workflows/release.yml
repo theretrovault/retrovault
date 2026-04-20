@@ -35,6 +35,9 @@ jobs:
       - name: Run build
         run: npm run build
 
+      - name: Smoke test build artifacts
+        run: npm run smoke:release
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:

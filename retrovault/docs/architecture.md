@@ -77,9 +77,8 @@ Key files:
 Several important surfaces still rely on env-local JSON files. This includes core collection behavior and related app state during the migration period.
 
 Examples include files such as:
-- `inventory.json`
 - `sales.json`
-- `watchlist.json`
+- `acquisitions.json`
 - `favorites.json`
 - `tags.json`
 - `goals.json`
@@ -89,6 +88,12 @@ Examples include files such as:
 - `value-history.json`
 - `app.config.json`
 - `scrapers.json`
+
+Recently migrated behind compatibility-preserving APIs:
+- inventory reads/writes now flow through Prisma/SQLite via `/api/inventory`
+- watchlist reads/writes now flow through Prisma/SQLite via `/api/sales?type=watchlist`
+
+That means some user-facing surfaces already behave like the old JSON shape while persisting through SQLite under the hood.
 
 ### Why this matters
 
@@ -110,6 +115,7 @@ Why:
 
 Current doctrine:
 - for risky data/model work, refresh dev from a private prod-derived fixture first
+- make the change live on dev first, validate there, then decide on nightly/prod promotion
 - migrate JSON-backed surfaces in controlled chunks with tests
 - do not assume “Prisma exists” means “migration is done”
 

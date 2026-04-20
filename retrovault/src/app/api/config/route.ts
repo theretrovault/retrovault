@@ -36,11 +36,38 @@ function saveConfig(data: any) {
 
 export async function GET() {
   const config = getConfig();
-  // Never expose password hash
+  // Only expose the client-safe subset needed by the app shell and settings UI.
+  // Secrets like API key hashes and Plex tokens must stay server-side.
   const safe = {
-    ...config,
+    appName: config.appName,
+    tagline: config.tagline,
+    ownerName: config.ownerName,
+    contactEmail: config.contactEmail,
+    contactPhone: config.contactPhone,
+    shareContact: config.shareContact,
+    themeColor: config.themeColor,
+    currency: config.currency,
+    dateFormat: config.dateFormat,
+    publicUrl: config.publicUrl,
+    standaloneMode: config.standaloneMode,
+    fetchScheduleHour: config.fetchScheduleHour,
+    priceDataSource: config.priceDataSource,
+    features: config.features,
+    platforms: config.platforms,
+    region: config.region,
+    githubRepo: config.githubRepo,
+    setupWizardMode: config.setupWizardMode,
+    setupWizardVersion: config.setupWizardVersion,
+    setupSuggestAuth: config.setupSuggestAuth,
     runtimeEnv: getRuntimeLabel(),
-    auth: { ...config.auth, passwordHash: config.auth?.passwordHash ? '(set)' : '' }
+    auth: {
+      enabled: !!config.auth?.enabled,
+      passwordHash: config.auth?.passwordHash ? '(set)' : ''
+    },
+    plex: {
+      url: config.plex?.url || '',
+      token: config.plex?.token ? '(set)' : ''
+    },
   };
   return NextResponse.json(safe, { headers: { 'Cache-Control': 'no-store' } });
 }

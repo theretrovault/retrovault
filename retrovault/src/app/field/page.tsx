@@ -98,6 +98,7 @@ export default function FieldPage() {
   const [savingKey, setSavingKey] = useState("");
   const [enabledPlatforms, setEnabledPlatforms] = useState<string[]>(RETRO_DEFAULTS);
   const [fieldCondition, setFieldCondition] = useState<CopyCondition>("Loose");
+  const [purchaseQuantity, setPurchaseQuantity] = useState("1");
   const [lastSearchIssue, setLastSearchIssue] = useState<{ isOffline: boolean; hadTimeout: boolean } | null>(null);
   const [needsCacheRefresh, setNeedsCacheRefresh] = useState(false);
   const [suggestions, setSuggestions] = useState<{ title: string; platform: string }[]>([]);
@@ -409,7 +410,7 @@ export default function FieldPage() {
     return { changed: true, sync: payload?.sync || null };
   };
 
-  const saveToInventory = async (r: PriceResult, copyDetails?: { condition: CopyCondition; priceAcquired: string }) => {
+  const saveToInventory = async (r: PriceResult, copyDetails?: { condition: CopyCondition; priceAcquired: string; quantity?: number }) => {
     const mode = copyDetails ? 'purchase' : 'inventory';
     const key = `${mode}:${r.title}:${r.platform}`;
     setSavingKey(key);
@@ -417,14 +418,17 @@ export default function FieldPage() {
     try {
       const platformSync = await ensurePlatformEnabled(r.platform);
       const condition = copyDetails?.condition || fieldCondition;
-      const newCopy = copyDetails ? buildFieldCopy(condition, copyDetails.priceAcquired || '0.00') : null;
+      const quantity = Math.max(1, Math.floor(copyDetails?.quantity || 1));
+      const newCopies = copyDetails
+        ? Array.from({ length: quantity }, () => buildFieldCopy(condition, copyDetails.priceAcquired || '0.00'))
+        : [];
       const existing = findInventoryMatch(inventory, r.title, r.platform);
 
       let res: Response;
       let copyAwareMessage = '';
 
       if (existing) {
-        const updatedCopies = newCopy ? [...(existing.copies || []), newCopy] : (existing.copies || []);
+        const updatedCopies = newCopies.length > 0 ? [...(existing.copies || []), ...newCopies] : (existing.copies || []);
         res = await fetch('/api/inventory', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -437,15 +441,15 @@ export default function FieldPage() {
             lastFetched: new Date().toISOString(),
           }),
         });
-        copyAwareMessage = newCopy
-          ? ` Added a copy to your existing ${r.title} entry.`
+        copyAwareMessage = newCopies.length > 0
+          ? ` Added ${quantity} ${quantity === 1 ? 'copy' : 'copies'} to your existing ${r.title} entry.`
           : ` Updated your existing ${r.title} entry instead of creating a duplicate.`;
       } else {
         const payload = {
           title: r.title,
           platform: r.platform,
           isDigital: false,
-          copies: newCopy ? [newCopy] : [],
+          copies: newCopies,
           marketLoose: normalizeMoney(r.loose),
           marketCib: normalizeMoney(r.cib),
           marketNew: normalizeMoney(r.newPrice),
@@ -456,29 +460,31 @@ export default function FieldPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        copyAwareMessage = newCopy
-          ? ` Created a new game entry with 1 owned copy.`
+        copyAwareMessage = newCopies.length > 0
+          ? ` Created a new game entry with ${quantity} owned ${quantity === 1 ? 'copy' : 'copies'}.`
           : ` Created a new game entry in your Vault.`;
       }
 
       if (!res.ok) throw new Error(copyDetails ? 'Failed to save purchase to inventory' : 'Failed to save to inventory');
 
       if (copyDetails) {
-        const acqRes = await fetch('/api/sales', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'acquisitions',
-            action: 'add',
-            item: buildAcquisitionEntry({
-              title: r.title,
-              platform: r.platform,
-              priceAcquired: copyDetails.priceAcquired || '0.00',
-              notes: `Field purchase · ${condition}`,
-            })
-          }),
-        });
-        if (!acqRes.ok) throw new Error('Saved inventory but failed to log acquisition');
+        for (let i = 0; i < quantity; i += 1) {
+          const acqRes = await fetch('/api/sales', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'acquisitions',
+              action: 'add',
+              item: buildAcquisitionEntry({
+                title: r.title,
+                platform: r.platform,
+                priceAcquired: copyDetails.priceAcquired || '0.00',
+                notes: `Field purchase · ${condition}${quantity > 1 ? ` · copy ${i + 1}/${quantity}` : ''}`,
+              })
+            }),
+          });
+          if (!acqRes.ok) throw new Error('Saved inventory but failed to log acquisition');
+        }
       }
 
       const platformMessage = platformSync.changed
@@ -816,12 +822,33 @@ export default function FieldPage() {
                     {savingKey === `watchlist:${r.title}:${r.platform}` ? '...' : '⭐ Add to Watchlist'}
                   </button>
                   <button
-                    onClick={() => saveToInventory(r, { condition: fieldCondition, priceAcquired: askPrice || '0.00' })}
+                    onClick={() => saveToInventory(r, {
+                      condition: fieldCondition,
+                      priceAcquired: askPrice || '0.00',
+                      quantity: Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1),
+                    })}
                     disabled={savingKey === `purchase:${r.title}:${r.platform}`}
                     className="px-3 py-2 font-terminal text-sm border border-emerald-700 text-emerald-300 hover:bg-emerald-950/30 disabled:opacity-50 transition-colors"
                   >
-                    {savingKey === `purchase:${r.title}:${r.platform}` ? '...' : '🛒 Bought It'}
+                    {savingKey === `purchase:${r.title}:${r.platform}` ? '...' : `🛒 Bought ${Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1)}${Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1) > 1 ? ' Copies' : ' It'}`}
                   </button>
+                </div>
+
+                <div className="flex flex-wrap items-end gap-3">
+                  <label className="font-terminal text-xs text-zinc-500 uppercase tracking-wider">
+                    Qty
+                    <input
+                      type="number"
+                      min="1"
+                      inputMode="numeric"
+                      value={purchaseQuantity}
+                      onChange={(e) => setPurchaseQuantity(e.target.value.replace(/[^0-9]/g, '') || '1')}
+                      className="mt-1 w-20 bg-black border border-zinc-700 px-2 py-2 text-sm text-green-300 focus:border-green-500 focus:outline-none"
+                    />
+                  </label>
+                  <div className="font-terminal text-xs text-zinc-600">
+                    Multi-copy buys will add one inventory copy and one acquisition log per unit.
+                  </div>
                 </div>
 
                 {r.wishlistNotes && (
@@ -866,7 +893,7 @@ export default function FieldPage() {
 
                 {askPrice && (
                   <div className="font-terminal text-xs text-zinc-500">
-                    Bought It will save acquisition cost at <span className="text-yellow-400">${parseFloat(askPrice || '0').toFixed(2)}</span> with condition <span className="text-blue-400">{fieldCondition}</span>.
+                    Bought It will save <span className="text-yellow-400">{Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1)}</span> {Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1) === 1 ? 'copy' : 'copies'} at <span className="text-yellow-400">${parseFloat(askPrice || '0').toFixed(2)}</span> each with condition <span className="text-blue-400">{fieldCondition}</span>.
                   </div>
                 )}
               </div>

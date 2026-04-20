@@ -21,3 +21,4 @@ jobs:
           script: |
             cd ${{ vars.DEPLOY_APP_DIR || '/home/apesch/.openclaw/workspace/retrovault' }}
             bash scripts/deploy.sh dev autopush
+            npm run smoke:release -- --base-url "${{ vars.DEV_PUBLIC_BASE_URL || 'https://retrovault-dev.peschpit.com' }}"

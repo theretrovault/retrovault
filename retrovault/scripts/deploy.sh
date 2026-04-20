@@ -56,12 +56,18 @@ node scripts/setup-env-data.mjs
 echo "🔨 Building production bundle..."
 npm run build
 
+echo "🧪 Verifying build artifacts before restart..."
+npm run smoke:release
+
 echo "🔄 Restarting pm2 process: $PM2_APP"
 if pm2 describe "$PM2_APP" > /dev/null 2>&1; then
   pm2 reload ecosystem.config.js --only "$PM2_APP" --update-env
 else
   pm2 start ecosystem.config.js --only "$PM2_APP"
 fi
+
+echo "🧪 Verifying live runtime after restart..."
+npm run smoke:release -- --base-url "http://127.0.0.1:$PORT"
 
 echo ""
 echo "✅ RetroVault deployed!"
