@@ -12,6 +12,7 @@
 import { createRequire } from 'module';
 import fs from 'fs';
 import path from 'path';
+import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const require = createRequire(import.meta.url);
@@ -19,9 +20,13 @@ const Database = require('better-sqlite3');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
-const DATA_DIR  = process.env.RETROVAULT_DATA_DIR || path.join(ROOT, 'data');
+const RUNTIME_ENV = process.env.RETROVAULT_ENV || process.env.RETROVAULT_RUNTIME_ENV || 'prod';
+const DATA_ROOT = path.join(ROOT, 'data');
+const DEFAULT_ENV_DATA_DIR = path.join(DATA_ROOT, RUNTIME_ENV);
+const DATA_DIR  = process.env.RETROVAULT_DATA_DIR || DEFAULT_ENV_DATA_DIR;
 const DB_PATH   = process.env.RETROVAULT_DB_PATH || path.join(DATA_DIR, 'retrovault.db');
 const DRY_RUN   = process.argv.includes('--dry-run');
+const SKIP_SNAPSHOT = process.argv.includes('--skip-snapshot');
 
 function loadJson(file, fallback = []) {
   const p = path.join(DATA_DIR, file);
@@ -232,9 +237,24 @@ function migrateValueHistory(db) {
   console.log(`  ✓ ${history.length} value snapshots`);
 }
 
+function maybeSnapshotRuntime() {
+  if (DRY_RUN || SKIP_SNAPSHOT) return;
+
+  const envName = process.env.RETROVAULT_RUNTIME_ENV || process.env.RETROVAULT_ENV || path.basename(DATA_DIR) || 'local';
+  console.log(`\n💾 Snapshotting runtime state before migration (${envName})...`);
+  execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'backup-runtime-data.mjs'), envName], {
+    cwd: ROOT,
+    stdio: 'inherit',
+    env: process.env,
+  });
+}
+
 function main() {
   console.log(`\n🚀 RetroVault JSON → SQLite Migration${DRY_RUN ? ' (DRY RUN)' : ''}`);
   console.log('='.repeat(50));
+  console.log(`Target env: ${RUNTIME_ENV}`);
+  console.log(`Data dir:    ${DATA_DIR}`);
+  console.log(`DB path:     ${DB_PATH}`);
 
   if (DRY_RUN) {
     console.log('\n📋 Dry run — counting records without writing:\n');
@@ -252,6 +272,8 @@ function main() {
 
   // Ensure data directory exists
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+  maybeSnapshotRuntime();
 
   const db = openDb();
   const start = Date.now();

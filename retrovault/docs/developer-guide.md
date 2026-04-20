@@ -193,6 +193,8 @@ npx prisma migrate dev --name your_change_name
 npx prisma generate
 ```
 
+For risky storage conversion work, snapshot runtime state first. `scripts/migrate-to-sqlite.mjs` now does this automatically unless you pass `--dry-run` or `--skip-snapshot`. By default it targets `data/<env>/` using `RETROVAULT_ENV` (default `prod`) so it follows the same env split as the app runtime.
+
 ### Prisma Client
 
 Use the singleton client from `src/lib/prisma.ts`:
@@ -510,13 +512,15 @@ Follow the existing style:
 | Run tests | `npm test` |
 | Watch tests | `npm run test:watch` |
 | Snapshot runtime state | `npm run backup:runtime -- prod` |
-| Restore runtime snapshot | `npm run restore:runtime -- prod backups/runtime-data/prod-...` |
+| Preview runtime restore | `npm run restore:runtime -- prod backups/runtime-data/prod-... --dry-run` |
+| Restore runtime snapshot | `npm run restore:runtime -- prod backups/runtime-data/prod-... --force` |
 | Start with pm2 | `pm2 start ecosystem.config.js` |
 | Reload pm2 | `pm2 reload retrovault --update-env` |
 | Deploy update | `bash scripts/deploy.sh` |
 | Fetch prices | `node scripts/bg-fetch.mjs` |
 | Scrape events | `node scripts/scrape-events.mjs` |
 | Value snapshot (manual) | `node scripts/snapshot-value.mjs` |
+| JSON -> SQLite migration | `node scripts/migrate-to-sqlite.mjs` |
 | Git sync (maintainer only) | `node scripts/git-sync.mjs` |
 | Tag release | `git tag v2.x.x && git push origin v2.x.x` |
 | Docker up | `docker compose up -d` |

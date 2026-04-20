@@ -196,7 +196,8 @@ data/
 
 To back up your collection quickly: `cp -r data/ ~/my-retrovault-backup/`  
 To create a restorable env snapshot with a manifest: `npm run backup:runtime -- prod`  
-To restore one: `npm run restore:runtime -- prod backups/runtime-data/prod-YYYY-MM-DDTHH-MM-SS-sssZ`  
+To preview a restore safely: `npm run restore:runtime -- prod backups/runtime-data/prod-YYYY-MM-DDTHH-MM-SS-sssZ --dry-run`  
+To restore one deliberately: `npm run restore:runtime -- prod backups/runtime-data/prod-YYYY-MM-DDTHH-MM-SS-sssZ --force`  
 To migrate to a new machine: copy the `data/` folder and run `npm install`.
 
 For risky storage/model work in dev, use the private fixture workflow documented in `docs/developer-guide.md` to mirror current prod into dev without committing real data.
