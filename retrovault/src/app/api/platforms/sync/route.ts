@@ -40,6 +40,7 @@ export async function POST(req: Request) {
     const platform = typeof body.platform === 'string' ? body.platform.trim() : ''
     const enabled = Boolean(body.enabled)
     const autoPopulate = body.autoPopulate !== false
+    const previewOnly = body.previewOnly === true
 
     if (!platform) {
       return NextResponse.json({ error: 'platform is required' }, { status: 400 })
@@ -53,17 +54,23 @@ export async function POST(req: Request) {
 
     const updatedPlatforms = [...platformSet]
     const updatedConfig = { ...config, platforms: updatedPlatforms }
-    saveConfig(updatedConfig)
 
     const sync = await syncPlatformCatalog({
       platform,
       enabledPlatforms: updatedPlatforms,
       autoPopulate,
+      previewOnly,
     })
+
+    if (!previewOnly) {
+      saveConfig(updatedConfig)
+    }
 
     return NextResponse.json({
       ok: true,
-      config: updatedConfig,
+      previewOnly,
+      config: previewOnly ? config : updatedConfig,
+      nextPlatforms: updatedPlatforms,
       sync,
     })
   } catch (error: any) {

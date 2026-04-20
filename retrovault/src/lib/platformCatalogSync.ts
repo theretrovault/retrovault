@@ -7,6 +7,7 @@ export type PlatformSyncOptions = {
   platform: string
   enabledPlatforms: string[]
   autoPopulate?: boolean
+  previewOnly?: boolean
 }
 
 export type PlatformSyncResult = {
@@ -142,7 +143,7 @@ async function scrapePlatformTitles(platform: string) {
   return { catalogFound: true, titles: [...allTitles] }
 }
 
-export async function syncPlatformCatalog({ platform, enabledPlatforms, autoPopulate = true }: PlatformSyncOptions): Promise<PlatformSyncResult> {
+export async function syncPlatformCatalog({ platform, enabledPlatforms, autoPopulate = true, previewOnly = false }: PlatformSyncOptions): Promise<PlatformSyncResult> {
   const inventory = readDataFile<InventoryItem[]>('inventory.json', [])
   const watchlist = readDataFile<WatchlistItem[]>('watchlist.json', [])
   const platformNormalized = normalizeText(platform)
@@ -205,7 +206,7 @@ export async function syncPlatformCatalog({ platform, enabledPlatforms, autoPopu
       result.populated.added += 1
     }
 
-    if (result.populated.added > 0) {
+    if (!previewOnly && result.populated.added > 0) {
       writeDataFile('inventory.json', nextInventory)
     }
 
@@ -252,7 +253,7 @@ export async function syncPlatformCatalog({ platform, enabledPlatforms, autoPopu
     result.pruned.removed += 1
   }
 
-  if (result.pruned.removed > 0) {
+  if (!previewOnly && result.pruned.removed > 0) {
     writeDataFile('inventory.json', nextInventory)
   }
 

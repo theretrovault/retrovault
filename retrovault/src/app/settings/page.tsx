@@ -155,6 +155,7 @@ export default function SettingsPage() {
   }, []);
 
   const syncPlatforms = async (previousPlatforms: string[], nextPlatforms: string[]) => {
+    const PRUNE_CONFIRM_THRESHOLD = 10;
     const added = nextPlatforms.filter(platform => !previousPlatforms.includes(platform));
     const removed = previousPlatforms.filter(platform => !nextPlatforms.includes(platform));
     const messages: string[] = [];
@@ -176,6 +177,29 @@ export default function SettingsPage() {
     }
 
     for (const platform of removed) {
+      const previewRes = await fetch('/api/platforms/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform, enabled: false, previewOnly: true })
+      });
+      const preview = await previewRes.json().catch(() => ({}));
+      if (!previewRes.ok) throw new Error(preview?.error || `Could not preview removal for ${platform}`);
+
+      const previewRemoved = preview?.sync?.pruned?.removed || 0;
+      const previewPreservedOwned = preview?.sync?.pruned?.preservedOwned || 0;
+      const previewPreservedWatchlist = preview?.sync?.pruned?.preservedWatchlist || 0;
+      const previewPreservedWishlist = preview?.sync?.pruned?.preservedWishlist || 0;
+
+      if (previewRemoved > PRUNE_CONFIRM_THRESHOLD) {
+        const confirmed = window.confirm(
+          `Remove ${platform}? This will prune ${previewRemoved.toLocaleString()} untracked catalog game${previewRemoved === 1 ? '' : 's'} while keeping ${previewPreservedOwned} owned, ${previewPreservedWatchlist} watchlist, and ${previewPreservedWishlist} wishlist item${previewPreservedWishlist === 1 ? '' : 's'}.`
+        );
+        if (!confirmed) {
+          messages.push(`🛑 ${platform} removal canceled. ${previewRemoved.toLocaleString()} catalog game${previewRemoved === 1 ? '' : 's'} would have been pruned.`);
+          continue;
+        }
+      }
+
       const res = await fetch('/api/platforms/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

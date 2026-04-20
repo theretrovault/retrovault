@@ -50,6 +50,27 @@ describe('platformCatalogSync', () => {
     ]))
   })
 
+  it('does not write inventory during preview-only prune runs', async () => {
+    readDataFile.mockImplementation((filename: string) => {
+      if (filename === 'inventory.json') {
+        return [
+          { id: 'wii-prune', title: 'Prune Me', platform: 'Wii', copies: [] },
+          { id: 'snes-keep', title: 'Other Platform', platform: 'SNES', copies: [] },
+        ]
+      }
+      if (filename === 'watchlist.json') return []
+      return []
+    })
+    findMany.mockResolvedValue([])
+
+    const { syncPlatformCatalog } = await import('@/lib/platformCatalogSync')
+    const result = await syncPlatformCatalog({ platform: 'Wii', enabledPlatforms: ['SNES'], autoPopulate: true, previewOnly: true })
+
+    expect(result.mode).toBe('disable')
+    expect(result.pruned.removed).toBe(1)
+    expect(writeDataFile).not.toHaveBeenCalled()
+  })
+
   it('prunes only untracked games when disabling a platform', async () => {
     readDataFile.mockImplementation((filename: string) => {
       if (filename === 'inventory.json') {
