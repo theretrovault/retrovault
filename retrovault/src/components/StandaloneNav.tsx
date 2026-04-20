@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import pkg from "../../package.json";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAppConfig } from "@/components/AppConfig";
@@ -17,7 +18,8 @@ import { NavTooltip } from "@/components/NavTooltip";
 
 export function StandaloneNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { appName, ownerName, features } = useAppConfig();
+  const { appName, ownerName, features, runtimeEnv } = useAppConfig();
+  const runtimeTrack = (runtimeEnv || "dev").toUpperCase();
   const { start: startDemo } = useDemoMode();
   const { enabled: tooltipsEnabled, toggle: toggleTooltips } = useTooltips();
   const { theme, toggleMode } = useTheme();
@@ -203,11 +205,11 @@ export function StandaloneNav({ children }: { children: React.ReactNode }) {
 
       {/* Footer */}
       <footer className="border-t-2 border-green-900/20 bg-black py-3 px-6">
-        <div className="max-w-[1800px] mx-auto flex justify-between items-center font-terminal text-xs text-zinc-800">
+        <div className="max-w-[1800px] mx-auto flex justify-between items-center font-terminal text-xs text-zinc-500">
           <span>{appName}</span>
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-2 text-zinc-400">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-            ONLINE
+            ONLINE · v{pkg.version} · {runtimeTrack}
           </span>
         </div>
       </footer>

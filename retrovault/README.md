@@ -197,6 +197,8 @@ data/
 To back up your collection: `cp -r data/ ~/my-retrovault-backup/`  
 To migrate to a new machine: copy the `data/` folder and run `npm install`.
 
+For risky storage/model work in dev, use the private fixture workflow documented in `docs/developer-guide.md` to mirror current prod into dev without committing real data.
+
 No database server. No migrations. No lock-in.
 
 ---
@@ -233,6 +235,9 @@ PWA-ready — add it to your phone's home screen for a native-feeling Field Mode
 | `scripts/scrape-reddit.mjs` | r/gameswap alerts for your watchlist |
 | `scripts/snapshot-value.mjs` | Record daily collection value (run daily) |
 | `scripts/deploy.sh` | Env-aware deploy helper for `prod`, `dev`, or `nightly` |
+| `scripts/snapshot-prod-to-fixture.mjs` | Capture current `data/prod/` into a private local fixture snapshot |
+| `scripts/seed-dev-from-fixture.mjs` | Reseed `data/dev/` from the private fixture snapshot |
+| `scripts/refresh-dev-from-prod.mjs` | One-shot prod -> fixture -> dev refresh for risky data/model work |
 
 ---
 

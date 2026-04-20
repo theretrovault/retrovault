@@ -34,16 +34,21 @@ RetroVault should move from a single `master` release lane to three long-lived b
 
 ## Naming transition
 
-Current repo state still uses `master` as the primary remote branch, but local migration groundwork is now in place:
+The repo has already been expanded to include long-lived remote branches for:
 
-1. Local `prod` was created from current `master` HEAD.
-2. Local `nightly` was created from `prod`.
-3. Local `autopush` was created from `nightly`.
-4. Next step is pushing those branches to origin after the current working tree is committed cleanly.
-5. Make `prod` the default branch once docs/workflows are updated remotely.
-6. Retire `master` after confirming badges, workflows, and branch protections are updated.
+1. `prod`
+2. `nightly`
+3. `autopush`
 
-If you want lower risk during transition, keep `master` temporarily and treat it as an alias to `prod` until all workflows are migrated.
+`master` still exists during transition, but it is no longer the intended long-term release lane.
+
+Remaining transition work:
+1. Make `prod` the default branch in GitHub
+2. Move or recreate protections/rulesets on `prod` and `nightly` as needed
+3. Update any remaining integrations or references that still assume `master`
+4. Retire or hard-lock `master` once the cutover is complete
+
+If lower risk is preferred during transition, `master` can remain temporarily as an alias/safety net until GitHub-side protections, badges, and workflow assumptions are fully migrated.
 
 ## Environment model
 
@@ -184,28 +189,32 @@ Example names:
 
 ## App changes needed
 
-RetroVault currently assumes a single runtime/data context more than a multi-environment system should.
+A large portion of the multi-environment app work is now implemented in-repo.
 
-### Required app-level upgrades
+### Implemented groundwork
 
 1. **Environment-aware DB path**
-   - support `DATABASE_URL` per environment already exists conceptually
-   - standardize usage in pm2/docker/local scripts
+   - runtime DB resolution now flows through `src/lib/runtimePaths.ts`
+   - pm2/docker/scripts now align on env-local DB paths
 
-2. **Environment-aware config path**
-   - add support for an env var such as `RETROVAULT_CONFIG_PATH`
-   - add support for `RETROVAULT_SCRAPERS_PATH`
-   - stop assuming only `data/app.config.json` and `data/scrapers.json`
+2. **Environment-aware config and scraper paths**
+   - env-local config/scraper path resolution is implemented
+   - legacy routes were swept off many hardcoded `process.cwd()/data/...` assumptions
 
 3. **Environment label in UI**
-   - show `DEV`, `NIGHTLY`, or `PROD` in Settings or header
-   - reduce operator mistakes during demos
+   - visible runtime labeling is now present to reduce operator mistakes
 
-4. **Safer bug-report / outbound integrations**
+### Remaining app/runtime work
+
+1. **Hybrid storage consolidation**
+   - several important surfaces still read env-local JSON
+   - JSON -> SQLite migration remains an active follow-up workstream
+
+2. **Safer bug-report / outbound integrations**
    - dev/nightly should not accidentally post prod-facing reports unless intended
 
-5. **Optional demo-mode data seeding**
-   - dev/nightly may want sanitized or synthetic data
+3. **Optional demo-mode or sanitized seeding**
+   - dev/nightly may eventually want sanitized or synthetic demo data in addition to private prod-derived fixtures
 
 ## GitHub model
 

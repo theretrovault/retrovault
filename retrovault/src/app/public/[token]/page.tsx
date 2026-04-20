@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import fs from "fs";
 import { getConfigPath, resolveDataPath } from "@/lib/runtimePaths";
+import { getCopyDisplayLabel } from "@/lib/copyCondition";
 
 export const dynamic = 'force-dynamic';
 
@@ -99,7 +100,7 @@ export default async function PublicCollectionPage({ params }: Props) {
                       <div className="text-zinc-200 text-sm truncate">{game.title}</div>
                       <div className="text-zinc-600 text-xs flex gap-2 mt-0.5">
                         {copy?.condition && <span>{copy.condition}</span>}
-                        {copy?.hasBox && copy?.hasManual && <span className="text-green-700">CIB</span>}
+                        {copy && <span className={getCopyDisplayLabel(copy) === 'CIB' ? 'text-green-700' : getCopyDisplayLabel(copy) === 'Loose' ? 'text-zinc-500' : 'text-yellow-700'}>{getCopyDisplayLabel(copy)}</span>}
                       </div>
                     </div>
                   );

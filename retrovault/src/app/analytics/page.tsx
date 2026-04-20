@@ -16,6 +16,7 @@ import { ACHIEVEMENTS, getTotalPoints } from "@/data/achievements";
 import { AchievementCard } from "@/components/AchievementCard";
 import { PriceDetailModal } from "@/components/PriceDetailModal";
 import { ConsoleModal, PlatformButton } from "@/components/ConsoleModal";
+import { getCopyBucket, getCopyMarketValue, hasAnyCopyBucket } from "@/lib/copyCondition";
 
 type GameCopy = {
   id: string;
@@ -90,11 +91,7 @@ export default function AnalyticsPage() {
   }, 0);
   const totalValue = owned.reduce((sum, item) => {
     const copies = item.copies || [];
-    return sum + copies.reduce((s, c) => {
-      const isCib = c.hasBox && c.hasManual;
-      const price = parseFloat((isCib ? item.marketCib : item.marketLoose) || "0") || 0;
-      return s + price;
-    }, 0);
+    return sum + copies.reduce((s, c) => s + getCopyMarketValue(item, c), 0);
   }, 0);
   const profitDelta = totalValue - totalSpent;
 
@@ -108,9 +105,9 @@ export default function AnalyticsPage() {
     .sort((a, b) => b.value - a.value);
 
   // Completeness
-  const cibCount = owned.filter(i => i.copies.some(c => c.hasBox && c.hasManual)).length;
-  const partialCount = owned.filter(i => i.copies.some(c => (c.hasBox || c.hasManual) && !(c.hasBox && c.hasManual))).length;
-  const looseCount = owned.filter(i => i.copies.every(c => !c.hasBox && !c.hasManual)).length;
+  const cibCount = owned.filter(i => hasAnyCopyBucket(i.copies || [], 'cib')).length;
+  const partialCount = owned.filter(i => hasAnyCopyBucket(i.copies || [], 'partial')).length;
+  const looseCount = owned.filter(i => (i.copies || []).length > 0 && (i.copies || []).every(c => getCopyBucket(c) === 'loose')).length;
   const completenessData = [
     { name: 'CIB', value: cibCount },
     { name: 'Partial', value: partialCount },
@@ -128,22 +125,17 @@ export default function AnalyticsPage() {
     const p = totalsByMfg[mfg][item.platform];
     p.total += 1;
     for (const c of (item.copies || [])) {
-      const isCib = c.hasBox && c.hasManual;
-      const isLoose = !c.hasBox && !c.hasManual;
-      if (isCib) p.cib += 1; else if (isLoose) p.loose += 1; else p.other += 1;
+      const bucket = getCopyBucket(c);
+      if (bucket === 'cib') p.cib += 1; else if (bucket === 'loose') p.loose += 1; else p.other += 1;
       p.paid += parseFloat(c.priceAcquired) || 0;
-      const price = parseFloat((isCib ? item.marketCib : item.marketLoose) || "0") || 0;
-      p.value += price;
+      p.value += getCopyMarketValue(item, c);
     }
   }
 
   // Top 10 by value
   const topValue = [...owned]
     .map(item => {
-      const val = (item.copies || []).reduce((s, c) => {
-        const isCib = c.hasBox && c.hasManual;
-        return s + (parseFloat((isCib ? item.marketCib : item.marketLoose) || "0") || 0);
-      }, 0);
+      const val = (item.copies || []).reduce((s, c) => s + getCopyMarketValue(item, c), 0);
       return { id: item.id, title: item.title, platform: item.platform, value: val };
     })
     .filter(i => i.value > 0)
@@ -154,10 +146,7 @@ export default function AnalyticsPage() {
   const topRoi = [...owned]
     .map(item => {
       const paid = (item.copies || []).reduce((s, c) => s + (parseFloat(c.priceAcquired) || 0), 0);
-      const val = (item.copies || []).reduce((s, c) => {
-        const isCib = c.hasBox && c.hasManual;
-        return s + (parseFloat((isCib ? item.marketCib : item.marketLoose) || "0") || 0);
-      }, 0);
+      const val = (item.copies || []).reduce((s, c) => s + getCopyMarketValue(item, c), 0);
       const roi = paid > 0 && val > 0 ? ((val - paid) / paid * 100) : null;
       return { id: item.id, title: item.title, platform: item.platform, paid, value: val, roi };
     })

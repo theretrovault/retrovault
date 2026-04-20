@@ -34,8 +34,12 @@ type Scraper = {
 
 function loadScrapers(): Scraper[] {
   if (!fs.existsSync(DATA_FILE)) return [];
-  try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
-  catch { return []; }
+  try {
+    const parsed = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 function updateScraperStatus(id: string, updates: Partial<Scraper>) {

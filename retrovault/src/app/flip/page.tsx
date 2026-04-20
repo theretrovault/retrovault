@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { calcFlipMetrics, getFlipVerdict } from "@/lib/flipMath";
 
 const PLATFORMS = [
   "NES", "SNES", "N64", "Gamecube", "Switch",
@@ -32,22 +33,9 @@ type Result = {
 };
 
 function calcFlip(buyPrice: number, sellPrice: number, venueFee: number, shippingCost: number): Result {
-  const fees = sellPrice * venueFee;
-  const shipping = shippingCost;
-  const netRevenue = sellPrice - fees - shipping;
-  const profit = netRevenue - buyPrice;
-  const margin = sellPrice > 0 ? (profit / sellPrice) * 100 : 0;
-  const roi = buyPrice > 0 ? (profit / buyPrice) * 100 : 0;
-
-  let verdict = "";
-  let color = "";
-  if (roi >= 50) { verdict = "🔥 STRONG FLIP"; color = "text-emerald-400"; }
-  else if (roi >= 25) { verdict = "✅ GOOD FLIP"; color = "text-green-400"; }
-  else if (roi >= 10) { verdict = "🟡 THIN MARGIN"; color = "text-yellow-400"; }
-  else if (roi >= 0) { verdict = "⚠️ BREAK EVEN"; color = "text-orange-400"; }
-  else { verdict = "❌ LOSS"; color = "text-red-400"; }
-
-  return { grossRevenue: sellPrice, fees, shipping, netRevenue, profit, margin, roi, verdict, color };
+  const metrics = calcFlipMetrics(buyPrice, sellPrice, venueFee, shippingCost);
+  const { verdict, color } = getFlipVerdict(metrics.roi);
+  return { ...metrics, verdict, color };
 }
 
 export default function FlipCalculatorPage() {

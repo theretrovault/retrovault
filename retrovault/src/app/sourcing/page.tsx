@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { getTotalPaid } from "@/lib/marketUtils";
 
 type GameItem = {
   id: string; title: string; platform: string; isDigital?: boolean;
@@ -42,7 +43,7 @@ export default function SourcingPage() {
   for (const item of items) {
     const src = item.source?.trim() || "Unknown";
     if (!sourceMap[src]) sourceMap[src] = { count: 0, totalPaid: 0, totalMarket: 0, items: [] };
-    const paid = (item.copies || []).reduce((s, c) => s + (parseFloat(c.priceAcquired) || 0), 0);
+    const paid = getTotalPaid(item.copies || []);
     const market = parseFloat(item.marketLoose || "0") || 0;
     sourceMap[src].count++;
     sourceMap[src].totalPaid += paid;
@@ -61,9 +62,6 @@ export default function SourcingPage() {
 
   const totalItems = items.length;
   const bestSource = sources[0];
-  const EBAY_FEE = 0.1325;
-  const SHIP = 4.5;
-
   const fmt = (n: number) => `$${n.toFixed(2)}`;
   const fmtK = (n: number) => n >= 1000 ? `$${(n/1000).toFixed(1)}k` : fmt(n);
 

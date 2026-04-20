@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { getConsoleData } from "@/data/consoles";
+import { getCopyMarketValue } from "@/lib/copyCondition";
 
 type GameCopy = { hasBox: boolean; hasManual: boolean; priceAcquired: string; condition?: string; };
 type GameItem = {
@@ -51,8 +52,8 @@ export default function ShowcasePage() {
       if (sortBy === "platform") return a.platform.localeCompare(b.platform) || a.title.localeCompare(b.title);
       if (sortBy === "rating") return (b.personalRating || 0) - (a.personalRating || 0);
       if (sortBy === "value") {
-        const aVal = (a.copies || []).reduce((s, c) => s + (parseFloat((c.hasBox && c.hasManual ? a.marketCib : a.marketLoose) || '0') || 0), 0);
-        const bVal = (b.copies || []).reduce((s, c) => s + (parseFloat((c.hasBox && c.hasManual ? b.marketCib : b.marketLoose) || '0') || 0), 0);
+        const aVal = (a.copies || []).reduce((s, c) => s + getCopyMarketValue(a, c), 0);
+        const bVal = (b.copies || []).reduce((s, c) => s + getCopyMarketValue(b, c), 0);
         return bVal - aVal;
       }
       return 0;
@@ -121,7 +122,7 @@ export default function ShowcasePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map(item => {
             const qty = (item.copies || []).length;
-            const val = (item.copies || []).reduce((s, c) => s + (parseFloat((c.hasBox && c.hasManual ? item.marketCib : item.marketLoose) || '0') || 0), 0);
+            const val = (item.copies || []).reduce((s, c) => s + getCopyMarketValue(item, c), 0);
             return (
               <div key={item.id} onClick={() => { setSelectedGame(item); setEditForm(item); }}
                 className="bg-zinc-950 border-2 border-green-900 hover:border-green-600 rounded-sm p-4 cursor-pointer transition-all hover:shadow-[0_0_10px_rgba(34,197,94,0.2)] flex flex-col gap-2">

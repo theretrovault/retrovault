@@ -396,17 +396,17 @@ export default function FieldPage() {
       ? cfg.platforms
       : enabledPlatforms;
 
-    if (currentPlatforms.includes(platformName)) return false;
+    if (currentPlatforms.includes(platformName)) return { changed: false, sync: null as any };
 
-    const updatedPlatforms = [...new Set([...currentPlatforms, platformName])];
-    const saveRes = await fetch('/api/config', {
+    const saveRes = await fetch('/api/platforms/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...cfg, platforms: updatedPlatforms })
+      body: JSON.stringify({ platform: platformName, enabled: true, autoPopulate: true })
     });
     if (!saveRes.ok) throw new Error(`Could not enable ${platformName}`);
-    setEnabledPlatforms(updatedPlatforms);
-    return true;
+    const payload = await saveRes.json().catch(() => ({}));
+    setEnabledPlatforms(payload?.config?.platforms || [...new Set([...currentPlatforms, platformName])]);
+    return { changed: true, sync: payload?.sync || null };
   };
 
   const saveToInventory = async (r: PriceResult, copyDetails?: { condition: CopyCondition; priceAcquired: string }) => {
@@ -415,7 +415,7 @@ export default function FieldPage() {
     setSavingKey(key);
     setSaveStatus('');
     try {
-      const platformWasEnabled = await ensurePlatformEnabled(r.platform);
+      const platformSync = await ensurePlatformEnabled(r.platform);
       const condition = copyDetails?.condition || fieldCondition;
       const newCopy = copyDetails ? buildFieldCopy(condition, copyDetails.priceAcquired || '0.00') : null;
       const existing = findInventoryMatch(inventory, r.title, r.platform);
@@ -481,8 +481,13 @@ export default function FieldPage() {
         if (!acqRes.ok) throw new Error('Saved inventory but failed to log acquisition');
       }
 
+      const platformMessage = platformSync.changed
+        ? (platformSync.sync?.populated?.added > 0
+          ? ` and enabled ${r.platform}, adding ${platformSync.sync.populated.added.toLocaleString()} catalog game${platformSync.sync.populated.added === 1 ? '' : 's'}`
+          : ` and enabled ${r.platform}${platformSync.sync?.catalogFound === false ? ' (catalog sync unavailable for this system yet)' : ''}`)
+        : '';
       setSaveStatus(
-        `${copyDetails ? '🛒 Bought' : '📦 Added'} ${r.title} (${r.platform})${platformWasEnabled ? `, and enabled ${r.platform}` : ''}.${copyAwareMessage}`
+        `${copyDetails ? '🛒 Bought' : '📦 Added'} ${r.title} (${r.platform})${platformMessage}.${copyAwareMessage}`
       );
       setNeedsCacheRefresh(!!cacheMeta);
       await refreshFieldData();
@@ -498,7 +503,7 @@ export default function FieldPage() {
     setSavingKey(key);
     setSaveStatus('');
     try {
-      const platformWasEnabled = await ensurePlatformEnabled(r.platform);
+      const platformSync = await ensurePlatformEnabled(r.platform);
       const targetBuyPrice = normalizeMoney(r.loose) || normalizeMoney(r.cib) || '0.00';
       const res = await fetch('/api/sales', {
         method: 'POST',
@@ -516,7 +521,12 @@ export default function FieldPage() {
         }),
       });
       if (!res.ok) throw new Error('Failed to add to watchlist');
-      setSaveStatus(`⭐ Added ${r.title} (${r.platform}) to Target Radar${platformWasEnabled ? `, and enabled ${r.platform}` : ''}.`);
+      const platformMessage = platformSync.changed
+        ? (platformSync.sync?.populated?.added > 0
+          ? `, enabled ${r.platform}, and added ${platformSync.sync.populated.added.toLocaleString()} catalog game${platformSync.sync.populated.added === 1 ? '' : 's'}`
+          : `, and enabled ${r.platform}${platformSync.sync?.catalogFound === false ? ' (catalog sync unavailable for this system yet)' : ''}`)
+        : '';
+      setSaveStatus(`⭐ Added ${r.title} (${r.platform}) to Target Radar${platformMessage}.`);
       setNeedsCacheRefresh(!!cacheMeta);
       await refreshFieldData();
     } catch (e: any) {

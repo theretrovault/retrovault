@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { getCopyDisplayLabel, getCopyMarketValue } from "@/lib/copyCondition";
 
 type GameItem = {
   id: string; title: string; platform: string; isDigital?: boolean;
@@ -13,12 +14,7 @@ const CONDITION_MULTIPLIER: Record<string, number> = {
 };
 
 function getItemValue(item: GameItem, copy: GameItem["copies"][0]): number {
-  const baseLoose = parseFloat(item.marketLoose || "0") || 0;
-  const baseCib = parseFloat(item.marketCib || "0") || 0;
-  const baseSealed = parseFloat(item.marketNew || "0") || 0;
-  if (copy.condition === "Sealed") return baseSealed || baseCib || baseLoose;
-  if (copy.hasBox && copy.hasManual) return baseCib || baseLoose;
-  return baseLoose;
+  return getCopyMarketValue(item, copy);
 }
 
 export default function InsurancePage() {
@@ -165,7 +161,7 @@ export default function InsurancePage() {
                         <td className="p-2 text-zinc-300">{item.title}</td>
                         <td className="p-2 text-zinc-500">{item.platform}</td>
                         <td className="p-2 text-zinc-500">{copy.condition}</td>
-                        <td className="p-2 text-zinc-500">{copy.hasBox && copy.hasManual ? "CIB" : copy.hasBox ? "Box only" : "Loose"}</td>
+                        <td className="p-2 text-zinc-500">{getCopyDisplayLabel(copy)}</td>
                         <td className="p-2 text-right text-green-400 font-bold">{fmt(value)}</td>
                       </tr>
                     ))}

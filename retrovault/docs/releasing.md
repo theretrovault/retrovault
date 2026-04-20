@@ -1,5 +1,7 @@
 # RetroVault — Release Process
 
+> Documentation is part of the release artifact. If a release changes setup, storage, deployment, branching, or operator workflow, update the relevant docs in the same workstream before tagging.
+
 RetroVault uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`
 
 | Type | When to use | Example |
@@ -87,3 +89,5 @@ Check `github.com/theretrovault/retrovault/releases` — the new release should 
 - Changelog updated with user-facing description
 - No sensitive data in committed files
 - Docker build test passes (if Dockerfile changed)
+- Relevant docs updated in the same workstream (`README.md`, `docs/architecture.md`, `docs/developer-guide.md`, `docs/installation.md`, `docs/releasing.md`, env/branching docs, or operator checklists as applicable)
+- If storage/runtime behavior changed, docs explicitly note whether the app is still hybrid JSON/SQLite or fully migrated

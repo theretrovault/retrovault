@@ -3,15 +3,19 @@ import { useState, useEffect } from "react";
 import { CHANGELOG } from "@/data/changelog";
 import Link from "next/link";
 
-const SEEN_KEY = "rv-whats-new-seen";
+const SEEN_KEY = "rv-whats-new-seen-version";
 const CURRENT_VERSION = CHANGELOG[CHANGELOG.length - 1].version;
+
+export function shouldShowWhatsNew(seenVersion: string | null, currentVersion: string): boolean {
+  return seenVersion !== currentVersion;
+}
 
 export function WhatsNew() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
     const seen = localStorage.getItem(SEEN_KEY);
-    if (seen !== CURRENT_VERSION) setShow(true);
+    if (shouldShowWhatsNew(seen, CURRENT_VERSION)) setShow(true);
   }, []);
 
   const dismiss = () => {

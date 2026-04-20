@@ -119,15 +119,21 @@ export default function ImportPage() {
     const importPlatforms = [...new Set(readyRows.map(r => r.platform).filter(Boolean))];
     const newPlatforms = importPlatforms.filter(p => p && !currentPlatforms.includes(p));
 
-    // Auto-enable new platforms
+    // Auto-enable new platforms and sync catalog entries for each one
     if (newPlatforms.length > 0) {
-      const updatedPlatforms = [...new Set([...currentPlatforms, ...newPlatforms])];
-      await fetch("/api/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...configRes, platforms: updatedPlatforms })
-      }).catch(() => {});
-      setNewlyEnabledPlatforms(newPlatforms);
+      const syncSummaries: string[] = [];
+      for (const platform of newPlatforms) {
+        const syncRes = await fetch("/api/platforms/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ platform, enabled: true, autoPopulate: true })
+        }).then(r => r.json()).catch(() => ({}));
+        const added = syncRes?.sync?.populated?.added || 0;
+        syncSummaries.push(added > 0
+          ? `${platform} (+${added.toLocaleString()} catalog)`
+          : `${platform}${syncRes?.sync?.catalogFound === false ? ' (catalog sync unavailable)' : ' (no new catalog titles)'}`);
+      }
+      setNewlyEnabledPlatforms(syncSummaries);
     }
 
     for (const row of readyRows) {
@@ -283,7 +289,7 @@ export default function ImportPage() {
                   </p>
                   <p className="text-zinc-300 font-terminal text-sm mb-3">
                     Your import included games from platform{newlyEnabledPlatforms.length > 1 ? 's' : ''} that weren't previously active.
-                    We automatically enabled {newlyEnabledPlatforms.length > 1 ? 'them' : 'it'} so your games appear in the Vault.
+                    We automatically enabled {newlyEnabledPlatforms.length > 1 ? 'them' : 'it'} so your games appear in the Vault, then synced catalog entries for each platform when available.
                   </p>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {newlyEnabledPlatforms.map(p => (

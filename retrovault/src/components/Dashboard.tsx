@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ACHIEVEMENTS, getTotalPoints } from "@/data/achievements";
 import { AchievementCard } from "@/components/AchievementCard";
 import { AlertsBanner } from "@/components/AlertsBanner";
+import { calcFlipMetrics, DEFAULT_EBAY_FEE, DEFAULT_SHIPPING } from "@/lib/flipMath";
+import { getTotalPaid } from "@/lib/marketUtils";
 
 type GameItem = {
   id: string; title: string; platform: string; isDigital?: boolean;
@@ -71,19 +73,18 @@ export function Dashboard() {
   const owned = inventory.filter(i => (i.copies || []).length > 0 && !i.isDigital);
   const totalOwned = owned.length;
   const totalValue = owned.reduce((s, i) => s + (parseFloat(i.marketLoose || "0") || 0), 0);
-  const totalPaid = owned.reduce((s, i) => s + (i.copies || []).reduce((cs, c) => cs + (parseFloat(c.priceAcquired) || 0), 0), 0);
+  const totalPaid = owned.reduce((s, i) => s + getTotalPaid(i.copies || []), 0);
   const totalSaleRevenue = (sales.sales || []).reduce((s, sl) => s + (parseFloat(sl.salePrice) || 0), 0);
   const totalProfit = totalSaleRevenue - totalPaid;
 
   // Hot flips — owned items with best margin
-  const EBAY_FEE = 0.1325; const SHIP = 4.5;
+  const EBAY_FEE = DEFAULT_EBAY_FEE; const SHIP = DEFAULT_SHIPPING;
   const hotFlips = owned
     .filter(i => parseFloat(i.marketLoose || "0") > 0)
     .map(i => {
-      const avgPaid = (i.copies || []).reduce((s, c) => s + (parseFloat(c.priceAcquired) || 0), 0) / Math.max(i.copies.length, 1);
+      const avgPaid = getTotalPaid(i.copies || []) / Math.max(i.copies.length, 1);
       const market = parseFloat(i.marketLoose || "0");
-      const net = market - (market * EBAY_FEE) - SHIP - avgPaid;
-      const roi = avgPaid > 0 ? (net / avgPaid) * 100 : 0;
+      const { profit: net, roi } = calcFlipMetrics(avgPaid, market, EBAY_FEE, SHIP);
       return { ...i, net, roi, market, avgPaid };
     })
     .filter(i => i.roi > 20)

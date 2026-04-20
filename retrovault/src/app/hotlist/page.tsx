@@ -1,12 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { calcFlipMetrics, DEFAULT_EBAY_FEE, DEFAULT_SHIPPING } from "@/lib/flipMath";
+import { getPriceTrend, getTotalPaid } from "@/lib/marketUtils";
 
 type GameItem = {
   id: string; title: string; platform: string;
   copies: { priceAcquired: string }[];
   marketLoose?: string; marketCib?: string; marketNew?: string;
-  priceHistory?: Record<string, { loose?: string | null }>;
+  priceHistory?: Record<string, {
+    loose?: string | null;
+    cib?: string | null;
+    new?: string | null;
+    graded?: string | null;
+    fetchedAt?: string;
+  }>;
   isDigital?: boolean;
 };
 
@@ -19,22 +27,8 @@ type FlipOpp = {
   copies: number;
 };
 
-function getTrend(item: GameItem): number | null {
-  const history = item.priceHistory;
-  if (!history) return null;
-  const dates = Object.keys(history).sort();
-  if (dates.length < 2) return null;
-  const latest = parseFloat(history[dates[dates.length - 1]]?.loose || "0");
-  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
-  const pastDates = dates.filter(d => new Date(d) <= cutoff);
-  if (!pastDates.length) return null;
-  const past = parseFloat(history[pastDates[pastDates.length - 1]]?.loose || "0");
-  if (!past || !latest) return null;
-  return ((latest - past) / past) * 100;
-}
-
-const EBAY_FEE = 0.1325;
-const SHIPPING = 4.50;
+const EBAY_FEE = DEFAULT_EBAY_FEE;
+const SHIPPING = DEFAULT_SHIPPING;
 
 export default function HotListPage() {
   const [items, setItems] = useState<GameItem[]>([]);
@@ -63,17 +57,14 @@ export default function HotListPage() {
       const market = parseFloat(item.marketLoose || "0");
       if (!market) continue;
 
-      const totalPaid = copies.reduce((s, c) => s + (parseFloat(c.priceAcquired) || 0), 0);
+      const totalPaid = getTotalPaid(copies);
       const avgPaid = totalPaid / copies.length;
       if (!avgPaid) continue;
 
-      const netRevenue = market - (market * EBAY_FEE) - SHIPPING;
-      const profit = netRevenue - avgPaid;
-      const roi = (profit / avgPaid) * 100;
-      const margin = (profit / market) * 100;
+      const { profit, roi, margin } = calcFlipMetrics(avgPaid, market, EBAY_FEE, SHIPPING);
       if (roi < minRoi) continue;
 
-      const trend = getTrend(item);
+      const trend = getPriceTrend(item, 30, 'loose');
       // Score: ROI (50%) + trend bonus (30%) + multi-copy bonus (20%)
       const trendBonus = trend ? Math.min(trend * 1.5, 30) : 0;
       const copyBonus = Math.min((copies.length - 1) * 5, 20);

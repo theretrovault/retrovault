@@ -7,7 +7,7 @@
  *         PlexSettings, ScraperSettings, PlatformSettings,
  *         FeaturesSettings, BugReportingSettings, AuthSettings
  */
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useTheme } from "@/components/ThemeProvider";
 import { COLOR_PALETTES, STYLE_THEMES } from "@/data/themes";
 import { NAV_GROUPS } from "@/data/navConfig";
@@ -28,6 +28,7 @@ type Config = {
   githubRepo: string;
   features: Features;
   contactEmail: string; contactPhone: string; shareContact: boolean;
+  platforms?: string[];
 };
 
 const THEME_COLORS = ["green","blue","purple","orange","cyan","yellow","pink"];
@@ -147,21 +148,82 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwError, setPwError] = useState("");
+  const [platformStatus, setPlatformStatus] = useState("");
 
   useEffect(() => {
     fetch('/api/config').then(r => r.json()).then(setConfig);
   }, []);
 
+  const syncPlatforms = async (previousPlatforms: string[], nextPlatforms: string[]) => {
+    const added = nextPlatforms.filter(platform => !previousPlatforms.includes(platform));
+    const removed = previousPlatforms.filter(platform => !nextPlatforms.includes(platform));
+    const messages: string[] = [];
+
+    for (const platform of added) {
+      const res = await fetch('/api/platforms/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform, enabled: true, autoPopulate: true })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `Could not enable ${platform}`);
+      const addedCount = data?.sync?.populated?.added || 0;
+      messages.push(
+        addedCount > 0
+          ? `📺 ${platform} enabled, ${addedCount.toLocaleString()} catalog games added.`
+          : `📺 ${platform} enabled${data?.sync?.catalogFound === false ? ', catalog sync unavailable for this system yet.' : ', no new catalog games were needed.'}`
+      );
+    }
+
+    for (const platform of removed) {
+      const res = await fetch('/api/platforms/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform, enabled: false })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `Could not disable ${platform}`);
+      const removedCount = data?.sync?.pruned?.removed || 0;
+      const preservedOwned = data?.sync?.pruned?.preservedOwned || 0;
+      const preservedWatchlist = data?.sync?.pruned?.preservedWatchlist || 0;
+      const preservedWishlist = data?.sync?.pruned?.preservedWishlist || 0;
+      messages.push(
+        `🗑️ ${platform} removed, pruned ${removedCount.toLocaleString()} untracked catalog game${removedCount === 1 ? '' : 's'}${preservedOwned || preservedWatchlist || preservedWishlist ? `, kept ${preservedOwned} owned / ${preservedWatchlist} watchlist / ${preservedWishlist} wishlist.` : '.'}`
+      );
+    }
+
+    return messages;
+  };
+
   const save = async (updates: Partial<Config> & { newPassword?: string }) => {
     setSaving(true);
-    await fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates)
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setPlatformStatus('');
+    try {
+      const currentConfig = (config || {}) as Config;
+      const previousPlatforms = Array.isArray(currentConfig.platforms) ? currentConfig.platforms : [];
+      const nextPlatforms = Array.isArray(updates.platforms)
+        ? updates.platforms
+        : previousPlatforms;
+
+      const configPayload = { ...updates } as Partial<Config> & { newPassword?: string };
+      delete (configPayload as any).platforms;
+
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(configPayload)
+      });
+
+      const messages = await syncPlatforms(previousPlatforms, nextPlatforms);
+      if (messages.length > 0) setPlatformStatus(messages.join(' '));
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      const refreshed = await fetch('/api/config').then(r => r.json());
+      setConfig(refreshed);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handlePasswordSave = async () => {
@@ -374,6 +436,11 @@ export default function SettingsPage() {
 
       <Section title="Platforms" icon="🕹️">
         <div>
+          {platformStatus && (
+            <div className="mb-4 border border-yellow-700 bg-yellow-950/20 p-3 text-yellow-300 font-terminal text-xs">
+              {platformStatus}
+            </div>
+          )}
           <p className="text-zinc-500 font-terminal text-sm mb-4">Choose which platforms to track in your vault, analytics, and goals. Defaults to the original 14 retro systems.</p>
 
           {/* Quick presets */}

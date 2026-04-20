@@ -2,6 +2,8 @@
 import React from "react";
 import { TagsPanel } from "@/components/TagsPanel";
 import { YouTubePanel } from "@/components/YouTubePanel";
+import { getCopyBucketLabel, getOwnedCopyBuckets } from "@/lib/copyCondition";
+import { getPriceTrend, getTotalPaid } from "@/lib/marketUtils";
 
 type GameCopy = {
   id: string;
@@ -33,23 +35,6 @@ type GameItem = {
   copies: GameCopy[];
 };
 
-function getPriceTrend(item: GameItem, days: number, priceKey: "loose" | "cib"): number | null {
-  const history = item.priceHistory;
-  if (!history) return null;
-  const dates = Object.keys(history).sort();
-  if (dates.length < 2) return null;
-  const todayEntry = history[dates[dates.length - 1]];
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-  const pastDates = dates.filter(d => new Date(d) <= cutoff);
-  if (pastDates.length === 0) return null;
-  const pastEntry = history[pastDates[pastDates.length - 1]];
-  const today = parseFloat(todayEntry[priceKey] || "0");
-  const past = parseFloat(pastEntry[priceKey] || "0");
-  if (past === 0 || today === 0) return null;
-  return (today - past) / past * 100;
-}
-
 function trendLabel(t: number | null) {
   if (t === null) return "--";
   return `${t > 0 ? "+" : ""}${t.toFixed(1)}% ${t > 2 ? "↑" : t < -2 ? "↓" : "→"}`;
@@ -60,10 +45,6 @@ function trendColor(t: number | null) {
   if (t > 2) return "text-green-400";
   if (t < -2) return "text-red-400";
   return "text-yellow-400";
-}
-
-function totalPaid(copies: GameCopy[]) {
-  return copies.reduce((s, c) => s + (parseFloat(c.priceAcquired) || 0), 0);
 }
 
 export function GameTitleButton({
@@ -125,10 +106,7 @@ export function PriceDetailModal({
   };
   const copies = item.copies || [];
   const qty = copies.length;
-  const hasAnyCib = copies.some(c => c.hasBox && c.hasManual);
-  const hasAnyLoose = copies.some(c => !c.hasBox && !c.hasManual);
-  const hasAnyPartial = copies.some(c => (c.hasBox || c.hasManual) && !(c.hasBox && c.hasManual));
-  const isNes = item.platform?.toLowerCase().includes("nes");
+  const ownedBuckets = getOwnedCopyBuckets(copies, item.platform);
 
   const priceVal = (v: string | undefined) =>
     v && v !== "0" && v !== "N/A" ? `$${v}` : "--";
@@ -158,7 +136,7 @@ export function PriceDetailModal({
     </div>
   );
 
-  const priceKey: "loose" | "cib" = (hasAnyCib && !hasAnyLoose) ? "cib" : "loose";
+  const priceKey: "loose" | "cib" = ownedBuckets.cib && !ownedBuckets.loose ? "cib" : "loose";
   const trend7 = getPriceTrend(item, 7, priceKey);
   const trend30 = getPriceTrend(item, 30, priceKey);
   const historyCount = item.priceHistory ? Object.keys(item.priceHistory).length : 0;
@@ -219,12 +197,9 @@ export function PriceDetailModal({
 
         {/* Market Prices */}
         <div className="space-y-3">
-          {priceRow("LOOSE", item.marketLoose, "text-green-400",
-            qty > 0 ? (hasAnyLoose || (isNes && !hasAnyCib)) : false)}
-          {priceRow("CIB", item.marketCib, "text-blue-400",
-            qty > 0 ? hasAnyCib : false)}
-          {priceRow("PARTIAL (BOX OR MANUAL)", item.marketCib, "text-yellow-300",
-            qty > 0 ? hasAnyPartial : false)}
+          {priceRow("LOOSE", item.marketLoose, "text-green-400", !!ownedBuckets.loose)}
+          {priceRow("CIB", item.marketCib, "text-blue-400", !!ownedBuckets.cib)}
+          {priceRow("PARTIAL (BOX OR MANUAL)", item.marketCib, "text-yellow-300", !!ownedBuckets.partial)}
           {priceRow("NEW/SEALED", item.marketNew, "text-yellow-400", false)}
           <div className="opacity-60">
             {priceRow("GRADED", item.marketGraded, "text-purple-400", false)}
@@ -239,9 +214,8 @@ export function PriceDetailModal({
               <div className="space-y-2">
                 {copies.map((copy, idx) => {
                   const paid = parseFloat(copy.priceAcquired) || 0;
-                  const isCib = copy.hasBox && copy.hasManual;
-                  const condition = isCib ? "CIB" : (copy.hasBox || copy.hasManual) ? "PARTIAL" : "LOOSE";
-                  const condColor = isCib ? "text-blue-400" : (copy.hasBox || copy.hasManual) ? "text-yellow-300" : "text-green-400";
+                  const condition = getCopyBucketLabel(copy);
+                  const condColor = condition === "CIB" ? "text-blue-400" : condition === "PARTIAL" ? "text-yellow-300" : "text-green-400";
                   return (
                     <div key={copy.id} className="flex justify-between items-center p-2 bg-zinc-900 border border-zinc-800 rounded-sm font-terminal text-lg">
                       <span className="text-zinc-400">
@@ -259,7 +233,7 @@ export function PriceDetailModal({
                 {copies.length > 1 && (
                   <div className="flex justify-between items-center p-2 bg-emerald-900/20 border border-emerald-800 rounded-sm font-terminal text-lg mt-1">
                     <span className="text-zinc-300 font-bold">TOTAL PAID:</span>
-                    <span className="text-emerald-400 font-bold">${totalPaid(copies).toFixed(2)}</span>
+                    <span className="text-emerald-400 font-bold">${getTotalPaid(copies).toFixed(2)}</span>
                   </div>
                 )}
               </div>

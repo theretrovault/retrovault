@@ -25,6 +25,8 @@ import { ConsoleModal, PlatformButton } from "@/components/ConsoleModal";
 import { AddAssetModal, type AssetFormData } from "@/components/AddAssetModal";
 import { CriticProfileModal } from "@/components/CriticProfileModal";
 import { useAppConfig } from "@/components/AppConfig";
+import { getCopyMarketValue } from "@/lib/copyCondition";
+import { getPriceTrend, getTotalMarketValue, getTotalPaid } from "@/lib/marketUtils";
 
 type GameCopy = {
   id: string;
@@ -232,8 +234,7 @@ export default function InventoryPage() {
     };
   }, [openMenuId]);
 
-  const totalPaid = (copies: GameCopy[]) =>
-    copies.reduce((s, c) => s + (parseFloat(c.priceAcquired) || 0), 0);
+  const totalPaid = (copies: GameCopy[]) => getTotalPaid(copies);
 
   // Filter items to only enabled platforms (from app config)
   const filteredByPlatform = enabledPlatforms && enabledPlatforms.length > 0
@@ -269,25 +270,6 @@ export default function InventoryPage() {
     const maxBuy = Math.max(...buyPrices);
 
     return { minSell, maxSell, minBuy, maxBuy };
-  };
-
-  // Historical trend helper: returns % change over last N days from priceHistory
-  const getPriceTrend = (item: GameItem, days: number, priceKey: "loose" | "cib"): number | null => {
-    const history = item.priceHistory;
-    if (!history) return null;
-    const dates = Object.keys(history).sort();
-    if (dates.length < 2) return null;
-    const todayEntry = history[dates[dates.length - 1]];
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    // Find closest entry at or before cutoff
-    const pastDates = dates.filter(d => new Date(d) <= cutoff);
-    if (pastDates.length === 0) return null;
-    const pastEntry = history[pastDates[pastDates.length - 1]];
-    const today = parseFloat(todayEntry[priceKey] || "0");
-    const past = parseFloat(pastEntry[priceKey] || "0");
-    if (past === 0 || today === 0) return null;
-    return (today - past) / past * 100; // % change (positive = rising)
   };
 
   const getSellScore = (item: GameItem, minSell: number, maxSell: number): number | null => {
@@ -385,21 +367,11 @@ export default function InventoryPage() {
 
   const getCorrectPrice = (item: GameItem, copy?: GameCopy) => {
     // NES: default to loose. Everything else: use actual copy condition.
-    const isNes = item.platform?.toLowerCase().includes("nes");
-    if (!copy) {
-      // For unowned items, use loose for NES, CIB for everything else
-      return isNes ? parseFloat(item.marketLoose || "0") || 0
-                   : parseFloat(item.marketCib || "0") || 0;
-    }
-    // For owned copies, match the copy's actual condition
-    const isCib = copy.hasBox && copy.hasManual;
-    return parseFloat((isCib ? item.marketCib : item.marketLoose) || "0") || 0;
+    return getCopyMarketValue(item, copy);
   };
 
   const totalMarket = (item: GameItem) => {
-    const copies = item.copies || [];
-    if (copies.length === 0) return getCorrectPrice(item);
-    return copies.reduce((s, c) => s + getCorrectPrice(item, c), 0);
+    return getTotalMarketValue(item);
   };
 
   const { minSell, maxSell, minBuy, maxBuy } = computeScores(filteredByPlatform);
@@ -575,17 +547,17 @@ export default function InventoryPage() {
 
     // Auto-enable platform if it's not in the current enabled list
     if (data.platform && enabledPlatforms && enabledPlatforms.length > 0 && !enabledPlatforms.includes(data.platform)) {
-      const configRes = await fetch("/api/config").then(r => r.json()).catch(() => ({}));
-      const updatedPlatforms = [...new Set([...(configRes.platforms || enabledPlatforms), data.platform])];
-      await fetch("/api/config", {
+      const syncRes = await fetch("/api/platforms/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...configRes, platforms: updatedPlatforms })
-      }).catch(() => {});
-      // Show a toast-style notification
+        body: JSON.stringify({ platform: data.platform, enabled: true, autoPopulate: true })
+      }).then(r => r.json()).catch(() => ({}));
+      const added = syncRes?.sync?.populated?.added || 0;
       const toast = document.createElement('div');
       toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[500] bg-yellow-950 border-2 border-yellow-600 px-6 py-3 font-terminal text-yellow-300 text-sm shadow-lg';
-      toast.textContent = `📺 Platform enabled: ${data.platform} — games from this system now appear in your Vault.`;
+      toast.textContent = added > 0
+        ? `📺 Platform enabled: ${data.platform} — added ${added.toLocaleString()} catalog games for this system.`
+        : `📺 Platform enabled: ${data.platform} — catalog sync ${syncRes?.sync?.catalogFound === false ? 'is not available for this system yet' : 'found no new games to add'}.`;
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 5000);
     }

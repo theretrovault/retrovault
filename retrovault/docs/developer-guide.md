@@ -2,6 +2,8 @@
 
 Everything you need to go from zero to shipping a contribution.
 
+> Documentation rule: when a change affects setup, runtime behavior, storage, deployment, release flow, architecture, or operator workflow, update the relevant docs in the same workstream before calling the change done.
+
 ---
 
 ## Table of Contents
@@ -76,6 +78,54 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### Dev fixture workflow (private, recommended for risky data work)
+
+RetroVault currently has a hybrid storage model: some core surfaces are SQLite-backed, while others still read env-local JSON files. Because of that, risky storage/model work should start from a realistic dev copy of current prod data.
+
+**Standing rule:**
+- For risky data work (migrations, schema/storage refactors, API read/write changes, inventory/sales/watchlist/tag/config systems), refresh a private prod snapshot into dev before starting.
+- For trivial UI-only work (styling, copy, layout tweaks), skip the refresh unless realism matters.
+
+**Important:** prod-derived fixtures contain real private data and must stay out of git.
+
+### Snapshot current prod into a private fixture
+
+```bash
+node scripts/snapshot-prod-to-fixture.mjs
+```
+
+This copies the current `data/prod/` runtime state into:
+
+```bash
+fixtures/prod-snapshot/
+```
+
+### Reseed dev from the private fixture
+
+```bash
+node scripts/seed-dev-from-fixture.mjs
+```
+
+This:
+- backs up the current `data/dev/` files into `backups/`
+- copies the fixture snapshot into `data/dev/`
+
+### One-shot refresh: prod -> fixture -> dev
+
+```bash
+node scripts/refresh-dev-from-prod.mjs
+```
+
+Use this before risky data/model work so dev mirrors current prod behavior as closely as possible.
+
+### Suggested workflow
+
+1. `node scripts/refresh-dev-from-prod.mjs`
+2. make the risky data/model change in dev
+3. run tests + build
+4. validate behavior against realistic dev data
+5. only then consider promotion
+
 ### Environment variables
 
 | Variable | Required | What it does |
@@ -89,6 +139,8 @@ See `.env.example` for setup instructions per key.
 ---
 
 ## 3. Project Architecture
+
+For the high-context system map, read [`docs/architecture.md`](architecture.md) first. This section is the shorter contributor-facing version.
 
 ### Tech stack
 - **Next.js 16** (App Router) — pages, API routes, SSR
@@ -120,9 +172,15 @@ RetroVault uses **SQLite** as its primary database backend, with Prisma 7 as the
 
 ### SQLite Database
 
+Current env-aware layout:
+
 | File | What it contains |
 |---|---|
-| `data/retrovault.db` | Primary SQLite database (all collection data) |
+| `data/prod/retrovault.db` | Production SQLite database |
+| `data/dev/retrovault.db` | Dev SQLite database |
+| `data/nightly/retrovault.db` | Nightly SQLite database |
+
+Legacy note: `data/retrovault.db` may still exist as the old pre-env split database and can be used as a migration source, but the target runtime layout is env-local.
 
 The schema is defined in `prisma/schema.prisma`. Apply changes with:
 
@@ -151,12 +209,12 @@ The singleton uses Prisma 7's adapter pattern with `@prisma/adapter-better-sqlit
 
 ### JSON fallback files (legacy / config)
 
-Some data is still read from JSON (config, scrapers state, achievements manual unlocks). These coexist with SQLite during the transition period.
+Some data is still read from JSON. During the env-separation transition, these files live under the active env directory (for example `data/prod/` or `data/dev/`) and coexist with SQLite-backed data.
 
 | File | What it contains |
 |---|---|
 | `app.config.json` | App settings (theme, auth, platforms, API keys config) |
-| `inventory.json` | Full game catalog + prices per game |
+| `inventory.json` | Main collection/inventory dataset for current collection views |
 | `favorites.json` | Critics, favorites, regrets |
 | `sales.json` | P&L ledger (sales + acquisitions) |
 | `watchlist.json` | Target Radar price alerts |
@@ -170,6 +228,8 @@ Some data is still read from JSON (config, scrapers state, achievements manual u
 | `achievements-unlocked.json` | Manually unlocked achievements |
 | `scrapers.json` | Scraper registry and run status |
 | `bug-reports.json` | Rate limiting state for bug reporter |
+
+Important: as of the current release, RetroVault is still hybrid storage. Do not assume that moving SQLite data alone migrates the app completely. Several core views still depend on env-local JSON until the JSON→SQLite consolidation workstream is finished.
 
 **Server-side data access:** Use `readDataFile()` and `writeDataFile()` from `src/lib/data.ts`:
 

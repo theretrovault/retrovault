@@ -50,3 +50,4 @@ data/items.json
 data/overwrite.json
 data/test.json
 coverage/
+fixtures/

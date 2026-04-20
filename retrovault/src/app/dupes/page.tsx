@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { getCopyDisplayLabel } from "@/lib/copyCondition";
 
 type GameItem = {
   id: string; title: string; platform: string; isDigital?: boolean;
@@ -101,8 +102,7 @@ export default function DupesPage() {
                           <div key={copy.id} className="flex items-center gap-3 bg-zinc-950/50 px-3 py-1.5 border border-zinc-800">
                             <span className="text-zinc-500 font-terminal text-xs">Copy {i + 2}:</span>
                             <span className="text-zinc-400 font-terminal text-xs">{copy.condition}</span>
-                            {copy.hasBox && copy.hasManual && <span className="text-green-600 font-terminal text-xs">CIB</span>}
-                            {copy.hasBox && !copy.hasManual && <span className="text-yellow-600 font-terminal text-xs">Box</span>}
+                            <span className={`font-terminal text-xs ${getCopyDisplayLabel(copy) === 'CIB' ? 'text-green-600' : getCopyDisplayLabel(copy) === 'Loose' ? 'text-zinc-500' : 'text-yellow-600'}`}>{getCopyDisplayLabel(copy)}</span>
                             {parseFloat(copy.priceAcquired) > 0 && (
                               <span className="text-zinc-500 font-terminal text-xs ml-auto">paid ${parseFloat(copy.priceAcquired).toFixed(2)}</span>
                             )}
