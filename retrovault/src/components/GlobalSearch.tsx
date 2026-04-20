@@ -35,6 +35,7 @@ const STATIC_PAGES: SearchResult[] = [
   { id: "p-whatnot", title: "Whatnot Tracker", subtitle: "Seller stream schedule", href: "/whatnot", icon: "📺", category: "page" },
   { id: "p-guide", title: "Field Guide", subtitle: "Hunter tips & principles", href: "/guide", icon: "📖", category: "page" },
   { id: "p-scrapers", title: "Scrapers", subtitle: "Data scraper control center", href: "/scrapers", icon: "⚙️", category: "page" },
+  { id: "p-steam", title: "Steam Connector", subtitle: "PC library import groundwork", href: "/steam", icon: "♨️", category: "page" },
   { id: "p-settings", title: "Settings", subtitle: "App configuration", href: "/settings", icon: "⚙️", category: "page" },
   { id: "p-timeline", title: "Timeline", subtitle: "Collection by decade", href: "/timeline", icon: "📅", category: "page" },
   { id: "p-friends", title: "Friends Mode", subtitle: "Critic profiles", href: "/friends", icon: "👥", category: "page" },

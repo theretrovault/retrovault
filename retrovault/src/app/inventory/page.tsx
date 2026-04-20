@@ -136,6 +136,18 @@ export default function InventoryPage() {
       .finally(() => setLoading(false));
   };
 
+  const mergeItemIntoInventory = (item: GameItem) => {
+    setItems((prev) => {
+      const idx = prev.findIndex((entry) => entry.id === item.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = item;
+        return next;
+      }
+      return [item, ...prev];
+    });
+  };
+
   useEffect(() => { fetchInventory(); }, []);
 
   const fetchFavorites = () => {
@@ -539,11 +551,11 @@ export default function InventoryPage() {
         condition: data.condition,
       }]
     };
-    await fetch("/api/inventory", {
+    const created = await fetch("/api/inventory", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newItem),
-    });
+    }).then((r) => r.json());
 
     // Auto-enable platform if it's not in the current enabled list
     if (data.platform && enabledPlatforms && enabledPlatforms.length > 0 && !enabledPlatforms.includes(data.platform)) {
@@ -562,6 +574,10 @@ export default function InventoryPage() {
       setTimeout(() => toast.remove(), 5000);
     }
 
+    mergeItemIntoInventory(created);
+    setSearch("");
+    setPlatformFilter(data.platform || "all");
+    setFilterAction("owned");
     setShowAddModal(false);
     fetchInventory();
   };
@@ -813,7 +829,7 @@ export default function InventoryPage() {
                         ⋯
                       </button>
                       {openMenuId === item.id && (
-                        <div className="absolute right-0 top-full mt-1 z-20 bg-zinc-900 border-2 border-green-800 rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.5)] min-w-[160px] text-left" data-menu>
+                        <div className="absolute right-0 top-full mt-1 z-20 bg-zinc-900 border-2 border-green-800 rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.5)] w-64 max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto overflow-x-hidden text-left" data-menu>
                           <button
                             onClick={() => { fetchRow(item); setOpenMenuId(null); }}
                             disabled={fetchingRows.has(item.id)}
@@ -1087,6 +1103,7 @@ export default function InventoryPage() {
                   icon: "⚙️", title: "PLATFORM & SETTINGS",
                   content: [
                     "SETTINGS (/settings) — theme, color, app name, auth, feature flags, city config.",
+                    "STEAM CONNECTOR (/steam) — first-pass PC library import groundwork with profile targeting and privacy guidance.",
                     "FEATURE FLAGS — enable/disable entire feature groups; nav updates instantly.",
                     "THEME SYSTEM — 8 color palettes × 5 style themes (Terminal, CRT Scanline, Arcade, Cartridge, Galaxy).",
                     "GLOBAL SEARCH — press / or click 🔍 to search pages, games, grails, watchlist, events.",

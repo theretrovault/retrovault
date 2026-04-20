@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { unlockAchievement } from "@/lib/achievementUnlocks";
 import { GUIDE_SECTIONS, type GuideSection } from "@/data/guide";
 
 function SectionCard({ section }: { section: GuideSection }) {
@@ -86,6 +87,10 @@ function SectionCard({ section }: { section: GuideSection }) {
 
 export default function GuidePage() {
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    void unlockAchievement('a_guide');
+  }, []);
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
   const totalTips = GUIDE_SECTIONS.reduce((s, g) => s + g.tips.length, 0);

@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import fs from 'fs';
-import { getConfigPath } from './runtimePaths';
+import { getConfigPath } from './runtimeDataPaths';
 
 const CONFIG_FILE = getConfigPath();
 

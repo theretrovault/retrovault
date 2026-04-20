@@ -89,10 +89,72 @@ function NavGroup({ group, collapsed }: { group: NavGroup; collapsed: boolean })
   );
 }
 
+function ScraperHealthChip({ onReportIssue }: { onReportIssue: (context: { title: string; description: string; metadata: Record<string, unknown> }) => void }) {
+  const [health, setHealth] = useState<{
+    degraded: boolean;
+    severity: 'info' | 'warning' | 'critical';
+    activeIssueCount: number;
+    activeIssues: Array<{ id: string; name: string; message: string; userImpact: string; lastRun: string | null; severity: 'info' | 'warning' | 'critical'; state: string }>;
+  } | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/scraper-health')
+      .then((r) => r.json())
+      .then((d) => setHealth(d))
+      .catch(() => {});
+  }, []);
+
+  if (!health?.degraded) return null;
+
+  const tone = health.severity === 'critical'
+    ? 'bg-red-950 border-red-600 text-red-300 shadow-[0_0_18px_rgba(220,38,38,0.28)]'
+    : 'bg-yellow-950 border-yellow-600 text-yellow-300 shadow-[0_0_18px_rgba(234,179,8,0.25)]';
+
+  return (
+    <div className={`fixed bottom-4 right-4 z-40 max-w-md border-2 px-4 py-3 ${tone}`}>
+      <button onClick={() => setOpen(!open)} className="w-full text-left">
+        <div className="font-terminal text-sm uppercase tracking-wide">
+          ⚠ Scraper Issues Detected ({health.activeIssueCount})
+        </div>
+        <div className="font-terminal text-xs mt-1 opacity-90">
+          {health.activeIssues[0]?.userImpact || 'Some automated data may be stale.'}
+        </div>
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-3 border-t border-current/30 pt-3">
+          {health.activeIssues.map((issue) => (
+            <div key={issue.id} className="font-terminal text-xs">
+              <div className="uppercase text-[11px] opacity-80">{issue.name}</div>
+              <div className="mt-1">{issue.message}</div>
+              <div className="mt-1 opacity-80">{issue.userImpact}</div>
+              {issue.lastRun ? <div className="mt-1 opacity-70">Last run: {new Date(issue.lastRun).toLocaleString()}</div> : null}
+            </div>
+          ))}
+          <button
+            onClick={() => onReportIssue({
+              title: `Scraper degradation: ${health.activeIssues.map((issue) => issue.name).slice(0, 2).join(', ')}`,
+              description: 'One or more RetroVault scrapers appear degraded or down. This report was opened from the scraper health chip.',
+              metadata: {
+                scraperHealth: health,
+              },
+            })}
+            className="w-full border border-current/40 px-3 py-2 font-terminal text-xs uppercase hover:bg-black/20 transition-colors"
+          >
+            Report Issue
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MCLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
+  const [bugContext, setBugContext] = useState<{ title?: string; description?: string; metadata?: Record<string, unknown> } | null>(null);
   const pathname = usePathname();
   const { start: startDemo } = useDemoMode();
   const { enabled: tooltipsEnabled, toggle: toggleTooltips } = useTooltips();
@@ -159,7 +221,7 @@ function MCLayout({ children }: { children: React.ReactNode }) {
                 className="w-full text-left px-3 py-1 font-terminal text-xs text-green-700 hover:text-green-400 hover:bg-green-900/10 transition-colors uppercase">
                 🔍 SEARCH <span className='opacity-40 ml-1'>/</span>
               </button>
-              <button onClick={() => setBugOpen(true)}
+              <button onClick={() => { setBugContext(null); setBugOpen(true); }}
                 className="w-full text-left px-3 py-1 font-terminal text-xs text-orange-700 hover:text-orange-500 hover:bg-orange-900/10 transition-colors uppercase">
                 🐛 REPORT ISSUE
               </button>
@@ -204,7 +266,8 @@ function MCLayout({ children }: { children: React.ReactNode }) {
       </main>
       <KeyboardShortcuts onSearch={() => setSearchOpen(true)} />
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
-      {bugOpen && <BugReportModal onClose={() => setBugOpen(false)} />}
+      {bugOpen && <BugReportModal onClose={() => setBugOpen(false)} initialContext={bugContext || undefined} />}
+      <ScraperHealthChip onReportIssue={(context) => { setBugContext(context); setBugOpen(true); }} />
       <WhatsNew />
       <Onboarding />
     </div>

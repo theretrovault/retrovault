@@ -8,6 +8,7 @@
     "start": "next start",
     "backup:runtime": "node scripts/backup-runtime-data.mjs",
     "restore:runtime": "node scripts/restore-runtime-data.mjs",
+    "ready:runtime": "node scripts/wait-for-runtime-ready.mjs",
     "smoke:release": "node scripts/release-smoke.mjs",
     "lint": "eslint",
     "test": "vitest run",

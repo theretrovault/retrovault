@@ -73,6 +73,35 @@ describe('storageCompat', () => {
     expect((await readInventoryCompat()).find((item) => item.id === id)).toBeUndefined();
   });
 
+  it('merges create requests that match an existing title/platform even when the incoming id is different', async () => {
+    await createInventoryCompat({
+      id: uniqueId('vp'),
+      title: 'Virtual Pinball',
+      platform: 'Sega Genesis',
+      status: 'Yes',
+      copies: [{ id: uniqueId('copy'), condition: 'Loose', hasBox: false, hasManual: false, priceAcquired: '5.00' }],
+    });
+
+    const merged = await createInventoryCompat({
+      id: uniqueId('vp'),
+      title: ' Virtual   Pinball ',
+      platform: 'sega genesis',
+      status: 'Yes',
+      purchaseDate: '2026-03-27',
+      copies: [{ id: uniqueId('copy'), condition: 'CIB', hasBox: true, hasManual: true, priceAcquired: '12.00' }],
+    });
+
+    expect(merged.title).toBe('Virtual Pinball');
+    expect(merged.platform).toBe('Sega Genesis');
+    expect(merged.copies).toHaveLength(2);
+    expect(merged.purchaseDate).toBe('2026-03-27');
+
+    const inventory = await readInventoryCompat();
+    const vpRows = inventory.filter((item) => item.title === 'Virtual Pinball' && item.platform === 'Sega Genesis');
+    expect(vpRows).toHaveLength(1);
+    expect(vpRows[0].copies).toHaveLength(2);
+  });
+
   it('preserves JSON-only inventory rows during the hybrid migration window', async () => {
     const prismaId = uniqueId('catalog');
     const jsonOnlyId = uniqueId('owned');

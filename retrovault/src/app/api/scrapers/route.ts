@@ -1,23 +1,31 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { getScrapersPath } from '@/lib/runtimePaths';
+import { getScrapersPath } from '@/lib/runtimeDataPaths';
+import { resolveLogPath } from '@/lib/runtimePaths';
 // Scheduler imported dynamically to avoid bundling child_process in client paths
 
 export const dynamic = 'force-dynamic';
 
-const execAsync = promisify(exec);
 const SCRAPERS_FILE = getScrapersPath();
-const LOGS_DIR = path.join(process.cwd(), 'logs');
 
 type Scraper = {
-  id: string; name: string; description: string; script: string; logFile: string;
-  featureGroup: string | null; enabled: boolean; status: string;
-  lastRun: string | null; lastRunStatus: string | null; nextRun: string | null;
-  cadenceHour: number; cadenceType: string; itemsProcessed: number; itemsTotal: number;
-  defaultCadenceHour: number; pid?: number;
+  id: string;
+  name: string;
+  description: string;
+  script: string;
+  logFile: string;
+  featureGroup: string | null;
+  enabled: boolean;
+  status: string;
+  lastRun: string | null;
+  lastRunStatus: string | null;
+  nextRun: string | null;
+  cadenceHour: number;
+  cadenceType: string;
+  itemsProcessed: number;
+  itemsTotal: number;
+  defaultCadenceHour: number;
+  pid?: number;
 };
 
 function loadScrapers(): Scraper[] {
@@ -30,14 +38,14 @@ function saveScrapers(scrapers: Scraper[]) {
 }
 
 function getLogTail(logFile: string, lines = 50): string[] {
-  const logPath = path.join(process.cwd(), logFile);
+  const logPath = resolveLogPath(logFile);
   if (!fs.existsSync(logPath)) return [];
   const content = fs.readFileSync(logPath, 'utf8');
   return content.split('\n').filter(Boolean).slice(-lines);
 }
 
 function getLogSize(logFile: string): number {
-  const logPath = path.join(process.cwd(), logFile);
+  const logPath = resolveLogPath(logFile);
   if (!fs.existsSync(logPath)) return 0;
   return fs.statSync(logPath).size;
 }
@@ -50,17 +58,16 @@ export async function GET(req: Request) {
   const scrapers = loadScrapers();
 
   if (id && logLines) {
-    const scraper = scrapers.find(s => s.id === id);
+    const scraper = scrapers.find((s) => s.id === id);
     if (!scraper) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const lines = getLogTail(scraper.logFile, parseInt(logLines) || 50);
     return NextResponse.json({ lines, size: getLogSize(scraper.logFile) });
   }
 
-  // Enrich with log info
-  const enriched = scrapers.map(s => ({
+  const enriched = scrapers.map((s) => ({
     ...s,
     logSize: getLogSize(s.logFile),
-    logExists: fs.existsSync(path.join(process.cwd(), s.logFile)),
+    logExists: fs.existsSync(resolveLogPath(s.logFile)),
   }));
 
   return NextResponse.json(enriched, { headers: { 'Cache-Control': 'no-store' } });
@@ -71,15 +78,19 @@ export async function POST(req: Request) {
   const scrapers = loadScrapers();
   const { action, id } = body;
 
-  const idx = scrapers.findIndex(s => s.id === id);
+  const idx = scrapers.findIndex((s) => s.id === id);
 
   if (action === 'run') {
     if (idx < 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const scraper = scrapers[idx];
     if (!scraper.script) return NextResponse.json({ error: 'Script not configured' }, { status: 400 });
 
-    // Run via the in-process scheduler (handles status updates + logging)
-    try { const { runNow } = await import('@/lib/scheduler'); runNow(id).catch(console.error); } catch { console.error('Scheduler not available'); }
+    try {
+      const { runNow } = await import('@/lib/scheduler');
+      runNow(id).catch(console.error);
+    } catch {
+      console.error('Scheduler not available');
+    }
     return NextResponse.json({ ok: true, status: 'running' });
   }
 
@@ -87,7 +98,10 @@ export async function POST(req: Request) {
     if (idx < 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     scrapers[idx].enabled = !scrapers[idx].enabled;
     saveScrapers(scrapers);
-    try { const { reloadSchedules } = await import('@/lib/scheduler'); reloadSchedules(); } catch {}
+    try {
+      const { reloadSchedules } = await import('@/lib/scheduler');
+      reloadSchedules();
+    } catch {}
     return NextResponse.json(scrapers[idx]);
   }
 
@@ -96,14 +110,16 @@ export async function POST(req: Request) {
     scrapers[idx].cadenceHour = body.cadenceHour;
     scrapers[idx].cadenceType = body.cadenceType;
     saveScrapers(scrapers);
-    try { const { reloadSchedules } = await import('@/lib/scheduler'); reloadSchedules(); } catch {}
+    try {
+      const { reloadSchedules } = await import('@/lib/scheduler');
+      reloadSchedules();
+    } catch {}
     return NextResponse.json(scrapers[idx]);
   }
 
-
   if (action === 'clear_log') {
     if (idx < 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    const logPath = path.join(process.cwd(), scrapers[idx].logFile);
+    const logPath = resolveLogPath(scrapers[idx].logFile);
     if (fs.existsSync(logPath)) fs.writeFileSync(logPath, '');
     return NextResponse.json({ ok: true });
   }

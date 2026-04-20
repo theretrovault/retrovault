@@ -10,7 +10,7 @@
  */
 
 import { PrismaClient } from '@prisma/client'
-import { getDatabasePath, getDatabaseUrl } from './runtimePaths'
+import { getDatabasePath, getDatabaseUrl } from './runtimeDataPaths'
 
 declare global {
   // eslint-disable-next-line no-var

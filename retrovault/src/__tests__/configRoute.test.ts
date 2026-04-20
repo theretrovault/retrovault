@@ -21,7 +21,7 @@ vi.mock('crypto', () => ({
   },
 }));
 
-vi.mock('@/lib/runtimePaths', () => ({
+vi.mock('@/lib/runtimeDataPaths', () => ({
   getConfigPath: () => '/tmp/test-app.config.json',
   getRuntimeLabel: () => 'dev',
 }));

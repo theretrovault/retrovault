@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import fs from 'fs';
 import crypto from 'crypto';
-import { getConfigPath } from '@/lib/runtimePaths';
+import { getConfigPath } from '@/lib/runtimeDataPaths';
 
 export const dynamic = 'force-dynamic';
 

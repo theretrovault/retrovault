@@ -30,9 +30,22 @@ export default function SharePage() {
   const [expiryDays, setExpiryDays] = useState(30);
 
   useEffect(() => {
-    fetch("/api/config").then(r => r.json()).then(d => {
-      setConfig(d);
-      setToken(d.publicToken || "");
+    Promise.all([
+      fetch("/api/config").then(r => r.json()),
+      fetch("/api/collection-share").then(r => r.json()),
+    ]).then(([configData, shareData]) => {
+      setConfig(configData);
+      setToken(shareData.token || "");
+      if (shareData.expiresAt) {
+        const expires = new Date(shareData.expiresAt).getTime();
+        const now = Date.now();
+        const remainingDays = Math.max(0, Math.ceil((expires - now) / 86400000));
+        setExpiryDays(remainingDays || 0);
+      }
+      setConfig((prev: any) => ({
+        ...configData,
+        publicTokenExpiresAt: shareData.expiresAt || null,
+      }));
     });
   }, []);
 
@@ -56,11 +69,12 @@ export default function SharePage() {
     const expiresAt = expiryDays > 0
       ? new Date(Date.now() + expiryDays * 86400000).toISOString()
       : null;
-    await fetch("/api/config", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...config, publicToken: token, publicTokenExpiresAt: expiresAt })
+    await fetch("/api/collection-share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, label: `${config?.ownerName || 'My'} Collection`, expiresAt })
     });
-    setConfig((prev: any) => ({ ...prev, publicToken: token, publicTokenExpiresAt: expiresAt }));
+    setConfig((prev: any) => ({ ...prev, publicTokenExpiresAt: expiresAt }));
     setSaving(false);
     await generateQr();
   };

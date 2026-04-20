@@ -1,25 +1,20 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import { resolveDataPath } from '@/lib/runtimePaths';
 import {
+  addAcquisitionCompat,
+  addSaleCompat,
   addWatchlistCompat,
+  deleteAcquisitionCompat,
+  deleteSaleCompat,
   deleteWatchlistCompat,
+  readAcquisitionsCompat,
+  readSalesCompat,
   readWatchlistCompat,
+  updateAcquisitionCompat,
+  updateSaleCompat,
   updateWatchlistCompat,
 } from '@/lib/storageCompat';
 
-const salesPath = resolveDataPath('sales.json');
-const acqPath = resolveDataPath('acquisitions.json');
-
 export const dynamic = 'force-dynamic';
-
-function read(filePath: string) {
-  if (!fs.existsSync(filePath)) return [];
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-}
-function save(filePath: string, data: any[]) {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -28,8 +23,12 @@ export async function GET(req: Request) {
     const watchlist = await readWatchlistCompat();
     return NextResponse.json(watchlist, { headers: { 'Cache-Control': 'no-store' } });
   }
-  const filePath = type === 'acquisitions' ? acqPath : salesPath;
-  return NextResponse.json(read(filePath), { headers: { 'Cache-Control': 'no-store' } });
+  if (type === 'acquisitions') {
+    const acquisitions = await readAcquisitionsCompat();
+    return NextResponse.json(acquisitions, { headers: { 'Cache-Control': 'no-store' } });
+  }
+  const sales = await readSalesCompat();
+  return NextResponse.json(sales, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function POST(req: Request) {
@@ -55,27 +54,39 @@ export async function POST(req: Request) {
     }
   }
 
-  const filePath = type === 'acquisitions' ? acqPath : salesPath;
-  let data = read(filePath);
+  if (type === 'acquisitions') {
+    if (action === 'add') {
+      const entry = await addAcquisitionCompat(item);
+      return NextResponse.json(entry, { status: 201 });
+    }
+
+    if (action === 'update') {
+      const updated = await updateAcquisitionCompat(item);
+      if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      return NextResponse.json(updated);
+    }
+
+    if (action === 'delete') {
+      const deleted = await deleteAcquisitionCompat(item.id);
+      if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      return NextResponse.json({ ok: true });
+    }
+  }
 
   if (action === 'add') {
-    const entry = { ...item, id: Date.now().toString(), createdAt: new Date().toISOString() };
-    data.push(entry);
-    save(filePath, data);
+    const entry = await addSaleCompat(item);
     return NextResponse.json(entry, { status: 201 });
   }
 
   if (action === 'update') {
-    const idx = data.findIndex((e: any) => e.id === item.id);
-    if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    data[idx] = { ...data[idx], ...item };
-    save(filePath, data);
-    return NextResponse.json(data[idx]);
+    const updated = await updateSaleCompat(item);
+    if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json(updated);
   }
 
   if (action === 'delete') {
-    data = data.filter((e: any) => e.id !== item.id);
-    save(filePath, data);
+    const deleted = await deleteSaleCompat(item.id);
+    if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ ok: true });
   }
 

@@ -3,7 +3,16 @@
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
-type Props = { onClose: () => void };
+type BugReportContext = {
+  title?: string;
+  description?: string;
+  steps?: string;
+  expected?: string;
+  actual?: string;
+  metadata?: Record<string, unknown>;
+};
+
+type Props = { onClose: () => void; initialContext?: BugReportContext };
 
 const TYPES = [
   { id: "bug", label: "🐛 Bug Report", desc: "Something isn't working correctly" },
@@ -11,14 +20,14 @@ const TYPES = [
   { id: "other", label: "📋 Other", desc: "General feedback" },
 ];
 
-export function BugReportModal({ onClose }: Props) {
+export function BugReportModal({ onClose, initialContext }: Props) {
   const pathname = usePathname();
   const [type, setType] = useState("bug");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [steps, setSteps] = useState("");
-  const [expected, setExpected] = useState("");
-  const [actual, setActual] = useState("");
+  const [title, setTitle] = useState(initialContext?.title || "");
+  const [description, setDescription] = useState(initialContext?.description || "");
+  const [steps, setSteps] = useState(initialContext?.steps || "");
+  const [expected, setExpected] = useState(initialContext?.expected || "");
+  const [actual, setActual] = useState(initialContext?.actual || "");
   const [honeypot, setHoneypot] = useState(""); // bot trap
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ ok?: boolean; error?: string; issueUrl?: string; issueNumber?: number; duplicate?: boolean; existingUrl?: string; existingTitle?: string; resetIn?: number } | null>(null);
@@ -41,6 +50,7 @@ export function BugReportModal({ onClose }: Props) {
         body: JSON.stringify({
           title, description, type, steps, expected, actual,
           page: pathname,
+          metadata: initialContext?.metadata,
           website: honeypot, // honeypot
         }),
       });

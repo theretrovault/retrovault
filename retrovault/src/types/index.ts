@@ -178,7 +178,6 @@ export type AppConfig = {
   features: Features;
   platforms: string[];
   apiKeys?: ApiKey[];
-  publicToken?: string;
 };
 
 export type ApiKey = {

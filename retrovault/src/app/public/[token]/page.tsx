@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import fs from "fs";
-import { getConfigPath, resolveDataPath } from "@/lib/runtimePaths";
+import prisma from "@/lib/prisma";
+import { getConfigPath } from "@/lib/runtimeDataPaths";
 import { getCopyDisplayLabel } from "@/lib/copyCondition";
+import { readInventoryCompat } from "@/lib/storageCompat";
 
 export const dynamic = 'force-dynamic';
 
@@ -13,10 +15,10 @@ export default async function PublicCollectionPage({ params }: Props) {
   if (!fs.existsSync(configPath)) return notFound();
 
   const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-  if (!config.publicToken || config.publicToken !== token) return notFound();
+  const share = await prisma.collectionShare.findUnique({ where: { token } });
+  if (!share) return notFound();
 
-  // Check expiry if set
-  const expired = config.publicTokenExpiresAt && new Date(config.publicTokenExpiresAt) < new Date();
+  const expired = share.expiresAt && new Date(share.expiresAt) < new Date();
   if (expired) {
     return (
       <div className="min-h-screen bg-zinc-950 text-green-400 font-terminal flex items-center justify-center p-6">
@@ -29,10 +31,8 @@ export default async function PublicCollectionPage({ params }: Props) {
     );
   }
 
-  const invPath = resolveDataPath("inventory.json");
-  const inventory = fs.existsSync(invPath) ? JSON.parse(fs.readFileSync(invPath, "utf8")) : [];
-  const allItems = Array.isArray(inventory) ? inventory : (inventory.items || []);
-  const owned = allItems.filter((i: any) => (i.copies || []).length > 0 && !i.isDigital);
+  const inventory = await readInventoryCompat();
+  const owned = inventory.filter((i: any) => (i.copies || []).length > 0 && !i.isDigital);
 
   const platforms = [...new Set(owned.map((i: any) => i.platform))] as string[];
   const platformCounts: Record<string, number> = {};

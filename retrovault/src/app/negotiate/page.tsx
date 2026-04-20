@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { unlockAchievement } from "@/lib/achievementUnlocks";
 
 const SCENARIOS = [
   { id: "fb", label: "Facebook Marketplace", icon: "📱", note: "Know their price before arriving. Cash is king." },
@@ -22,6 +23,10 @@ const TACTICS = [
 
 export default function NegotiatePage() {
   const [scenario, setScenario] = useState("fb");
+
+  useEffect(() => {
+    void unlockAchievement('a_negotiator');
+  }, []);
   const [askPrice, setAskPrice] = useState("");
   const [marketPrice, setMarketPrice] = useState("");
   const [budget, setBudget] = useState("");

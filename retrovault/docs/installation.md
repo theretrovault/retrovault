@@ -426,7 +426,7 @@ Anyone with the link (or QR code scan) can browse your collection. No account re
 
 The public view is protected by **token-based security** — the URL itself is the credential. No passwords, no login.
 
-- The token is a random string stored in `data/app.config.json` alongside an optional `publicTokenExpiresAt` ISO timestamp
+- Collection-share links are stored as structured `CollectionShare` records in SQLite, with optional expiry timestamps managed by the share API rather than raw config fields
 - Visiting `/public/<token>` with a **wrong or missing token** returns a 404 — the page doesn't exist as far as the visitor is concerned
 - Visiting a valid token that has **expired** shows a friendly "Link Expired" page instead of the collection
 - There is **no rate limiting** on guessing tokens by default, so use a long random token (the built-in generator produces a ~22-char alphanumeric string, which provides ~130 bits of entropy — effectively unguessable)

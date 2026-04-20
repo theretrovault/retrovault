@@ -15,6 +15,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { unlockAchievement } from "@/lib/achievementUnlocks";
 import Link from "next/link";
 import { DEMO_AUTOSTART_KEY } from "@/components/DemoMode";
 
@@ -140,14 +141,9 @@ async function applyWizardConfig(answers: Answers) {
   };
 
   if (isRerun) {
-    // Unlock 'Change of Plans' secret achievement manually
-    try {
-      const existing = JSON.parse(localStorage.getItem("rv-achievements-manual") || "[]") as string[];
-      if (!existing.includes("setup_rerun")) {
-        existing.push("setup_rerun");
-        localStorage.setItem("rv-achievements-manual", JSON.stringify(existing));
-      }
-    } catch { /* ignore */ }
+    // Persist rerun unlock through the canonical achievements API so manual unlocks
+    // survive across devices and stay consistent with the server-evaluated payload.
+    void unlockAchievement("setup_rerun");
   }
 
   if (answers.ownerName)      extraConfig.ownerName = answers.ownerName;

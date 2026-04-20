@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import { resolveDataPath } from '@/lib/runtimePaths';
+import { readValueHistoryCompat, upsertValueSnapshotCompat } from '@/lib/storageCompat';
 
 export const dynamic = 'force-dynamic';
 
-const FILE = resolveDataPath('value-history.json');
-
 export async function GET() {
-  if (!fs.existsSync(FILE)) return NextResponse.json([]);
-  const data = JSON.parse(fs.readFileSync(FILE, 'utf8'));
+  const data = await readValueHistoryCompat();
   return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
+}
+
+export async function POST(req: Request) {
+  const body = await req.json();
+  const snapshot = await upsertValueSnapshotCompat(body);
+  return NextResponse.json(snapshot);
 }

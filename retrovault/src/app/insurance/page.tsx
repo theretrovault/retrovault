@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { getCopyDisplayLabel, getCopyMarketValue } from "@/lib/copyCondition";
+import { unlockAchievement } from "@/lib/achievementUnlocks";
 
 type GameItem = {
   id: string; title: string; platform: string; isDigital?: boolean;
@@ -22,6 +23,7 @@ export default function InsurancePage() {
   const [loading, setLoading] = useState(true);
   const [ownerName, setOwnerName] = useState("");
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null);
+  const [insuranceAchievementFired, setInsuranceAchievementFired] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -56,7 +58,13 @@ export default function InsurancePage() {
   const fmt = (n: number) => `$${n.toFixed(2)}`;
   const fmtK = (n: number) => n >= 1000 ? `$${(n/1000).toFixed(1)}k` : fmt(n);
 
-  const generate = () => setGeneratedAt(new Date());
+  const generate = () => {
+    setGeneratedAt(new Date());
+    if (!insuranceAchievementFired) {
+      setInsuranceAchievementFired(true);
+      void unlockAchievement('a_insurance');
+    }
+  };
 
   const handlePrint = () => window.print();
 
