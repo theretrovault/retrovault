@@ -124,7 +124,8 @@ Use this before risky data/model work so dev mirrors current prod behavior as cl
 2. make the risky data/model change in dev
 3. run tests + build
 4. validate behavior against realistic dev data
-5. only then consider promotion
+5. take a runtime snapshot before prod promotion: `npm run backup:runtime -- prod`
+6. only then consider promotion
 
 ### Environment variables
 
@@ -508,6 +509,8 @@ Follow the existing style:
 | Production build | `npm run build` |
 | Run tests | `npm test` |
 | Watch tests | `npm run test:watch` |
+| Snapshot runtime state | `npm run backup:runtime -- prod` |
+| Restore runtime snapshot | `npm run restore:runtime -- prod backups/runtime-data/prod-...` |
 | Start with pm2 | `pm2 start ecosystem.config.js` |
 | Reload pm2 | `pm2 reload retrovault --update-env` |
 | Deploy update | `bash scripts/deploy.sh` |

@@ -116,6 +116,8 @@ Why:
 Current doctrine:
 - for risky data/model work, refresh dev from a private prod-derived fixture first
 - make the change live on dev first, validate there, then decide on nightly/prod promotion
+- back up prod runtime data before every prod deploy so rollback and stabilization stay possible
+- keep a reusable runtime-data backup path for self-hosted operators, not just our hosted prod flow
 - migrate JSON-backed surfaces in controlled chunks with tests
 - do not assume “Prisma exists” means “migration is done”
 

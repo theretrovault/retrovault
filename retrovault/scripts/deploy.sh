@@ -53,6 +53,11 @@ npm install --frozen-lockfile 2>/dev/null || npm install
 echo "🗂️  Ensuring env data directories exist..."
 node scripts/setup-env-data.mjs
 
+if [ "$TARGET_ENV" = "prod" ]; then
+  echo "💾 Backing up prod runtime data before deploy..."
+  node scripts/backup-runtime-data.mjs prod
+fi
+
 echo "🔨 Building production bundle..."
 npm run build
 
@@ -67,7 +72,7 @@ else
 fi
 
 echo "🧪 Verifying live runtime after restart..."
-npm run smoke:release -- --base-url "http://127.0.0.1:$PORT"
+npm run smoke:release -- --base-url "http://localhost:$PORT"
 
 echo ""
 echo "✅ RetroVault deployed!"

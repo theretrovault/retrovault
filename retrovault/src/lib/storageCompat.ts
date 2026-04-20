@@ -62,16 +62,41 @@ function safeIso(value: unknown): string | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
-export async function readInventoryCompat(): Promise<LegacyInventoryItem[]> {
-  const games = await prisma.game.findMany({
-    include: {
-      copies: true,
-      priceHistory: true,
-    },
-    orderBy: [{ title: 'asc' }, { platform: 'asc' }],
-  });
+type InventoryGameRecord = {
+  id: string;
+  title: string;
+  platform: string;
+  status: string;
+  notes: string;
+  isDigital: boolean;
+  source: string | null;
+  purchaseDate: string | null;
+  lastFetched: Date | null;
+  marketLoose: number | null;
+  marketCib: number | null;
+  marketNew: number | null;
+  marketGraded: number | null;
+  copies: Array<{
+    id: string;
+    condition: string;
+    hasBox: boolean;
+    hasManual: boolean;
+    priceAcquired: number;
+    purchaseDate: string | null;
+    source: string | null;
+  }>;
+  priceHistory: Array<{
+    date: string;
+    loose: number | null;
+    cib: number | null;
+    newPrice: number | null;
+    graded: number | null;
+    fetchedAt: Date;
+  }>;
+};
 
-  return games.map((game) => ({
+function mapGameToLegacy(game: InventoryGameRecord): LegacyInventoryItem {
+  return {
     id: game.id,
     title: game.title,
     platform: game.platform,
@@ -103,7 +128,33 @@ export async function readInventoryCompat(): Promise<LegacyInventoryItem[]> {
         fetchedAt: entry.fetchedAt.toISOString(),
       }])
     ),
-  }));
+  };
+}
+
+export async function readInventoryCompat(): Promise<LegacyInventoryItem[]> {
+  const games = await prisma.game.findMany({
+    include: {
+      copies: true,
+      priceHistory: true,
+    },
+    orderBy: [{ title: 'asc' }, { platform: 'asc' }],
+  });
+
+  const dbItems = games.map(mapGameToLegacy);
+  const legacyItems = readDataFile<LegacyInventoryItem[]>('inventory.json', []);
+
+  // During the hybrid migration window, Prisma is the preferred source for rows it knows
+  // about, but JSON may still contain newer user-added records that have not been backfilled
+  // yet. Merge by id so JSON-only records remain visible instead of silently disappearing.
+  const merged = new Map<string, LegacyInventoryItem>();
+  for (const item of legacyItems) merged.set(item.id, item);
+  for (const item of dbItems) merged.set(item.id, item);
+
+  return Array.from(merged.values()).sort((a, b) => {
+    const titleCompare = a.title.localeCompare(b.title);
+    if (titleCompare !== 0) return titleCompare;
+    return a.platform.localeCompare(b.platform);
+  });
 }
 
 export async function createInventoryCompat(item: LegacyInventoryItem): Promise<LegacyInventoryItem> {

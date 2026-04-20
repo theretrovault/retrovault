@@ -194,7 +194,9 @@ data/
     └── ...
 ```
 
-To back up your collection: `cp -r data/ ~/my-retrovault-backup/`  
+To back up your collection quickly: `cp -r data/ ~/my-retrovault-backup/`  
+To create a restorable env snapshot with a manifest: `npm run backup:runtime -- prod`  
+To restore one: `npm run restore:runtime -- prod backups/runtime-data/prod-YYYY-MM-DDTHH-MM-SS-sssZ`  
 To migrate to a new machine: copy the `data/` folder and run `npm install`.
 
 For risky storage/model work in dev, use the private fixture workflow documented in `docs/developer-guide.md` to mirror current prod into dev without committing real data.
@@ -234,7 +236,9 @@ PWA-ready — add it to your phone's home screen for a native-feeling Field Mode
 | `scripts/scrape-craigslist.mjs` | Local Craigslist game deal alerts |
 | `scripts/scrape-reddit.mjs` | r/gameswap alerts for your watchlist |
 | `scripts/snapshot-value.mjs` | Record daily collection value (run daily) |
-| `scripts/deploy.sh` | Env-aware deploy helper for `prod`, `dev`, or `nightly` |
+| `scripts/deploy.sh` | Env-aware deploy helper for `prod`, `dev`, or `nightly` (includes automatic prod runtime backup) |
+| `scripts/backup-runtime-data.mjs` | Create a timestamped runtime snapshot for `prod`, `dev`, or `nightly` |
+| `scripts/restore-runtime-data.mjs` | Restore an env runtime snapshot back into `data/<env>/` |
 | `scripts/snapshot-prod-to-fixture.mjs` | Capture current `data/prod/` into a private local fixture snapshot |
 | `scripts/seed-dev-from-fixture.mjs` | Reseed `data/dev/` from the private fixture snapshot |
 | `scripts/refresh-dev-from-prod.mjs` | One-shot prod -> fixture -> dev refresh for risky data/model work |

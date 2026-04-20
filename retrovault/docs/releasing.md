@@ -82,10 +82,35 @@ Check `github.com/theretrovault/retrovault/releases` — the new release should 
 
 ---
 
+## Runtime snapshot safety
+
+Before any production update that can mutate or rely on runtime state, create a restorable runtime snapshot.
+
+Why this is broader than "back up the DB": RetroVault still has hybrid storage in active use, so rollback safety requires the full runtime state, not only SQLite.
+
+Minimum operator flow:
+
+```bash
+npm run backup:runtime -- prod
+bash scripts/deploy.sh prod prod
+```
+
+Restore flow:
+
+```bash
+npm run restore:runtime -- prod backups/runtime-data/prod-YYYY-MM-DDTHH-MM-SS-sssZ --dry-run
+npm run restore:runtime -- prod backups/runtime-data/prod-YYYY-MM-DDTHH-MM-SS-sssZ --force
+```
+
+The dry run is intentional. Restore is a sharp tool and should preview what it will overwrite before touching live runtime state.
+
+`deploy.sh` now performs the prod backup automatically before build/restart, but the explicit command is still useful for manual operator snapshots and self-hosted guidance.
+
 ## What makes a good release
 
 - All tests passing
 - `npm run build` succeeds
+- Runtime snapshot taken before prod deploy or migration work
 - Changelog updated with user-facing description
 - No sensitive data in committed files
 - Docker build test passes (if Dockerfile changed)

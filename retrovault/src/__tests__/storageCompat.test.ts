@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'crypto';
+import fs from 'fs';
 
 import prisma from '@/lib/prisma';
+import { writeDataFile } from '@/lib/data';
 import {
   addWatchlistCompat,
   createInventoryCompat,
@@ -23,6 +25,7 @@ describe('storageCompat', () => {
     await prisma.gameCopy.deleteMany();
     await prisma.game.deleteMany();
     await prisma.watchlistItem.deleteMany();
+    writeDataFile('inventory.json', []);
   });
 
   it('round-trips inventory through Prisma with legacy-compatible shape', async () => {
@@ -68,6 +71,49 @@ describe('storageCompat', () => {
     const deleted = await deleteInventoryCompat(id);
     expect(deleted).toBe(true);
     expect((await readInventoryCompat()).find((item) => item.id === id)).toBeUndefined();
+  });
+
+  it('preserves JSON-only inventory rows during the hybrid migration window', async () => {
+    const prismaId = uniqueId('catalog');
+    const jsonOnlyId = uniqueId('owned');
+
+    await createInventoryCompat({
+      id: prismaId,
+      title: 'Wonder Boy in Monster World',
+      platform: 'Sega Genesis',
+      status: 'No',
+      copies: [],
+    });
+
+    const inventoryPath = process.env.RETROVAULT_INVENTORY_PATH || '';
+    const existing = inventoryPath && fs.existsSync(inventoryPath)
+      ? JSON.parse(fs.readFileSync(inventoryPath, 'utf8'))
+      : [];
+
+    writeDataFile('inventory.json', [
+      ...existing,
+      {
+        id: jsonOnlyId,
+        title: 'Wonder Boy in Monster World',
+        platform: 'Sega Genesis',
+        status: 'Yes',
+        notes: 'Chase After the Right Price',
+        purchaseDate: '2026-03-27',
+        copies: [{ id: uniqueId('copy'), condition: 'Other', hasBox: true, hasManual: false, priceAcquired: '27.56' }],
+      },
+    ]);
+
+    const inventory = await readInventoryCompat();
+    const jsonOnly = inventory.find((item) => item.id === jsonOnlyId);
+
+    expect(jsonOnly).toBeTruthy();
+    expect(jsonOnly).toMatchObject({
+      title: 'Wonder Boy in Monster World',
+      status: 'Yes',
+      purchaseDate: '2026-03-27',
+      notes: 'Chase After the Right Price',
+    });
+    expect(jsonOnly?.copies).toHaveLength(1);
   });
 
   it('round-trips watchlist entries through Prisma with legacy fields', async () => {
