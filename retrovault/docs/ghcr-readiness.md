@@ -67,6 +67,7 @@ Current project context strongly suggests GHCR is already part of the intended s
 - prepare workflow recommendations for safer tag publishing
 - prepare verification steps for container pull/install success
 - align docs so GHCR is treated as a first-class distribution surface
+- prepare the exact GitHub UI checklist and the GHCR implementation plan
 
 ---
 
@@ -105,3 +106,7 @@ For a stable release:
 ## Recommended next step
 
 Keep GHCR as the primary container registry surface, then mirror to Docker Hub for discoverability and user habit. GHCR should remain the most GitHub-native and automation-friendly container home.
+
+Companion docs:
+- `docs/github-ui-checklist.md`
+- `docs/ghcr-implementation-plan.md`

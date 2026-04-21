@@ -10,7 +10,9 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
 [![Docker](https://img.shields.io/badge/Docker-supported-2496ED?style=flat-square&logo=docker)](docs/installation.md)
 
-**You've got a spreadsheet. You hate your spreadsheet.**
+**A self-hosted command center for retro game collectors.**
+
+You've got a spreadsheet. You hate your spreadsheet.
 
 It doesn't know what your Earthbound CIB is worth today. It can't tell you if the PS1 game at the garage sale tomorrow is on your want list. It has no idea you already own three copies of Madden '95.
 
@@ -126,6 +128,7 @@ You know this already. That's why you're here.
 ## Getting started
 
 > **📋 [Installation guide →](docs/installation.md)** — Docker, Debian/Ubuntu, CentOS/RHEL, macOS, Windows, Raspberry Pi
+> **📦 GHCR image target:** `ghcr.io/theretrovault/retrovault` (primary registry surface, publish automation planned)
 > **🛠️ [Developer guide →](docs/developer-guide.md)** — Architecture, CI/CD, testing, releases, contributing
 > **🚀 [Product availability docs →](docs/README.md)** — GitHub public-surface, GHCR, Docker Hub, and community rollout planning
 
@@ -286,17 +289,22 @@ MIT — use it, fork it, build on it.
 RetroVault's Phase 1 availability plan is documented in:
 - [Docs index](docs/README.md)
 - [GitHub public-surface recommendation](docs/github-public-surface-recommendation.md)
+- [GitHub UI checklist](docs/github-ui-checklist.md)
 - [GHCR readiness](docs/ghcr-readiness.md)
+- [GHCR implementation plan](docs/ghcr-implementation-plan.md)
 - [Docker Hub readiness](docs/docker-hub-readiness.md)
-- [Discord and community recommendation](docs/discord-community-recommendation.md)
 
 Current primary public surfaces:
 - GitHub source of truth: <https://github.com/theretrovault/retrovault>
-- GHCR image path: `ghcr.io/theretrovault/retrovault`
+- GHCR primary registry target: `ghcr.io/theretrovault/retrovault`
 - Installation docs: [docs/installation.md](docs/installation.md)
 - Release process: [docs/releasing.md](docs/releasing.md)
+- Community/support for Phase 1: GitHub Issues + GitHub Discussions
 
-Docker Hub is planned as a Phase 1 convenience mirror once the official namespace/repo and publish credentials are finalized.
+Important current truth:
+- GHCR is the intended primary registry surface
+- Docker Hub is a later convenience mirror at `theretrovault/retrovault`
+- there is not yet a live GHCR publish workflow in GitHub Actions, so the current docs describe the target state and implementation path rather than pretending the registry automation is already complete
 
 ## Support
 
