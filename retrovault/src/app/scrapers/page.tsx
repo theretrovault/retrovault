@@ -43,6 +43,12 @@ function fmtTime(iso: string | null) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+function fmtLastSuccess(scraper: Scraper) {
+  if (!scraper.lastRun) return 'Never';
+  if (scraper.lastRunStatus === 'success') return fmtTime(scraper.lastRun);
+  return 'Last run failed';
+}
+
 function cadenceLabel(s: Scraper): string {
   if (s.cadenceType === "hourly") return `Every ${s.cadenceHour}h`;
   if (s.cadenceType === "daily") return `Daily at ${s.cadenceHour}:00`;
@@ -233,7 +239,11 @@ export default function ScrapersPage() {
                     </div>
                     <div>
                       <div className="text-zinc-400 font-terminal text-sm">{fmtTime(s.lastRun)}</div>
-                      <div className="text-zinc-700 font-terminal text-xs">last run</div>
+                      <div className="text-zinc-700 font-terminal text-xs">last attempt</div>
+                    </div>
+                    <div>
+                      <div className={`font-terminal text-sm ${s.lastRunStatus === 'success' ? 'text-emerald-400' : 'text-zinc-500'}`}>{fmtLastSuccess(s)}</div>
+                      <div className="text-zinc-700 font-terminal text-xs">last successful run</div>
                     </div>
                     <div>
                       <div className="text-zinc-400 font-terminal text-sm">{cadenceLabel(s)}</div>

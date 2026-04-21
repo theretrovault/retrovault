@@ -154,6 +154,11 @@ describe('Layout overflow — button rows must use flex-wrap', () => {
     expect(dropdownCtx).toContain('overflow-x-hidden');
   });
 
+  it('Inventory action dropdown renders sorted critic lists from all people', () => {
+    const src = readFile(path.join(SRC, 'app/inventory/page.tsx'));
+    expect(src).toContain('[...people].sort((a, b) => a.name.localeCompare(b.name)).map(p => (');
+  });
+
   // Guard against page-level headers with title+button that lack responsive wrapping
   it('All page headers with title+button use flex-wrap or flex-col sm:flex-row', () => {
     const HEADER_PAGES = [

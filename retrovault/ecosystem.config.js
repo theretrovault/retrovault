@@ -1,14 +1,20 @@
 const path = require('path');
 
 const ROOT = "/home/apesch/.openclaw/workspace/retrovault";
+const RUNTIME_ROOTS = {
+  prod: "/home/apesch/.openclaw/workspace/retrovault",
+  dev: "/home/apesch/.openclaw/workspace/retrovault-autopush/retrovault",
+  nightly: "/home/apesch/.openclaw/workspace/retrovault-nightly/retrovault",
+};
 
 function makeApp(name, runtimeEnv, port) {
   const suffix = runtimeEnv === 'prod' ? 'prod' : runtimeEnv;
+  const cwd = RUNTIME_ROOTS[runtimeEnv] || ROOT;
   return {
     name,
     script: "node_modules/.bin/next",
     args: "start",
-    cwd: ROOT,
+    cwd,
 
     instances: 1,
     exec_mode: "fork",
@@ -21,15 +27,15 @@ function makeApp(name, runtimeEnv, port) {
       RETROVAULT_ENV: runtimeEnv,
       PORT: port,
       HOSTNAME: "127.0.0.1",
-      RETROVAULT_DATA_DIR: path.join(ROOT, 'data', suffix),
-      RETROVAULT_CONFIG_PATH: path.join(ROOT, 'data', suffix, 'app.config.json'),
-      RETROVAULT_SCRAPERS_PATH: path.join(ROOT, 'data', suffix, 'scrapers.json'),
-      RETROVAULT_DB_PATH: path.join(ROOT, 'data', suffix, 'retrovault.db'),
-      DATABASE_URL: `file:${path.join(ROOT, 'data', suffix, 'retrovault.db')}`,
+      RETROVAULT_DATA_DIR: path.join(cwd, 'data', suffix),
+      RETROVAULT_CONFIG_PATH: path.join(cwd, 'data', suffix, 'app.config.json'),
+      RETROVAULT_SCRAPERS_PATH: path.join(cwd, 'data', suffix, 'scrapers.json'),
+      RETROVAULT_DB_PATH: path.join(cwd, 'data', suffix, 'retrovault.db'),
+      DATABASE_URL: `file:${path.join(cwd, 'data', suffix, 'retrovault.db')}`,
     },
 
-    out_file: path.join(ROOT, 'logs', `${name}-out.log`),
-    error_file: path.join(ROOT, 'logs', `${name}-err.log`),
+    out_file: path.join(cwd, 'logs', `${name}-out.log`),
+    error_file: path.join(cwd, 'logs', `${name}-err.log`),
     merge_logs: true,
     log_date_format: "YYYY-MM-DD HH:mm:ss",
 

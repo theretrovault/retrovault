@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { DemoProvider, useDemoMode } from "@/components/DemoMode";
-import { TooltipProvider, useTooltips } from "@/components/Tooltip";
+import { Tip, TooltipProvider, useTooltips } from "@/components/Tooltip";
 import { AppConfigProvider, useAppConfig } from "@/components/AppConfig";
 import { StandaloneNav } from "@/components/StandaloneNav";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -217,25 +217,33 @@ function MCLayout({ children }: { children: React.ReactNode }) {
 
             {/* Footer controls */}
             <div className="mt-3 pt-3 border-t border-green-900/50 space-y-1 shrink-0">
-              <button onClick={() => setSearchOpen(true)}
-                className="w-full text-left px-3 py-1 font-terminal text-xs text-green-700 hover:text-green-400 hover:bg-green-900/10 transition-colors uppercase">
-                🔍 SEARCH <span className='opacity-40 ml-1'>/</span>
-              </button>
-              <button onClick={() => { setBugContext(null); setBugOpen(true); }}
-                className="w-full text-left px-3 py-1 font-terminal text-xs text-orange-700 hover:text-orange-500 hover:bg-orange-900/10 transition-colors uppercase">
-                🐛 REPORT ISSUE
-              </button>
-              <button onClick={() => startDemo()}
-                className="w-full text-left px-3 py-1 font-terminal text-xs text-yellow-600 hover:text-yellow-400 hover:bg-yellow-900/10 transition-colors uppercase">
-                ▶ DEMO MODE
-              </button>
-              <button onClick={toggleTooltips}
-                title={tooltipsEnabled ? "Tooltips are ON — hover elements to see hints. Click to disable." : "Tooltips are OFF — click to enable hover hints throughout the app."}
-                className={`w-full text-left px-3 py-1 font-terminal text-xs transition-colors uppercase ${
-                  tooltipsEnabled ? "text-blue-400 hover:text-blue-200" : "text-zinc-600 hover:text-zinc-400"
-                }`}>
-                💡 TIPS: {tooltipsEnabled ? "ON" : "OFF"}
-              </button>
+              <Tip text="Search pages, tools, and key records from anywhere in the app.">
+                <button onClick={() => setSearchOpen(true)}
+                  className="w-full text-left px-3 py-1 font-terminal text-xs text-green-700 hover:text-green-400 hover:bg-green-900/10 transition-colors uppercase">
+                  🔍 SEARCH <span className='opacity-40 ml-1'>/</span>
+                </button>
+              </Tip>
+              <Tip text="Open the bug report flow with optional context when something is broken, confusing, or worth improving.">
+                <button onClick={() => { setBugContext(null); setBugOpen(true); }}
+                  className="w-full text-left px-3 py-1 font-terminal text-xs text-orange-700 hover:text-orange-500 hover:bg-orange-900/10 transition-colors uppercase">
+                  🐛 REPORT ISSUE
+                </button>
+              </Tip>
+              <Tip text="Launch a guided walkthrough that shows off the main RetroVault surfaces and workflows.">
+                <button onClick={() => startDemo()}
+                  className="w-full text-left px-3 py-1 font-terminal text-xs text-yellow-600 hover:text-yellow-400 hover:bg-yellow-900/10 transition-colors uppercase">
+                  ▶ DEMO MODE
+                </button>
+              </Tip>
+              <Tip text={tooltipsEnabled ? "Tooltips are on. Hover supported controls and dropdown actions for extra guidance." : "Turn tooltips on to get inline help across navigation, tools, and action menus."}>
+                <button onClick={toggleTooltips}
+                  title={tooltipsEnabled ? "Tooltips are ON — hover elements to see hints. Click to disable." : "Tooltips are OFF — click to enable hover hints throughout the app."}
+                  className={`w-full text-left px-3 py-1 font-terminal text-xs transition-colors uppercase ${
+                    tooltipsEnabled ? "text-blue-400 hover:text-blue-200" : "text-zinc-600 hover:text-zinc-400"
+                  }`}>
+                  💡 TIPS: {tooltipsEnabled ? "ON" : "OFF"}
+                </button>
+              </Tip>
               <LogoutButton logout={logout} />
               <div className="flex items-center gap-2 pt-1 px-3">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>

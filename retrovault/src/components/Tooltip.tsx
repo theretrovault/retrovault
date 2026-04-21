@@ -35,15 +35,25 @@ export function TooltipProvider({ children }: { children: React.ReactNode }) {
 }
 
 // A tooltip wrapper component
-export function Tip({ text, children, className }: { text: string; children: React.ReactNode; className?: string }) {
+export function Tip({ text, children, className, href, linkLabel = 'Docs' }: { text: string; children: React.ReactNode; className?: string; href?: string; linkLabel?: string }) {
   const { enabled } = useTooltips();
   if (!enabled) return <>{children}</>;
   return (
     <div className={`group relative inline-block ${className ?? ""}`}>
       {children}
-      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 hidden group-hover:block w-max max-w-xs">
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 hidden group-hover:block w-max max-w-xs">
         <div className="bg-zinc-900 border border-green-700 text-green-300 font-terminal text-sm p-2 rounded-sm shadow-lg whitespace-normal text-center">
-          {text}
+          <div>{text}</div>
+          {href && (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-block text-cyan-300 hover:text-cyan-200 underline pointer-events-auto"
+            >
+              {linkLabel} ↗
+            </a>
+          )}
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-900" />
         </div>
       </div>

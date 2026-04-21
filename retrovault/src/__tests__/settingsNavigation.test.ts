@@ -9,7 +9,7 @@ describe('settings page navigation wiring', () => {
   it('renders a local jump nav for settings sections', () => {
     expect(src).toContain('Jump to section');
     expect(src).toContain('href={`#${section.id}`}');
-    expect(src).toContain('sticky top-2');
+    expect(src).toContain('sticky top-[76px]');
   });
 
   it('anchors the major settings sections with stable ids', () => {

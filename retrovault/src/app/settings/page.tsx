@@ -295,7 +295,7 @@ export default function SettingsPage() {
         </button>
       </header>
 
-      <nav className="sticky top-2 z-20 -mx-2 rounded border border-green-900 bg-black/95 px-2 py-3 shadow-[0_0_12px_rgba(34,197,94,0.12)] backdrop-blur">
+      <nav className="sticky top-[76px] z-30 -mx-2 rounded border border-green-900 bg-black/95 px-2 py-3 shadow-[0_0_12px_rgba(34,197,94,0.12)] backdrop-blur supports-[backdrop-filter]:bg-black/85">
         <div className="mb-2 text-zinc-500 font-terminal text-xs uppercase tracking-wide">Jump to section</div>
         <div className="flex flex-wrap gap-2">
           {settingsSections.map(section => (

@@ -25,6 +25,7 @@ import { ConsoleModal, PlatformButton } from "@/components/ConsoleModal";
 import { AddAssetModal, type AssetFormData } from "@/components/AddAssetModal";
 import { CriticProfileModal } from "@/components/CriticProfileModal";
 import { useAppConfig } from "@/components/AppConfig";
+import { Tip } from "@/components/Tooltip";
 import { getCopyMarketValue } from "@/lib/copyCondition";
 import { getPriceTrend, getTotalMarketValue, getTotalPaid } from "@/lib/marketUtils";
 
@@ -85,8 +86,8 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [sortField, setSortField] = useState<string>("platform");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortField, setSortField] = useState<string>("dateAdded");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [pageSize, setPageSize] = useState<number | "all">(100);
   const [filterAction, setFilterAction] = useState<string>("owned");
   const [platformFilter, setPlatformFilter] = useState<string>("all");
@@ -153,7 +154,12 @@ export default function InventoryPage() {
   const fetchFavorites = () => {
     fetch("/api/favorites")
       .then(r => r.json())
-      .then(d => { setPeople(d.people || []); setFavData(d.favorites || {}); setRegretData(d.regrets || {}); })
+      .then(d => {
+        const nextPeople = Array.isArray(d.people) ? d.people.filter((person: any) => person?.id && person?.name) : [];
+        setPeople(nextPeople);
+        setFavData(d.favorites || {});
+        setRegretData(d.regrets || {});
+      })
       .catch(e => console.error(e));
   };
 
@@ -441,6 +447,19 @@ export default function InventoryPage() {
       else if (sortField === "totalMarket") { av = totalMarket(a); bv = totalMarket(b); }
       else if (sortField === "sellScore") { av = getSellScore(a, minSell, maxSell) ?? -1; bv = getSellScore(b, minSell, maxSell) ?? -1; }
       else if (sortField === "buyScore") { av = getBuyScore(a, minBuy, maxBuy) ?? -1; bv = getBuyScore(b, minBuy, maxBuy) ?? -1; }
+      else if (sortField === "dateAdded") {
+        av = new Date(a.purchaseDate || 0).getTime();
+        bv = new Date(b.purchaseDate || 0).getTime();
+      }
+      else if (sortField === "gameAge") {
+        const currentYear = new Date().getFullYear();
+        const getReleaseYear = (item: GameItem) => {
+          const match = item.notes?.match(/releaseYear:(\d{4})/i);
+          return match ? Number(match[1]) : null;
+        };
+        av = getReleaseYear(a) ? currentYear - getReleaseYear(a)! : -1;
+        bv = getReleaseYear(b) ? currentYear - getReleaseYear(b)! : -1;
+      }
       else { av = (a as any)[sortField] ?? ""; bv = (b as any)[sortField] ?? ""; }
       if (typeof av === "string") return sortOrder === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
       return sortOrder === "asc" ? av - bv : bv - av;
@@ -610,8 +629,16 @@ export default function InventoryPage() {
 
   // SortHeader hoisted to module scope above
   const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      return;
+    }
     setSortField(field);
-    setSortOrder(sortField === field && sortOrder === 'asc' ? 'desc' : 'asc');
+    if (field === 'dateAdded' || field === 'gameAge' || field === 'qty' || field === 'totalPaid' || field === 'totalMarket' || field === 'sellScore' || field === 'buyScore') {
+      setSortOrder('desc');
+    } else {
+      setSortOrder('asc');
+    }
   };
 
   return (
@@ -660,14 +687,14 @@ export default function InventoryPage() {
             placeholder="SEARCH VAULT..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-zinc-950 border-2 border-green-800 text-green-400 p-2 font-terminal text-xl uppercase w-full focus:outline-none focus:border-green-500"
+            className="bg-zinc-950 border-2 border-green-800 text-green-400 p-2 font-terminal text-xl uppercase w-full focus:outline-none focus:border-green-400 focus:bg-green-950/20 focus:shadow-[0_0_12px_rgba(34,197,94,0.25)] transition-all"
           />
           <input
             type="text"
             placeholder="#tag or @critic..."
             value={tagSearch}
             onChange={(e) => setTagSearch(e.target.value)}
-            className="bg-zinc-950 border-2 border-purple-900 text-purple-300 p-2 font-terminal text-xl w-full sm:max-w-xs focus:outline-none focus:border-purple-500"
+            className="bg-zinc-950 border-2 border-purple-900 text-purple-300 p-2 font-terminal text-xl w-full sm:max-w-xs focus:outline-none focus:border-purple-400 focus:bg-purple-950/20 focus:shadow-[0_0_12px_rgba(168,85,247,0.25)] transition-all"
           />
         </div>
         <div className="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
@@ -686,17 +713,34 @@ export default function InventoryPage() {
             <option value="sell">ACTION: SELL (DUPS)</option>
             <option value="hold">ACTION: HOLD</option>
             {people.length > 0 && <option disabled>── FAVORITES ──</option>}
-            {people.map(p => (
+            {[...people].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
               <option key={p.id} value={`fav_${p.id}`}>
                 ⭐ {p.name.toUpperCase()}'S FAVORITES
               </option>
             ))}
             {people.length > 0 && <option disabled>── REGRETS ──</option>}
-            {people.map(p => (
+            {[...people].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
               <option key={p.id} value={`reg_${p.id}`}>
                 👎 {p.name.toUpperCase()}'S REGRETS
               </option>
             ))}
+          </select>
+          <select value={`${sortField}:${sortOrder}`} onChange={(e) => {
+            const [field, order] = e.target.value.split(':');
+            setSortField(field);
+            setSortOrder(order as 'asc' | 'desc');
+          }} className="bg-zinc-950 border-2 border-cyan-800 text-cyan-300 p-2 font-terminal text-xl uppercase focus:outline-none cursor-pointer">
+            <option value="dateAdded:desc">SORT: DATE ADDED (NEWEST)</option>
+            <option value="dateAdded:asc">SORT: DATE ADDED (OLDEST)</option>
+            <option value="gameAge:desc">SORT: GAME AGE (OLDEST)</option>
+            <option value="gameAge:asc">SORT: GAME AGE (NEWEST)</option>
+            <option value="title:asc">SORT: TITLE (A-Z)</option>
+            <option value="platform:asc">SORT: SYSTEM (A-Z)</option>
+            <option value="qty:desc">SORT: QUANTITY (HIGH-LOW)</option>
+            <option value="totalPaid:desc">SORT: MONEY IN (HIGH-LOW)</option>
+            <option value="totalMarket:desc">SORT: MARKET VALUE (HIGH-LOW)</option>
+            <option value="sellScore:desc">SORT: SELL SCORE (BEST)</option>
+            <option value="buyScore:desc">SORT: BUY SCORE (BEST)</option>
           </select>
           <select value={pageSize} onChange={(e) => setPageSize(e.target.value === "all" ? "all" : Number(e.target.value))} className="bg-zinc-950 border-2 border-green-800 text-green-400 p-2 font-terminal text-xl uppercase focus:outline-none cursor-pointer">
             <option value={100}>SHOW: 100</option>
@@ -830,28 +874,36 @@ export default function InventoryPage() {
                       </button>
                       {openMenuId === item.id && (
                         <div className="absolute right-0 top-full mt-1 z-20 bg-zinc-900 border-2 border-green-800 rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.5)] w-64 max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto overflow-x-hidden text-left" data-menu>
-                          <button
-                            onClick={() => { fetchRow(item); setOpenMenuId(null); }}
-                            disabled={fetchingRows.has(item.id)}
-                            className="w-full px-4 py-2 text-emerald-400 hover:bg-green-900/40 font-terminal text-lg disabled:opacity-50 text-left"
-                            title={item.lastFetched ? `Last: ${new Date(item.lastFetched).toLocaleString()}` : "Fetch price"}
-                          >
-                            {fetchingRows.has(item.id) ? "FETCHING..." : "📡 FETCH PRICE"}
-                          </button>
-                          <button onClick={() => { openEdit(item); setOpenMenuId(null); }} className="w-full px-4 py-2 text-yellow-400 hover:bg-green-900/40 font-terminal text-lg text-left">
-                            ✏️ EDIT
-                          </button>
-                          <a href={ebay(item.title, item.platform)} target="_blank" rel="noopener noreferrer" onClick={() => setOpenMenuId(null)} className="block px-4 py-2 text-blue-400 hover:bg-green-900/40 font-terminal text-lg">
-                            🛒 EBAY
-                          </a>
-                          <a href={pc(item.title, item.platform)} target="_blank" rel="noopener noreferrer" onClick={() => setOpenMenuId(null)} className="block px-4 py-2 text-yellow-400 hover:bg-green-900/40 font-terminal text-lg">
-                            📊 PRICECHARTING
-                          </a>
+                          <Tip text="Pull a fresh live market lookup for this title and save the latest PriceCharting data into the vault." href="https://docs.openclaw.ai">
+                            <button
+                              onClick={() => { fetchRow(item); setOpenMenuId(null); }}
+                              disabled={fetchingRows.has(item.id)}
+                              className="w-full px-4 py-2 text-emerald-400 hover:bg-green-900/40 font-terminal text-lg disabled:opacity-50 text-left"
+                              title={item.lastFetched ? `Last: ${new Date(item.lastFetched).toLocaleString()}` : "Fetch price"}
+                            >
+                              {fetchingRows.has(item.id) ? "FETCHING..." : "📡 FETCH PRICE"}
+                            </button>
+                          </Tip>
+                          <Tip text="Edit copies, condition, cost, notes, and other stored details for this entry.">
+                            <button onClick={() => { openEdit(item); setOpenMenuId(null); }} className="w-full px-4 py-2 text-yellow-400 hover:bg-green-900/40 font-terminal text-lg text-left">
+                              ✏️ EDIT
+                            </button>
+                          </Tip>
+                          <Tip text="Open a pre-filled eBay search for this title and platform to compare current listings.">
+                            <a href={ebay(item.title, item.platform)} target="_blank" rel="noopener noreferrer" onClick={() => setOpenMenuId(null)} className="block px-4 py-2 text-blue-400 hover:bg-green-900/40 font-terminal text-lg">
+                              🛒 EBAY
+                            </a>
+                          </Tip>
+                          <Tip text="Open the full PriceCharting page for this game if you want to inspect comps and source data directly.">
+                            <a href={pc(item.title, item.platform)} target="_blank" rel="noopener noreferrer" onClick={() => setOpenMenuId(null)} className="block px-4 py-2 text-yellow-400 hover:bg-green-900/40 font-terminal text-lg">
+                              📊 PRICECHARTING
+                            </a>
+                          </Tip>
                             <div className="border-t border-green-900/50 mt-1 pt-1">
                               {people.length > 0 ? (
                                 <>
                                   <div className="px-4 py-1 text-yellow-500 font-terminal text-sm">⭐ FAVORITES:</div>
-                              {people.map(p => (
+                              {[...people].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
                                 <button
                                   key={p.id}
                                   onClick={() => { toggleFavorite(p.id, item.id); }}
@@ -865,7 +917,7 @@ export default function InventoryPage() {
                                 </button>
                               ))}
                                   <div className="px-4 py-1 text-red-400 font-terminal text-sm mt-1">👎 REGRETS:</div>
-                                  {people.map(p => (
+                                  {[...people].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
                                     <button
                                       key={p.id}
                                       onClick={() => { toggleRegret(p.id, item.id); }}
@@ -883,9 +935,11 @@ export default function InventoryPage() {
                                 <p className="px-4 py-2 text-zinc-600 font-terminal text-sm">Add people via ⭐ FAVORITES button to track.</p>
                               )}
                             </div>
-                          <button onClick={() => { deleteItem(item.id); setOpenMenuId(null); }} className="w-full px-4 py-2 text-red-500 hover:bg-red-900/30 font-terminal text-lg text-left border-t border-green-900/50 mt-1">
-                            🗑️ DELETE
-                          </button>
+                          <Tip text="Delete this vault entry. Use with caution, this removes the stored record after confirmation.">
+                            <button onClick={() => { deleteItem(item.id); setOpenMenuId(null); }} className="w-full px-4 py-2 text-red-500 hover:bg-red-900/30 font-terminal text-lg text-left border-t border-green-900/50 mt-1">
+                              🗑️ DELETE
+                            </button>
+                          </Tip>
                         </div>
                       )}
                     </td>
