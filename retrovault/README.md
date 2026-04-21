@@ -127,6 +127,7 @@ You know this already. That's why you're here.
 
 > **📋 [Installation guide →](docs/installation.md)** — Docker, Debian/Ubuntu, CentOS/RHEL, macOS, Windows, Raspberry Pi
 > **🛠️ [Developer guide →](docs/developer-guide.md)** — Architecture, CI/CD, testing, releases, contributing
+> **🚀 [Product availability docs →](docs/README.md)** — GitHub public-surface, GHCR, Docker Hub, and community rollout planning
 
 ### 🐳 Docker (easiest — all platforms)
 
@@ -279,6 +280,23 @@ Knowledge drawn from the retro game collecting community — r/gamecollecting, r
 MIT — use it, fork it, build on it.
 
 ---
+
+## Distribution and community
+
+RetroVault's Phase 1 availability plan is documented in:
+- [Docs index](docs/README.md)
+- [GitHub public-surface recommendation](docs/github-public-surface-recommendation.md)
+- [GHCR readiness](docs/ghcr-readiness.md)
+- [Docker Hub readiness](docs/docker-hub-readiness.md)
+- [Discord and community recommendation](docs/discord-community-recommendation.md)
+
+Current primary public surfaces:
+- GitHub source of truth: <https://github.com/theretrovault/retrovault>
+- GHCR image path: `ghcr.io/theretrovault/retrovault`
+- Installation docs: [docs/installation.md](docs/installation.md)
+- Release process: [docs/releasing.md](docs/releasing.md)
+
+Docker Hub is planned as a Phase 1 convenience mirror once the official namespace/repo and publish credentials are finalized.
 
 ## Support
 
