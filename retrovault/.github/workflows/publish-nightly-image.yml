@@ -40,11 +40,11 @@ jobs:
       - name: Setup env data
         run: node scripts/setup-env-data.mjs
 
-      - name: Generate Prisma client
-        run: npm run prisma:generate
-
       - name: Apply Prisma migrations
         run: npx prisma migrate deploy
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
 
       - name: Run tests
         run: npm test
