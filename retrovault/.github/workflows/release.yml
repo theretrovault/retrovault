@@ -1,9 +1,9 @@
-name: Release from prod tag
+name: Release and publish registries from prod tag
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
 
 env:
   GHCR_REGISTRY: ghcr.io
