@@ -32,6 +32,9 @@ jobs:
       - name: Generate Prisma client
         run: npm run prisma:generate
 
+      - name: Apply Prisma migrations
+        run: npx prisma migrate deploy
+
       - name: Run tests
         run: npm test
 
