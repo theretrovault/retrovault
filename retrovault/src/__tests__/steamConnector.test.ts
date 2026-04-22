@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
+import path from 'path';
 
-const PAGE = '/home/apesch/.openclaw/workspace/retrovault/src/app/steam/page.tsx';
-const LIB = '/home/apesch/.openclaw/workspace/retrovault/src/lib/steam.ts';
-const SEARCH = '/home/apesch/.openclaw/workspace/retrovault/src/components/GlobalSearch.tsx';
+const PAGE = path.resolve(import.meta.dirname, '../app/steam/page.tsx');
+const LIB = path.resolve(import.meta.dirname, '../lib/steam.ts');
+const SEARCH = path.resolve(import.meta.dirname, '../components/GlobalSearch.tsx');
 
 describe('steam connector groundwork', () => {
   const page = fs.readFileSync(PAGE, 'utf8');

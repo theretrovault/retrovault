@@ -467,7 +467,7 @@ The in-process scheduler (`src/lib/scheduler.ts`) runs automatically when the Ne
 3. Write output to `data/yourdata.json`
 4. Log to `logs/yourdata.log`
 5. Register in `data/scrapers.json`
-6. Add `HEARTBEAT.md` cron entry if it should run automatically
+6. Register its runtime schedule in the appropriate app scheduler/config path if it should run automatically
 
 ---
 

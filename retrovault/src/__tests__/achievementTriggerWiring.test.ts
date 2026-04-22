@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-const root = '/home/apesch/.openclaw/workspace/retrovault/src';
+const root = path.resolve(import.meta.dirname, '..');
 
 function read(rel: string) {
   return fs.readFileSync(path.join(root, rel), 'utf8');

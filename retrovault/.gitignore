@@ -51,3 +51,11 @@ data/overwrite.json
 data/test.json
 coverage/
 fixtures/
+AGENTS.md
+CLAUDE.md
+SOUL.md
+USER.md
+MEMORY.md
+HEARTBEAT.md
+TOOLS.md
+DREAMS.md

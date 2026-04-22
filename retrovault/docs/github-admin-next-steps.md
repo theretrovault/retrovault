@@ -88,7 +88,7 @@ Recommended environment secrets:
 - optional `DEPLOY_PORT`
 
 Recommended environment variables:
-- `DEPLOY_APP_DIR` (defaults to `/home/apesch/.openclaw/workspace/retrovault` if unset)
+- `DEPLOY_APP_DIR` (set this explicitly to your deployment checkout path, for example `/srv/retrovault`)
 
 Suggested environment mapping:
 - environment `dev` -> deploys `bash scripts/deploy.sh dev autopush`

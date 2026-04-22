@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
+import path from 'path';
 
-const inventorySrc = fs.readFileSync('/home/apesch/.openclaw/workspace/retrovault/src/app/inventory/page.tsx', 'utf8');
-const shellSrc = fs.readFileSync('/home/apesch/.openclaw/workspace/retrovault/src/components/AppShell.tsx', 'utf8');
-const tooltipSrc = fs.readFileSync('/home/apesch/.openclaw/workspace/retrovault/src/components/Tooltip.tsx', 'utf8');
+const inventorySrc = fs.readFileSync(path.resolve(import.meta.dirname, '../app/inventory/page.tsx'), 'utf8');
+const shellSrc = fs.readFileSync(path.resolve(import.meta.dirname, '../components/AppShell.tsx'), 'utf8');
+const tooltipSrc = fs.readFileSync(path.resolve(import.meta.dirname, '../components/Tooltip.tsx'), 'utf8');
 
 describe('tooltip coverage for key tool actions', () => {
   it('supports optional docs links in generic tooltips', () => {

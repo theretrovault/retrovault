@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
+import path from 'path';
 
-const PAGE = '/home/apesch/.openclaw/workspace/retrovault/src/app/scrapers/page.tsx';
+const PAGE = path.resolve(import.meta.dirname, '../app/scrapers/page.tsx');
 
 describe('scraper status clarity', () => {
   const src = fs.readFileSync(PAGE, 'utf8');
