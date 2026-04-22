@@ -13,12 +13,8 @@ Publish RetroVault to Docker Hub using the same release discipline as GitHub/GHC
 ## Minimum requirements
 
 ### 1. Official Docker Hub repo
-Need Alex to confirm/create:
-- Docker Hub namespace/org
-- target repo name
-
-Recommended target shape:
-- `<namespace>/retrovault`
+Confirmed target:
+- `retrovault/retrovault`
 
 ### 2. Automation credentials
 Need Alex to provide/store as GitHub secrets:
@@ -26,11 +22,13 @@ Need Alex to provide/store as GitHub secrets:
 - Docker Hub access token
 
 ### 3. Tag policy
-Recommended mirror tags:
+Current mirror scope:
 - `latest`
-- `nightly`
 - semver tags such as `2.1.25`
 - optional `v2.1.25` mirror tag if we want exact Git tag matching too
+
+Explicitly not mirrored right now:
+- `nightly`
 
 ### 4. Publish authority
 Recommended rule:
@@ -47,7 +45,7 @@ Examples of likely needed secrets:
 
 Potential publish points:
 - stable release tags from `prod`
-- optional nightly publication from `nightly`
+- optional nightly publication from `nightly` later if desired
 
 ---
 
@@ -64,4 +62,4 @@ After setup:
 
 ## Recommendation
 
-Do not publish Docker Hub first and clean it up later. Treat it as a mirror that should launch cleanly, with the same trust and predictability as GitHub/GHCR.
+Do not publish Docker Hub first and clean it up later. Treat it as a mirror that should launch cleanly, with the same trust and predictability as GitHub/GHCR. Current implementation should mirror stable GHCR release tags only.
