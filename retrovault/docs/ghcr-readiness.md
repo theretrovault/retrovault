@@ -30,10 +30,10 @@ Recommended behavior:
 
 ## What is already true
 
-Current project context strongly suggests GHCR is already part of the intended surface:
+Current project context now confirms GHCR is an active stable release surface:
 - docs reference `ghcr.io/theretrovault/retrovault:latest`
 - Unraid template already points at GHCR
-- GitHub Actions release/CI flow exists and is close to supporting public-facing release discipline
+- `release.yml` now publishes stable GHCR tags on `v*` releases
 
 ---
 
@@ -47,10 +47,10 @@ Current project context strongly suggests GHCR is already part of the intended s
 - [ ] image can be verified with a simple pull + compose/up path
 
 ### Workflow expectations
-- [ ] tagged releases build and publish stable image tags
+- [x] tagged releases build and publish stable image tags
 - [ ] nightly branch/promotion can publish `nightly` if desired
-- [ ] workflow avoids accidentally publishing unstable dev work as `latest`
-- [ ] image publishing success is visible in Actions logs/releases
+- [x] workflow avoids accidentally publishing unstable dev work as `latest`
+- [x] image publishing success is visible in Actions logs/releases
 
 ### Trust / operator expectations
 - [ ] install docs show GHCR pull examples
@@ -73,10 +73,8 @@ Current project context strongly suggests GHCR is already part of the intended s
 
 ## Work that needs Alex
 
-- confirm the final official package path/ownership
-- make the GHCR package public in GitHub UI if still private
 - confirm whether `nightly` should publish publicly or remain internal for now
-- decide whether both `X.Y.Z` and `vX.Y.Z` tags should be published, or only one style
+- decide whether both `X.Y.Z` and `vX.Y.Z` tags should be published long-term, or only one style
 
 ---
 
@@ -105,7 +103,7 @@ For a stable release:
 
 ## Recommended next step
 
-Keep GHCR as the primary container registry surface, then mirror to Docker Hub for discoverability and user habit. GHCR should remain the most GitHub-native and automation-friendly container home.
+Keep GHCR as the primary container registry surface, validate the first stable published tags end-to-end, then mirror to Docker Hub for discoverability and user habit. GHCR should remain the most GitHub-native and automation-friendly container home.
 
 Companion docs:
 - `docs/github-ui-checklist.md`

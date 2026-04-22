@@ -65,12 +65,22 @@ The target release automation is:
 - promotion from `autopush` -> `nightly`
 - manual promotion from `nightly` -> `prod`
 - release tagging from `prod`
+- stable GHCR image publish from tagged releases on `prod`
 
 If that workflow is not yet fully present in the repo, treat this document as the intended operating model and verify branch, tests, and build manually before tagging.
 
 ### 5. Verify
 
 Check `github.com/theretrovault/retrovault/releases` — the new release should appear within ~2 minutes.
+
+For tagged releases, GitHub Actions now also publishes the container image to GHCR:
+- `ghcr.io/theretrovault/retrovault:latest`
+- `ghcr.io/theretrovault/retrovault:X.Y.Z`
+- `ghcr.io/theretrovault/retrovault:vX.Y.Z`
+
+After tagging, verify both:
+- the GitHub Release exists
+- the expected GHCR image tags are present
 
 ---
 
@@ -114,5 +124,6 @@ The dry run is intentional. Restore is a sharp tool and should preview what it w
 - Changelog updated with user-facing description
 - No sensitive data in committed files
 - Docker build test passes (if Dockerfile changed)
+- GHCR publish succeeds for the release tag and produces the expected stable tags
 - Relevant docs updated in the same workstream (`README.md`, `docs/architecture.md`, `docs/developer-guide.md`, `docs/installation.md`, `docs/releasing.md`, env/branching docs, or operator checklists as applicable)
 - If storage/runtime behavior changed, docs explicitly note whether the app is still hybrid JSON/SQLite or fully migrated
