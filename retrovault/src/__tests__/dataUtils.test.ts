@@ -12,8 +12,9 @@ import fs from 'fs';
 import path from 'path';
 
 import { readDataFile, writeDataFile, dataFileExists } from '@/lib/data';
+import { getDataDir } from '@/lib/runtimeDataPaths';
 
-const DATA_DIR  = path.join(process.cwd(), 'data');
+const DATA_DIR = getDataDir();
 const TEST_PREFIX = '_test_';
 
 afterEach(() => {
