@@ -1,9 +1,7 @@
-name: Publish Docker Image
+name: Publish Docker Image (manual only)
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'  # Triggers on release tags
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -15,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write  # Needed to push to GHCR
+      packages: write
 
     steps:
       - name: Checkout
@@ -43,10 +41,12 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest
+            type=raw,value=manual
+          labels: |
+            org.opencontainers.image.title=RetroVault
+            org.opencontainers.image.description=A self-hosted command center for retro game collectors.
+            org.opencontainers.image.vendor=RetroVault
+            org.opencontainers.image.licenses=MIT
 
       - name: Build and push
         uses: docker/build-push-action@v5
