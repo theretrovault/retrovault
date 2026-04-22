@@ -9,12 +9,8 @@ This document defines what RetroVault should look like on Docker Hub and what re
 Make RetroVault available on Docker Hub because many self-hosters search there first, even if GHCR remains the more natural primary registry.
 
 Recommended canonical Docker Hub repo shape:
-- org or user namespace dedicated to RetroVault
-- image name aligned with GitHub/GHCR naming where possible
-
-Examples:
-- `theretrovault/retrovault`
-- or similar canonical namespace chosen by Alex
+- official repo path: `retrovault/retrovault`
+- image naming should mirror GHCR tags as closely as possible
 
 ---
 
@@ -31,14 +27,17 @@ GHCR can remain the more GitHub-native primary source of truth for image publish
 
 ## Desired tag model
 
-Mirror GHCR as closely as possible:
+Mirror GHCR as closely as possible for stable releases:
 - `latest`
-- `nightly`
 - semver tags like `2.1.25`
 - optional `v2.1.25` mirror tag if GHCR keeps both styles
 
+Current scope decision:
+- stable only for Docker Hub right now
+- `nightly` remains GHCR-only for now
+
 Rule of thumb:
-- same image content across GHCR and Docker Hub for equivalent tags
+- same image content across GHCR and Docker Hub for equivalent stable tags
 - avoid letting Docker Hub drift into a separate manual release path
 
 ---
@@ -53,10 +52,10 @@ Rule of thumb:
 - [ ] install example is visible in Docker Hub description
 
 ### Automation
-- [ ] GitHub Actions can authenticate to Docker Hub
-- [ ] stable release tags publish automatically
-- [ ] optional nightly tag publish behavior is defined
-- [ ] no manual-only publish process unless intentionally temporary
+- [x] GitHub Actions can authenticate to Docker Hub
+- [x] stable release tags publish automatically
+- [x] optional nightly tag publish behavior is defined
+- [x] no manual-only publish process unless intentionally temporary
 
 ### Trust / operator experience
 - [ ] docs explain persistence volumes and environment expectations
@@ -99,9 +98,7 @@ For install, upgrade, and backup/restore guidance, see the GitHub README and doc
 
 ## Work that needs Alex
 
-- create or confirm the official Docker Hub namespace/repo
-- provide Docker Hub automation token/secrets if CI publishing is desired now
-- confirm whether nightly images should also publish publicly to Docker Hub
+- confirm whether nightly images should also publish publicly to Docker Hub later
 
 ---
 
@@ -109,7 +106,7 @@ For install, upgrade, and backup/restore guidance, see the GitHub README and doc
 
 ### Pull test
 ```bash
-docker pull <dockerhub-namespace>/retrovault:latest
+docker pull retrovault/retrovault:latest
 ```
 
 ### Install test
@@ -128,4 +125,4 @@ For each stable release:
 
 ## Recommendation
 
-Use Docker Hub as a public convenience mirror, not as a separate release authority. Publish from the same GitHub-driven automation path that feeds GHCR so users get consistency instead of registry drift.
+Use Docker Hub as a public convenience mirror, not as a separate release authority. Publish from the same GitHub-driven automation path that feeds GHCR so users get consistency instead of registry drift. Current implementation scope is stable-only mirroring to `retrovault/retrovault`.

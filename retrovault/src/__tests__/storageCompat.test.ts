@@ -1,26 +1,52 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
-
-import prisma from '@/lib/prisma';
-import { writeDataFile } from '@/lib/data';
-import {
-  addWatchlistCompat,
-  createInventoryCompat,
-  deleteInventoryCompat,
-  deleteWatchlistCompat,
-  readInventoryCompat,
-  readWatchlistCompat,
-  updateInventoryCompat,
-  updateWatchlistCompat,
-} from '@/lib/storageCompat';
+import os from 'os';
+import path from 'path';
 
 function uniqueId(prefix: string) {
   return `${prefix}-${randomUUID()}`;
 }
 
 describe('storageCompat', () => {
+  const testRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'retrovault-storage-compat-'));
+  const dataDir = path.join(testRoot, 'data');
+  const dbPath = path.join(dataDir, 'retrovault.db');
+  const configPath = path.join(dataDir, 'app.config.json');
+  const scrapersPath = path.join(dataDir, 'scrapers.json');
+
+  beforeAll(async () => {
+    vi.resetModules();
+
+    fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(configPath, JSON.stringify({}, null, 2));
+    fs.writeFileSync(scrapersPath, JSON.stringify({}, null, 2));
+    if (!fs.existsSync(dbPath)) {
+      fs.writeFileSync(dbPath, '');
+    }
+
+    process.env.RETROVAULT_ENV = 'test';
+    process.env.RETROVAULT_DATA_DIR = dataDir;
+    process.env.RETROVAULT_DB_PATH = dbPath;
+    process.env.RETROVAULT_CONFIG_PATH = configPath;
+    process.env.RETROVAULT_SCRAPERS_PATH = scrapersPath;
+    process.env.DATABASE_URL = `file:${dbPath}`;
+    process.env.RETROVAULT_INVENTORY_PATH = path.join(dataDir, 'inventory.json');
+
+    const { execFileSync } = await import('child_process');
+    execFileSync('npx', ['prisma', 'migrate', 'deploy'], {
+      cwd: path.resolve(import.meta.dirname, '../..'),
+      env: process.env,
+      stdio: 'pipe',
+    });
+  });
+
   beforeEach(async () => {
+    vi.resetModules();
+
+    const { default: prisma } = await import('@/lib/prisma');
+    const { writeDataFile } = await import('@/lib/data');
+
     await prisma.priceHistory.deleteMany();
     await prisma.gameCopy.deleteMany();
     await prisma.game.deleteMany();
@@ -29,6 +55,7 @@ describe('storageCompat', () => {
   });
 
   it('round-trips inventory through Prisma with legacy-compatible shape', async () => {
+    const { createInventoryCompat, readInventoryCompat } = await import('@/lib/storageCompat');
     const id = uniqueId('game');
 
     await createInventoryCompat({
@@ -54,6 +81,7 @@ describe('storageCompat', () => {
   });
 
   it('updates and deletes inventory records through compat helpers', async () => {
+    const { createInventoryCompat, updateInventoryCompat, deleteInventoryCompat, readInventoryCompat } = await import('@/lib/storageCompat');
     const id = uniqueId('game');
     await createInventoryCompat({ id, title: 'Ecco', platform: 'Genesis', copies: [] });
 
@@ -74,6 +102,8 @@ describe('storageCompat', () => {
   });
 
   it('merges create requests that match an existing title/platform even when the incoming id is different', async () => {
+    const { createInventoryCompat, readInventoryCompat } = await import('@/lib/storageCompat');
+
     await createInventoryCompat({
       id: uniqueId('vp'),
       title: 'Virtual Pinball',
@@ -103,6 +133,7 @@ describe('storageCompat', () => {
   });
 
   it('preserves JSON-only inventory rows during the hybrid migration window', async () => {
+    const { createInventoryCompat, readInventoryCompat } = await import('@/lib/storageCompat');
     const prismaId = uniqueId('catalog');
     const jsonOnlyId = uniqueId('owned');
 
@@ -119,6 +150,7 @@ describe('storageCompat', () => {
       ? JSON.parse(fs.readFileSync(inventoryPath, 'utf8'))
       : [];
 
+    const { writeDataFile } = await import('@/lib/data');
     writeDataFile('inventory.json', [
       ...existing,
       {
@@ -146,6 +178,7 @@ describe('storageCompat', () => {
   });
 
   it('round-trips watchlist entries through Prisma with legacy fields', async () => {
+    const { addWatchlistCompat, updateWatchlistCompat, readWatchlistCompat, deleteWatchlistCompat } = await import('@/lib/storageCompat');
     const created = await addWatchlistCompat({
       id: uniqueId('watch'),
       title: 'Silent Hill',

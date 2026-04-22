@@ -63,6 +63,7 @@ git push origin v2.1.0
 The target release automation is:
 - CI on branch pushes
 - promotion from `autopush` -> `nightly`
+- nightly GHCR image publish from the `nightly` lane
 - manual promotion from `nightly` -> `prod`
 - release tagging from `prod`
 - stable GHCR image publish from tagged releases on `prod`
@@ -73,14 +74,23 @@ If that workflow is not yet fully present in the repo, treat this document as th
 
 Check `github.com/theretrovault/retrovault/releases` — the new release should appear within ~2 minutes.
 
-For tagged releases, GitHub Actions now also publishes the container image to GHCR:
-- `ghcr.io/theretrovault/retrovault:latest`
-- `ghcr.io/theretrovault/retrovault:X.Y.Z`
-- `ghcr.io/theretrovault/retrovault:vX.Y.Z`
+For tagged releases, GitHub Actions now also publishes the container image to:
+- GHCR
+  - `ghcr.io/theretrovault/retrovault:latest`
+  - `ghcr.io/theretrovault/retrovault:X.Y.Z`
+  - `ghcr.io/theretrovault/retrovault:vX.Y.Z`
+- Docker Hub (stable mirror)
+  - `retrovault/retrovault:latest`
+  - `retrovault/retrovault:X.Y.Z`
+  - `retrovault/retrovault:vX.Y.Z`
 
-After tagging, verify both:
-- the GitHub Release exists
+For the `nightly` lane, GitHub Actions now also publishes:
+- `ghcr.io/theretrovault/retrovault:nightly`
+
+After tagging or promoting nightly, verify:
 - the expected GHCR image tags are present
+- the expected Docker Hub stable tags are present for release tags
+- `nightly` does not overwrite `latest`
 
 ---
 

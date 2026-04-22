@@ -874,7 +874,7 @@ export default function InventoryPage() {
                       </button>
                       {openMenuId === item.id && (
                         <div className="absolute right-0 top-full mt-1 z-20 bg-zinc-900 border-2 border-green-800 rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.5)] w-64 max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto overflow-x-hidden text-left" data-menu>
-                          <Tip text="Pull a fresh live market lookup for this title and save the latest PriceCharting data into the vault." href="https://docs.openclaw.ai">
+                          <Tip text="Pull a fresh live market lookup for this title and save the latest PriceCharting data into the vault.">
                             <button
                               onClick={() => { fetchRow(item); setOpenMenuId(null); }}
                               disabled={fetchingRows.has(item.id)}

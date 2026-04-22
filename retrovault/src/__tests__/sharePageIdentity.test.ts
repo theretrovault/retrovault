@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
+import path from 'path';
 
-const PAGE = '/home/apesch/.openclaw/workspace/retrovault/src/app/share/page.tsx';
+const PAGE = path.resolve(import.meta.dirname, '../app/share/page.tsx');
 
 describe('share page public identity controls', () => {
   const src = fs.readFileSync(PAGE, 'utf8');

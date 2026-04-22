@@ -158,7 +158,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { category: "Foundation", items: [
         "Next.js app scaffolded with 8-bit green-phosphor aesthetic",
         "Collapsible sidebar navigation with icon-only collapsed mode",
-        "Memory Bank (journal) powered by MEMORY.md markdown parsing",
+        "Built-in journal and markdown-backed notes view",
         "Plex media integration for Movies, TV, and Music with IMDb/Last.fm links",
       ]},
       { category: "Game Inventory", items: [
