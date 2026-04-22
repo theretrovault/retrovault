@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import os from 'os';
@@ -15,7 +15,7 @@ describe('storageCompat', () => {
   const configPath = path.join(dataDir, 'app.config.json');
   const scrapersPath = path.join(dataDir, 'scrapers.json');
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     vi.resetModules();
 
     fs.mkdirSync(dataDir, { recursive: true });
@@ -39,6 +39,10 @@ describe('storageCompat', () => {
       env: process.env,
       stdio: 'pipe',
     });
+  });
+
+  beforeEach(async () => {
+    vi.resetModules();
 
     const { default: prisma } = await import('@/lib/prisma');
     const { writeDataFile } = await import('@/lib/data');
