@@ -16,6 +16,13 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      RETROVAULT_ENV: nightly
+      RETROVAULT_DATA_DIR: ${{ github.workspace }}/data/nightly
+      RETROVAULT_DB_PATH: ${{ github.workspace }}/data/nightly/retrovault.db
+      RETROVAULT_CONFIG_PATH: ${{ github.workspace }}/data/nightly/app.config.json
+      RETROVAULT_SCRAPERS_PATH: ${{ github.workspace }}/data/nightly/scrapers.json
+      DATABASE_URL: file:${{ github.workspace }}/data/nightly/retrovault.db
 
     steps:
       - name: Checkout
