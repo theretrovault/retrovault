@@ -6,19 +6,17 @@ This document covers the gap between current GHCR readiness docs and a real publ
 
 ## Current truth
 
-RetroVault does **not** currently have a GitHub Actions workflow that builds and publishes a container image to GHCR.
+RetroVault now has dedicated GitHub Actions workflows for GHCR publishing.
 
-Current workflows do the following:
+Current workflows now do the following:
 - `ci.yml` runs tests and build
-- `release.yml` runs tests, build, smoke, and creates a GitHub release on `v*` tags
+- `release.yml` runs tests, build, smoke, publishes stable GHCR tags, and creates a GitHub release on `v*` tags
+- `publish-nightly-image.yml` runs from `nightly`, validates the build, and publishes `ghcr.io/theretrovault/retrovault:nightly`
 - deploy/promotion workflows handle SSH deploys and live smoke validation
 
-What is missing:
-- Docker image build in Actions
-- GHCR login/auth step
-- image tag calculation and metadata
-- push to `ghcr.io/theretrovault/retrovault`
-- optional nightly image publish path
+What is still missing:
+- Docker Hub mirror workflow
+- any additional nightly verification beyond successful Actions publish/logs
 
 ---
 
@@ -54,7 +52,7 @@ Add a new workflow or extend `release.yml` to:
 8. create/update GitHub Release
 
 ### Nightly workflow
-Optionally add a separate workflow that:
+A separate workflow now:
 1. runs only from `nightly`
 2. publishes `ghcr.io/theretrovault/retrovault:nightly`
 3. never updates `latest`
@@ -103,4 +101,4 @@ Use documented compose/install path and verify:
 
 ## Recommendation
 
-Keep GHCR as the primary automated registry target and wire Docker Hub only after GHCR publishing is clean. One clean cartridge before a second cartridge, because registry drift is a lousy boss battle.
+Keep GHCR as the primary automated registry target and wire Docker Hub only after GHCR publishing is clean. Stable and nightly GHCR lanes are now separated cleanly, which is the right shape. One clean cartridge before a second cartridge, because registry drift is a lousy boss battle.

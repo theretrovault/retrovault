@@ -30,10 +30,11 @@ Recommended behavior:
 
 ## What is already true
 
-Current project context now confirms GHCR is an active stable release surface:
+Current project context now confirms GHCR is an active stable + nightly release surface:
 - docs reference `ghcr.io/theretrovault/retrovault:latest`
 - Unraid template already points at GHCR
 - `release.yml` now publishes stable GHCR tags on `v*` releases
+- `publish-nightly-image.yml` now publishes `ghcr.io/theretrovault/retrovault:nightly` from the `nightly` lane
 
 ---
 
@@ -48,7 +49,7 @@ Current project context now confirms GHCR is an active stable release surface:
 
 ### Workflow expectations
 - [x] tagged releases build and publish stable image tags
-- [ ] nightly branch/promotion can publish `nightly` if desired
+- [x] nightly branch/promotion can publish `nightly` if desired
 - [x] workflow avoids accidentally publishing unstable dev work as `latest`
 - [x] image publishing success is visible in Actions logs/releases
 
@@ -73,7 +74,6 @@ Current project context now confirms GHCR is an active stable release surface:
 
 ## Work that needs Alex
 
-- confirm whether `nightly` should publish publicly or remain internal for now
 - decide whether both `X.Y.Z` and `vX.Y.Z` tags should be published long-term, or only one style
 
 ---
@@ -99,11 +99,16 @@ For a stable release:
 - confirm GHCR package has the expected stable tags
 - confirm install docs still match actual image/tag names
 
+For a nightly publish:
+- push/promote into `nightly`
+- confirm GHCR package has the `nightly` tag
+- confirm `latest` was not touched
+
 ---
 
 ## Recommended next step
 
-Keep GHCR as the primary container registry surface, validate the first stable published tags end-to-end, then mirror to Docker Hub for discoverability and user habit. GHCR should remain the most GitHub-native and automation-friendly container home.
+Keep GHCR as the primary container registry surface, validate the first stable and nightly published tags end-to-end, then mirror to Docker Hub for discoverability and user habit. GHCR should remain the most GitHub-native and automation-friendly container home.
 
 Companion docs:
 - `docs/github-ui-checklist.md`
