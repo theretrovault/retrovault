@@ -13,9 +13,9 @@
 
 // Node.js built-ins only — no npm packages
 import { spawn } from 'child_process';
-import path from 'path';
 import fs from 'fs';
-import { getScrapersPath, LOGS_DIR } from './runtimePaths';
+import { getScrapersPath } from './runtimeDataPaths';
+import { getLogsDir, resolveLogPath, resolveProjectPath } from './runtimePaths';
 
 const DATA_FILE  = getScrapersPath();
 
@@ -91,14 +91,15 @@ export function getCronExpression(scraper: Scraper): string | null {
 export async function runScript(scraper: Scraper): Promise<void> {
   if (!scraper.script) return;
 
-  const scriptPath = path.join(process.cwd(), scraper.script);
+  const scriptPath = resolveProjectPath(scraper.script);
   if (!fs.existsSync(scriptPath)) {
     console.log(`[Scheduler] Script not found: ${scraper.script}`);
     return;
   }
 
-  if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true });
-  const logPath = path.join(process.cwd(), scraper.logFile);
+  const logsDir = getLogsDir();
+  if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+  const logPath = resolveLogPath(scraper.logFile);
 
   console.log(`[Scheduler] Starting ${scraper.name}...`);
   updateScraperStatus(scraper.id, {

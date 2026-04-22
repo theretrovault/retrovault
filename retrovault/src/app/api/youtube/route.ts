@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
-import { resolveDataPath } from '@/lib/runtimePaths';
+import { resolveDataPath } from '@/lib/runtimeDataPaths';
 
 export const dynamic = 'force-dynamic';
 
-const CACHE_FILE = resolveDataPath('youtube-cache.json');
 const CACHE_TTL_DAYS = 30; // re-fetch after 30 days
+
+function getCacheFilePath() {
+  return resolveDataPath('youtube-cache.json');
+}
 
 type CachedVideo = {
   videoId: string;
@@ -23,12 +26,14 @@ type CacheEntry = {
 };
 
 function loadCache(): Record<string, CacheEntry> {
-  if (!fs.existsSync(CACHE_FILE)) return {};
-  try { return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')); } catch { return {}; }
+  const cacheFile = getCacheFilePath();
+  if (!fs.existsSync(cacheFile)) return {};
+  try { return JSON.parse(fs.readFileSync(cacheFile, 'utf8')); } catch { return {}; }
 }
 
 function saveCache(cache: Record<string, CacheEntry>) {
-  fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+  const cacheFile = getCacheFilePath();
+  fs.writeFileSync(cacheFile, JSON.stringify(cache, null, 2));
 }
 
 function isCacheValid(entry: CacheEntry): boolean {

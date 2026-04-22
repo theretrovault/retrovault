@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import fs from 'fs';
 import crypto from 'crypto';
-import { getConfigPath, resolveDataPath } from '@/lib/runtimePaths';
+import { getConfigPath, resolveDataPath } from '@/lib/runtimeDataPaths';
 
 export const dynamic = 'force-dynamic';
 
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, message: 'Report submitted.' }); // Silent success for bots
   }
 
-  const { title, description, type, page, steps, expected, actual } = body;
+  const { title, description, type, page, steps, expected, actual, metadata } = body;
 
   // Validate
   if (!title || title.trim().length < 10) {
@@ -210,6 +210,8 @@ export async function POST(req: NextRequest) {
     steps ? `### Steps to Reproduce\n${steps.trim()}` : '',
     expected ? `### Expected Behavior\n${expected.trim()}` : '',
     actual ? `### Actual Behavior\n${actual.trim()}` : '',
+    metadata ? `### Context\n\n\
+\`\`\`json\n${JSON.stringify(metadata, null, 2)}\n\`\`\`` : '',
     '',
     `---`,
     `*Submitted via RetroVault in-app bug reporter*`,

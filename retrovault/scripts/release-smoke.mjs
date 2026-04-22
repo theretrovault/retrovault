@@ -9,9 +9,13 @@ const args = process.argv.slice(2);
 const options = {
   baseUrl: process.env.SMOKE_BASE_URL || null,
   pagePaths: ['/', '/inventory', '/analytics', '/sales'],
-  apiPaths: ['/api/auth'],
+  apiPaths: ['/api/auth', '/api/config'],
   timeoutMs: Number(process.env.SMOKE_TIMEOUT_MS || 10000),
-  assetLimit: Number(process.env.SMOKE_ASSET_LIMIT || 8),
+  assetLimit: Number(process.env.SMOKE_ASSET_LIMIT || 20),
+  retries: Number(process.env.SMOKE_RETRIES || 0),
+  retryDelayMs: Number(process.env.SMOKE_RETRY_DELAY_MS || 1500),
+  assetRetries: Number(process.env.SMOKE_ASSET_RETRIES || 1),
+  assetRetryDelayMs: Number(process.env.SMOKE_ASSET_RETRY_DELAY_MS || 750),
   assetPaths: [],
 };
 
@@ -37,6 +41,12 @@ for (let i = 0; i < args.length; i += 1) {
   } else if (arg === '--asset-limit' && next) {
     options.assetLimit = Number(next);
     i += 1;
+  } else if (arg === '--retries' && next) {
+    options.retries = Number(next);
+    i += 1;
+  } else if (arg === '--retry-delay-ms' && next) {
+    options.retryDelayMs = Number(next);
+    i += 1;
   }
 }
 
@@ -52,6 +62,10 @@ function fail(message) {
 function normalizePath(value) {
   if (!value) return '/';
   return value.startsWith('/') ? value : `/${value}`;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function fetchText(url) {
@@ -89,54 +103,124 @@ function getAssetRefsFromHtml(html) {
   return Array.from(refs);
 }
 
-async function verifyHttpMode(baseUrl) {
-  log(`Smoke testing live runtime at ${baseUrl}`);
+async function fetchJson(url) {
+  const { response, text } = await fetchText(url);
+  let data = null;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    const snippet = text.slice(0, 160).replace(/\s+/g, ' ').trim();
+    const contentType = response.headers.get('content-type') || 'unknown';
+    throw new Error(`${url} did not return valid JSON (status ${response.status}, content-type ${contentType}${snippet ? `, body: ${snippet}` : ''})`);
+  }
+  return { response, data, text };
+}
 
-  const pageAssets = new Set(options.assetPaths.map(normalizePath));
+async function verifyAssetWithRetry(baseUrl, assetPath, sourcePage) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= options.assetRetries; attempt += 1) {
+    try {
+      const url = new URL(assetPath, baseUrl).toString();
+      const { response, text } = await fetchText(url);
+      if (!response.ok) {
+        const snippet = text.slice(0, 160).replace(/\s+/g, ' ').trim();
+        throw new Error(`Asset ${assetPath} from ${sourcePage} returned ${response.status}${snippet ? ` (${snippet})` : ''}`);
+      }
+      log(`Asset ${assetPath} OK${attempt > 0 ? ` after retry ${attempt}` : ''}`);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= options.assetRetries) break;
+      log(`Asset ${assetPath} from ${sourcePage} failed attempt ${attempt + 1}, retrying in ${options.assetRetryDelayMs}ms: ${error instanceof Error ? error.message : String(error)}`);
+      await sleep(options.assetRetryDelayMs);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
+async function verifyHttpModeOnce(baseUrl) {
+  const pageAssets = new Map(options.assetPaths.map((assetPath) => [normalizePath(assetPath), 'manual']))
+  const authUrl = new URL('/api/auth', baseUrl).toString();
+  const configUrl = new URL('/api/config', baseUrl).toString();
+  const { response: authResponse, data: authData } = await fetchJson(authUrl);
+  if (!authResponse.ok) {
+    throw new Error(`/api/auth returned ${authResponse.status}`);
+  }
+  log(`API /api/auth OK (${authResponse.status})`);
+
+  const { response: configResponse, data: configData } = await fetchJson(configUrl);
+  if (!configResponse.ok) {
+    throw new Error(`/api/config returned ${configResponse.status}`);
+  }
+  log(`API /api/config OK (${configResponse.status})`);
 
   for (const pagePath of options.pagePaths.map(normalizePath)) {
     const url = new URL(pagePath, baseUrl).toString();
     const { response, text } = await fetchText(url);
 
     if (!response.ok) {
-      fail(`Page ${pagePath} returned ${response.status}`);
+      throw new Error(`Page ${pagePath} returned ${response.status}`);
     }
 
     if (!text.includes('<html')) {
-      fail(`Page ${pagePath} did not return HTML`);
+      throw new Error(`Page ${pagePath} did not return HTML`);
     }
 
     const authShellCount = (text.match(/AUTHENTICATING\.\.\./g) || []).length;
     if (authShellCount > 1) {
-      fail(`Page ${pagePath} rendered duplicate auth shells (${authShellCount})`);
+      throw new Error(`Page ${pagePath} rendered duplicate auth shells (${authShellCount})`);
+    }
+
+    if (configData && configData.auth && configData.auth.enabled === false && text.includes('/login')) {
+      throw new Error(`Page ${pagePath} rendered login-linked shell while auth is disabled`);
     }
 
     const assetRefs = getAssetRefsFromHtml(text);
     if (assetRefs.length === 0) {
-      fail(`Page ${pagePath} referenced no /_next/static assets`);
+      throw new Error(`Page ${pagePath} referenced no /_next/static assets`);
     }
 
-    assetRefs.slice(0, options.assetLimit).forEach((assetPath) => pageAssets.add(normalizePath(assetPath)));
+    assetRefs.slice(0, options.assetLimit).forEach((assetPath) => pageAssets.set(normalizePath(assetPath), pagePath));
     log(`Page ${pagePath} OK, found ${assetRefs.length} asset refs`);
   }
 
   for (const apiPath of options.apiPaths.map(normalizePath)) {
+    if (apiPath === '/api/auth' || apiPath === '/api/config') continue;
     const url = new URL(apiPath, baseUrl).toString();
     const { response } = await fetchText(url);
     if (!response.ok) {
-      fail(`API ${apiPath} returned ${response.status}`);
+      throw new Error(`API ${apiPath} returned ${response.status}`);
     }
     log(`API ${apiPath} OK (${response.status})`);
   }
 
-  for (const assetPath of pageAssets) {
-    const url = new URL(assetPath, baseUrl).toString();
-    const { response } = await fetchText(url);
-    if (!response.ok) {
-      fail(`Asset ${assetPath} returned ${response.status}`);
-    }
-    log(`Asset ${assetPath} OK`);
+  for (const [assetPath, sourcePage] of pageAssets.entries()) {
+    await verifyAssetWithRetry(baseUrl, assetPath, sourcePage);
   }
+}
+
+async function verifyHttpMode(baseUrl) {
+  log(`Smoke testing live runtime at ${baseUrl}`);
+
+  let lastError = null;
+  for (let attempt = 0; attempt <= options.retries; attempt += 1) {
+    try {
+      if (attempt > 0) {
+        log(`Retry attempt ${attempt} of ${options.retries}`);
+      }
+      await verifyHttpModeOnce(baseUrl);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= options.retries) break;
+      log(`Attempt ${attempt + 1} failed, waiting ${options.retryDelayMs}ms before retry: ${error instanceof Error ? error.message : String(error)}`);
+      await sleep(options.retryDelayMs);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 function verifyBuildMode() {

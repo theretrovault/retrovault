@@ -4,7 +4,7 @@
  */
 
 import fs from 'fs';
-import { DATA_DIR, resolveDataPath } from './runtimePaths';
+import { resolveDataPath } from './runtimeDataPaths';
 
 export function readDataFile<T>(filename: string, fallback: T): T {
   const filePath = resolveDataPath(filename);

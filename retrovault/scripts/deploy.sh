@@ -53,6 +53,11 @@ npm install --frozen-lockfile 2>/dev/null || npm install
 echo "🗂️  Ensuring env data directories exist..."
 node scripts/setup-env-data.mjs
 
+if [ "$TARGET_ENV" = "prod" ]; then
+  echo "💾 Backing up prod runtime data before deploy..."
+  node scripts/backup-runtime-data.mjs prod
+fi
+
 echo "🔨 Building production bundle..."
 npm run build
 
@@ -66,8 +71,11 @@ else
   pm2 start ecosystem.config.js --only "$PM2_APP"
 fi
 
+echo "🔥 Warming runtime and waiting for real readiness..."
+node scripts/wait-for-runtime-ready.mjs --port "$PORT" --retries 8 --retry-delay-ms 2000 --warmup-rounds 2 --warmup-delay-ms 500 --asset-limit 12 --asset-retries 4 --asset-retry-delay-ms 1000
+
 echo "🧪 Verifying live runtime after restart..."
-npm run smoke:release -- --base-url "http://127.0.0.1:$PORT"
+npm run smoke:release -- --base-url "http://localhost:$PORT" --retries 5 --retry-delay-ms 2000 --asset-limit 20
 
 echo ""
 echo "✅ RetroVault deployed!"

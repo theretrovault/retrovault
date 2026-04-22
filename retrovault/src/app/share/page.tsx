@@ -30,9 +30,22 @@ export default function SharePage() {
   const [expiryDays, setExpiryDays] = useState(30);
 
   useEffect(() => {
-    fetch("/api/config").then(r => r.json()).then(d => {
-      setConfig(d);
-      setToken(d.publicToken || "");
+    Promise.all([
+      fetch("/api/config").then(r => r.json()),
+      fetch("/api/collection-share").then(r => r.json()),
+    ]).then(([configData, shareData]) => {
+      setConfig(configData);
+      setToken(shareData.token || "");
+      if (shareData.expiresAt) {
+        const expires = new Date(shareData.expiresAt).getTime();
+        const now = Date.now();
+        const remainingDays = Math.max(0, Math.ceil((expires - now) / 86400000));
+        setExpiryDays(remainingDays || 0);
+      }
+      setConfig((prev: any) => ({
+        ...configData,
+        publicTokenExpiresAt: shareData.expiresAt || null,
+      }));
     });
   }, []);
 
@@ -56,11 +69,25 @@ export default function SharePage() {
     const expiresAt = expiryDays > 0
       ? new Date(Date.now() + expiryDays * 86400000).toISOString()
       : null;
+
     await fetch("/api/config", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...config, publicToken: token, publicTokenExpiresAt: expiresAt })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ownerName: config.ownerName || '',
+        contactEmail: config.contactEmail || '',
+        contactPhone: config.contactPhone || '',
+        shareContact: !!config.shareContact,
+        publicUrl: config.publicUrl || '',
+      })
     });
-    setConfig((prev: any) => ({ ...prev, publicToken: token, publicTokenExpiresAt: expiresAt }));
+
+    await fetch("/api/collection-share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, label: `${config?.ownerName || 'My'} Collection`, expiresAt })
+    });
+    setConfig((prev: any) => ({ ...prev, publicTokenExpiresAt: expiresAt }));
     setSaving(false);
     await generateQr();
   };
@@ -152,6 +179,35 @@ export default function SharePage() {
             {!config.publicTokenExpiresAt && (
               <p className="text-zinc-700 font-terminal text-xs mt-2">No expiry set · Saving will apply selected duration</p>
             )}
+          </div>
+
+          {/* Public page identity */}
+          <div className="bg-zinc-950 border border-zinc-700 p-4 space-y-4">
+            <p className="text-zinc-400 font-terminal text-sm uppercase">Public page identity</p>
+            <div>
+              <label className="block text-zinc-500 font-terminal text-xs uppercase mb-2">Display name</label>
+              <input type="text" value={config.ownerName || ""} onChange={e => setConfig({ ...config, ownerName: e.target.value })}
+                placeholder="Your name or store name"
+                className="w-full bg-black border-2 border-zinc-700 text-zinc-300 font-terminal text-base p-2 focus:outline-none focus:border-green-600" />
+            </div>
+            <div>
+              <label className="block text-zinc-500 font-terminal text-xs uppercase mb-2">Contact email</label>
+              <input type="email" value={config.contactEmail || ""} onChange={e => setConfig({ ...config, contactEmail: e.target.value })}
+                placeholder="you@example.com"
+                className="w-full bg-black border-2 border-zinc-700 text-zinc-300 font-terminal text-base p-2 focus:outline-none focus:border-green-600" />
+            </div>
+            <div>
+              <label className="block text-zinc-500 font-terminal text-xs uppercase mb-2">Contact phone</label>
+              <input type="text" value={config.contactPhone || ""} onChange={e => setConfig({ ...config, contactPhone: e.target.value })}
+                placeholder="Optional phone number"
+                className="w-full bg-black border-2 border-zinc-700 text-zinc-300 font-terminal text-base p-2 focus:outline-none focus:border-green-600" />
+            </div>
+            <label className="flex items-center gap-3 text-zinc-300 font-terminal text-sm cursor-pointer">
+              <input type="checkbox" checked={!!config.shareContact} onChange={e => setConfig({ ...config, shareContact: e.target.checked })}
+                className="h-4 w-4 accent-green-500" />
+              Share contact details on the public page
+            </label>
+            <p className="text-zinc-600 font-terminal text-xs">These fields still live in Settings too, but this puts them where you actually notice them while generating a live share link.</p>
           </div>
 
           {/* Public URL base */}

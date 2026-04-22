@@ -65,12 +65,22 @@ The target release automation is:
 - promotion from `autopush` -> `nightly`
 - manual promotion from `nightly` -> `prod`
 - release tagging from `prod`
+- stable GHCR image publish from tagged releases on `prod`
 
 If that workflow is not yet fully present in the repo, treat this document as the intended operating model and verify branch, tests, and build manually before tagging.
 
 ### 5. Verify
 
 Check `github.com/theretrovault/retrovault/releases` — the new release should appear within ~2 minutes.
+
+For tagged releases, GitHub Actions now also publishes the container image to GHCR:
+- `ghcr.io/theretrovault/retrovault:latest`
+- `ghcr.io/theretrovault/retrovault:X.Y.Z`
+- `ghcr.io/theretrovault/retrovault:vX.Y.Z`
+
+After tagging, verify both:
+- the GitHub Release exists
+- the expected GHCR image tags are present
 
 ---
 
@@ -82,12 +92,38 @@ Check `github.com/theretrovault/retrovault/releases` — the new release should 
 
 ---
 
+## Runtime snapshot safety
+
+Before any production update that can mutate or rely on runtime state, create a restorable runtime snapshot.
+
+Why this is broader than "back up the DB": RetroVault still has hybrid storage in active use, so rollback safety requires the full runtime state, not only SQLite.
+
+Minimum operator flow:
+
+```bash
+npm run backup:runtime -- prod
+bash scripts/deploy.sh prod prod
+```
+
+Restore flow:
+
+```bash
+npm run restore:runtime -- prod backups/runtime-data/prod-YYYY-MM-DDTHH-MM-SS-sssZ --dry-run
+npm run restore:runtime -- prod backups/runtime-data/prod-YYYY-MM-DDTHH-MM-SS-sssZ --force
+```
+
+The dry run is intentional. Restore is a sharp tool and should preview what it will overwrite before touching live runtime state.
+
+`deploy.sh` now performs the prod backup automatically before build/restart, but the explicit command is still useful for manual operator snapshots and self-hosted guidance.
+
 ## What makes a good release
 
 - All tests passing
 - `npm run build` succeeds
+- Runtime snapshot taken before prod deploy or migration work
 - Changelog updated with user-facing description
 - No sensitive data in committed files
 - Docker build test passes (if Dockerfile changed)
+- GHCR publish succeeds for the release tag and produces the expected stable tags
 - Relevant docs updated in the same workstream (`README.md`, `docs/architecture.md`, `docs/developer-guide.md`, `docs/installation.md`, `docs/releasing.md`, env/branching docs, or operator checklists as applicable)
 - If storage/runtime behavior changed, docs explicitly note whether the app is still hybrid JSON/SQLite or fully migrated

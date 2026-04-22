@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { DemoProvider, useDemoMode } from "@/components/DemoMode";
-import { TooltipProvider, useTooltips } from "@/components/Tooltip";
+import { Tip, TooltipProvider, useTooltips } from "@/components/Tooltip";
 import { AppConfigProvider, useAppConfig } from "@/components/AppConfig";
 import { StandaloneNav } from "@/components/StandaloneNav";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -89,10 +89,72 @@ function NavGroup({ group, collapsed }: { group: NavGroup; collapsed: boolean })
   );
 }
 
+function ScraperHealthChip({ onReportIssue }: { onReportIssue: (context: { title: string; description: string; metadata: Record<string, unknown> }) => void }) {
+  const [health, setHealth] = useState<{
+    degraded: boolean;
+    severity: 'info' | 'warning' | 'critical';
+    activeIssueCount: number;
+    activeIssues: Array<{ id: string; name: string; message: string; userImpact: string; lastRun: string | null; severity: 'info' | 'warning' | 'critical'; state: string }>;
+  } | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/scraper-health')
+      .then((r) => r.json())
+      .then((d) => setHealth(d))
+      .catch(() => {});
+  }, []);
+
+  if (!health?.degraded) return null;
+
+  const tone = health.severity === 'critical'
+    ? 'bg-red-950 border-red-600 text-red-300 shadow-[0_0_18px_rgba(220,38,38,0.28)]'
+    : 'bg-yellow-950 border-yellow-600 text-yellow-300 shadow-[0_0_18px_rgba(234,179,8,0.25)]';
+
+  return (
+    <div className={`fixed bottom-4 right-4 z-40 max-w-md border-2 px-4 py-3 ${tone}`}>
+      <button onClick={() => setOpen(!open)} className="w-full text-left">
+        <div className="font-terminal text-sm uppercase tracking-wide">
+          ⚠ Scraper Issues Detected ({health.activeIssueCount})
+        </div>
+        <div className="font-terminal text-xs mt-1 opacity-90">
+          {health.activeIssues[0]?.userImpact || 'Some automated data may be stale.'}
+        </div>
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-3 border-t border-current/30 pt-3">
+          {health.activeIssues.map((issue) => (
+            <div key={issue.id} className="font-terminal text-xs">
+              <div className="uppercase text-[11px] opacity-80">{issue.name}</div>
+              <div className="mt-1">{issue.message}</div>
+              <div className="mt-1 opacity-80">{issue.userImpact}</div>
+              {issue.lastRun ? <div className="mt-1 opacity-70">Last run: {new Date(issue.lastRun).toLocaleString()}</div> : null}
+            </div>
+          ))}
+          <button
+            onClick={() => onReportIssue({
+              title: `Scraper degradation: ${health.activeIssues.map((issue) => issue.name).slice(0, 2).join(', ')}`,
+              description: 'One or more RetroVault scrapers appear degraded or down. This report was opened from the scraper health chip.',
+              metadata: {
+                scraperHealth: health,
+              },
+            })}
+            className="w-full border border-current/40 px-3 py-2 font-terminal text-xs uppercase hover:bg-black/20 transition-colors"
+          >
+            Report Issue
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MCLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
+  const [bugContext, setBugContext] = useState<{ title?: string; description?: string; metadata?: Record<string, unknown> } | null>(null);
   const pathname = usePathname();
   const { start: startDemo } = useDemoMode();
   const { enabled: tooltipsEnabled, toggle: toggleTooltips } = useTooltips();
@@ -155,25 +217,33 @@ function MCLayout({ children }: { children: React.ReactNode }) {
 
             {/* Footer controls */}
             <div className="mt-3 pt-3 border-t border-green-900/50 space-y-1 shrink-0">
-              <button onClick={() => setSearchOpen(true)}
-                className="w-full text-left px-3 py-1 font-terminal text-xs text-green-700 hover:text-green-400 hover:bg-green-900/10 transition-colors uppercase">
-                🔍 SEARCH <span className='opacity-40 ml-1'>/</span>
-              </button>
-              <button onClick={() => setBugOpen(true)}
-                className="w-full text-left px-3 py-1 font-terminal text-xs text-orange-700 hover:text-orange-500 hover:bg-orange-900/10 transition-colors uppercase">
-                🐛 REPORT ISSUE
-              </button>
-              <button onClick={() => startDemo()}
-                className="w-full text-left px-3 py-1 font-terminal text-xs text-yellow-600 hover:text-yellow-400 hover:bg-yellow-900/10 transition-colors uppercase">
-                ▶ DEMO MODE
-              </button>
-              <button onClick={toggleTooltips}
-                title={tooltipsEnabled ? "Tooltips are ON — hover elements to see hints. Click to disable." : "Tooltips are OFF — click to enable hover hints throughout the app."}
-                className={`w-full text-left px-3 py-1 font-terminal text-xs transition-colors uppercase ${
-                  tooltipsEnabled ? "text-blue-400 hover:text-blue-200" : "text-zinc-600 hover:text-zinc-400"
-                }`}>
-                💡 TIPS: {tooltipsEnabled ? "ON" : "OFF"}
-              </button>
+              <Tip text="Search pages, tools, and key records from anywhere in the app.">
+                <button onClick={() => setSearchOpen(true)}
+                  className="w-full text-left px-3 py-1 font-terminal text-xs text-green-700 hover:text-green-400 hover:bg-green-900/10 transition-colors uppercase">
+                  🔍 SEARCH <span className='opacity-40 ml-1'>/</span>
+                </button>
+              </Tip>
+              <Tip text="Open the bug report flow with optional context when something is broken, confusing, or worth improving.">
+                <button onClick={() => { setBugContext(null); setBugOpen(true); }}
+                  className="w-full text-left px-3 py-1 font-terminal text-xs text-orange-700 hover:text-orange-500 hover:bg-orange-900/10 transition-colors uppercase">
+                  🐛 REPORT ISSUE
+                </button>
+              </Tip>
+              <Tip text="Launch a guided walkthrough that shows off the main RetroVault surfaces and workflows.">
+                <button onClick={() => startDemo()}
+                  className="w-full text-left px-3 py-1 font-terminal text-xs text-yellow-600 hover:text-yellow-400 hover:bg-yellow-900/10 transition-colors uppercase">
+                  ▶ DEMO MODE
+                </button>
+              </Tip>
+              <Tip text={tooltipsEnabled ? "Tooltips are on. Hover supported controls and dropdown actions for extra guidance." : "Turn tooltips on to get inline help across navigation, tools, and action menus."}>
+                <button onClick={toggleTooltips}
+                  title={tooltipsEnabled ? "Tooltips are ON — hover elements to see hints. Click to disable." : "Tooltips are OFF — click to enable hover hints throughout the app."}
+                  className={`w-full text-left px-3 py-1 font-terminal text-xs transition-colors uppercase ${
+                    tooltipsEnabled ? "text-blue-400 hover:text-blue-200" : "text-zinc-600 hover:text-zinc-400"
+                  }`}>
+                  💡 TIPS: {tooltipsEnabled ? "ON" : "OFF"}
+                </button>
+              </Tip>
               <LogoutButton logout={logout} />
               <div className="flex items-center gap-2 pt-1 px-3">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -204,7 +274,8 @@ function MCLayout({ children }: { children: React.ReactNode }) {
       </main>
       <KeyboardShortcuts onSearch={() => setSearchOpen(true)} />
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
-      {bugOpen && <BugReportModal onClose={() => setBugOpen(false)} />}
+      {bugOpen && <BugReportModal onClose={() => setBugOpen(false)} initialContext={bugContext || undefined} />}
+      <ScraperHealthChip onReportIssue={(context) => { setBugContext(context); setBugOpen(true); }} />
       <WhatsNew />
       <Onboarding />
     </div>

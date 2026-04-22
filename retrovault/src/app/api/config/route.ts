@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import crypto from 'crypto';
-import { getConfigPath, getRuntimeLabel } from '@/lib/runtimePaths';
+import { getConfigPath, getRuntimeLabel } from '@/lib/runtimeDataPaths';
 
 export const dynamic = 'force-dynamic';
 

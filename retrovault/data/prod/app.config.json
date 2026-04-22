@@ -20,16 +20,6 @@
   },
   "fetchScheduleHour": 0,
   "priceDataSource": "pricecharting",
-  "scrapers": {
-    "craigslistCity": "portland"
-  },
-  "features": {
-    "collection": true,
-    "business": true,
-    "fieldTools": true,
-    "social": true,
-    "personal": true
-  },
   "platforms": [
     "NES",
     "SNES",
@@ -45,8 +35,19 @@
     "PSP",
     "Xbox",
     "Xbox 360",
-    "Wii"
+    "Wii",
+    "Sega Dreamcast"
   ],
+  "scrapers": {
+    "craigslistCity": "portland"
+  },
+  "features": {
+    "collection": true,
+    "business": true,
+    "fieldTools": true,
+    "social": true,
+    "personal": true
+  },
   "region": "NTSC",
   "githubRepo": "theretrovault/retrovault",
   "apiKeys": [

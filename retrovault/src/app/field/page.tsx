@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { unlockAchievement } from "@/lib/achievementUnlocks";
 import { ALL_PLATFORMS, RETRO_DEFAULTS } from "@/data/platformGroups";
 import {
   buildFieldCache, readFieldCache, clearFieldCache, searchFieldCache,
@@ -104,6 +105,7 @@ export default function FieldPage() {
   const [suggestions, setSuggestions] = useState<{ title: string; platform: string }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const [fieldAchievementFired, setFieldAchievementFired] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -323,6 +325,10 @@ export default function FieldPage() {
           watchlisted: false,
           wishlistNotes: getMatchConfidence(d.confidence) || undefined,
         }]);
+        if (!fieldAchievementFired) {
+          setFieldAchievementFired(true);
+          void unlockAchievement('a_field');
+        }
       } else {
         setLastSearchIssue({ isOffline: false, hadTimeout: false });
       }

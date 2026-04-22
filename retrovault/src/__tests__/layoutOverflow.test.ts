@@ -144,6 +144,21 @@ describe('Layout overflow — button rows must use flex-wrap', () => {
     expect(headerRegion).toContain('shrink-0');
   });
 
+  it('Inventory action dropdown is viewport-safe for longer critic lists', () => {
+    const src = readFile(path.join(SRC, 'app/inventory/page.tsx'));
+    const dropdownCtx = src.match(/<div className="absolute right-0 top-full mt-1 z-20[^"]*" data-menu>/)?.[0] ?? '';
+    expect(dropdownCtx).toContain('w-64');
+    expect(dropdownCtx).toContain('max-w-[calc(100vw-2rem)]');
+    expect(dropdownCtx).toContain('max-h-[70vh]');
+    expect(dropdownCtx).toContain('overflow-y-auto');
+    expect(dropdownCtx).toContain('overflow-x-hidden');
+  });
+
+  it('Inventory action dropdown renders sorted critic lists from all people', () => {
+    const src = readFile(path.join(SRC, 'app/inventory/page.tsx'));
+    expect(src).toContain('[...people].sort((a, b) => a.name.localeCompare(b.name)).map(p => (');
+  });
+
   // Guard against page-level headers with title+button that lack responsive wrapping
   it('All page headers with title+button use flex-wrap or flex-col sm:flex-row', () => {
     const HEADER_PAGES = [

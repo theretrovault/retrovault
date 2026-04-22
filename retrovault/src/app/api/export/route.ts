@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import { NextRequest } from 'next/server';
-import { DATA_DIR } from '@/lib/runtimePaths';
+import { resolveDataPath } from '@/lib/runtimeDataPaths';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
   // Single file export
   if (file && PUBLIC_FILES.includes(file)) {
-    const filePath = `${DATA_DIR}/${file}`;
+    const filePath = resolveDataPath(file);
     if (!fs.existsSync(filePath)) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
   };
 
   for (const f of PUBLIC_FILES) {
-    const filePath = `${DATA_DIR}/${f}`;
+    const filePath = resolveDataPath(f);
     if (fs.existsSync(filePath)) {
       try {
         bundle[f.replace('.json', '')] = JSON.parse(fs.readFileSync(filePath, 'utf8'));

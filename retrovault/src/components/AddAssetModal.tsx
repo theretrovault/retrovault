@@ -7,8 +7,8 @@
  *
  * Key behaviors:
  * - Autocomplete suggestions from the catalog (filtered by selected platform)
+ * - Platform autocomplete with recent-system shortcuts for faster data entry
  * - Suggestions stored in a ref to avoid re-renders on every keystroke
- * - Platform recents tracked in localStorage for quick re-selection
  * - Field component hoisted to module scope (prevents focus loss on re-render)
  *
  * @param onSave    Called with the completed form data. Caller handles the API write.
@@ -16,12 +16,12 @@
  * @param initialData  Pre-populate for edit mode. Omit for new asset.
  */
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { CONSOLES } from "@/data/consoles";
 
 const SORTED_PLATFORMS = [...CONSOLES]
-  .sort((a, b) => b.releaseYear - a.releaseYear)
-  .map(c => ({ name: c.shortName, year: c.releaseYear }));
+  .map(c => ({ name: c.shortName, year: c.releaseYear }))
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 const RECENT_KEY = "recentPlatforms";
 
@@ -56,14 +56,11 @@ type Props = {
   title?: string;
 };
 
-// ── Hoisted outside AddAssetModal to prevent focus loss on re-render ─────────
-// Defining components inside render functions causes React to unmount+remount
-// them on every state change, stealing focus from active inputs.
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="block text-sm text-zinc-400 font-terminal mb-1 uppercase">
-        {label}{error && <span className="text-red-500 ml-1">— {error}</span>}
+        {label}{error && <span className="text-red-500 ml-1">, {error}</span>}
       </label>
       {children}
     </div>
@@ -71,7 +68,9 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 }
 
 export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET" }: Props) {
-  const [platform, setPlatform] = useState(initialData?.platform || "");
+  const initialPlatform = initialData?.platform || "";
+  const [platform, setPlatform] = useState(initialPlatform);
+  const [platformInput, setPlatformInput] = useState(initialPlatform);
   const [titleInput, setTitleInput] = useState(initialData?.title || "");
   const [condition, setCondition] = useState(initialData?.condition || "Loose");
   const [hasBox, setHasBox] = useState(initialData?.hasBox || false);
@@ -86,17 +85,18 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // These use refs to NEVER trigger re-renders
   const inventoryRef = useRef<{ title: string; platform: string }[]>([]);
   const recentRef = useRef<string[]>(getRecentPlatforms());
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const titleDropdownRef = useRef<HTMLDivElement>(null);
+  const platformInputRef = useRef<HTMLInputElement>(null);
+  const platformDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Separate suggestion state — only triggers re-render of suggestion list, not input
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [titleSuggestions, setTitleSuggestions] = useState<string[]>([]);
+  const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
+  const [platformSuggestions, setPlatformSuggestions] = useState<string[]>([]);
+  const [showPlatformSuggestions, setShowPlatformSuggestions] = useState(false);
 
-  // Load inventory into ref once — never triggers component re-render
   useEffect(() => {
     fetch("/api/inventory")
       .then(r => r.json())
@@ -105,59 +105,89 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
       });
   }, []);
 
-  const getSuggestions = (query: string, plat: string): string[] => {
+  const getTitleSuggestions = (query: string, plat: string): string[] => {
     if (!query || query.length < 1 || !plat) return [];
     const lower = query.toLowerCase();
     return inventoryRef.current
       .filter(i => i.platform.toLowerCase() === plat.toLowerCase() && i.title.toLowerCase().includes(lower))
       .map(i => i.title)
+      .filter((value, index, arr) => arr.indexOf(value) === index)
       .slice(0, 10);
+  };
+
+  const getPlatformSuggestions = (query: string): string[] => {
+    const normalized = query.trim().toLowerCase();
+    const alphabetical = SORTED_PLATFORMS.map((p) => p.name);
+    const recent = recentRef.current.filter((r) => alphabetical.includes(r));
+    const combined = [...recent, ...alphabetical.filter((name) => !recent.includes(name))];
+    if (!normalized) return combined.slice(0, 12);
+    return combined.filter((name) => name.toLowerCase().includes(normalized)).slice(0, 12);
   };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setTitleInput(val);
-    const sugg = getSuggestions(val, platform);
-    setSuggestions(sugg);
-    setShowSuggestions(sugg.length > 0 && val.length > 0);
+    const sugg = getTitleSuggestions(val, platform);
+    setTitleSuggestions(sugg);
+    setShowTitleSuggestions(sugg.length > 0 && val.length > 0);
   };
 
-  const handlePlatformChange = (plat: string) => {
+  const handlePlatformChange = (plat: string, preserveTitle = false) => {
     setPlatform(plat);
-    setSuggestions([]);
-    setShowSuggestions(false);
-    setTitleInput("");
-    // Re-focus the title field after platform change
+    setPlatformInput(plat);
+    setPlatformSuggestions([]);
+    setShowPlatformSuggestions(false);
+    setTitleSuggestions([]);
+    setShowTitleSuggestions(false);
+    if (!preserveTitle) setTitleInput("");
     setTimeout(() => titleInputRef.current?.focus(), 50);
+  };
+
+  const handlePlatformInputChange = (value: string) => {
+    setPlatformInput(value);
+    const sugg = getPlatformSuggestions(value);
+    setPlatformSuggestions(sugg);
+    setShowPlatformSuggestions(sugg.length > 0);
+
+    if (value.trim().toLowerCase() !== platform.trim().toLowerCase()) {
+      setPlatform("");
+      setTitleSuggestions([]);
+      setShowTitleSuggestions(false);
+      setTitleInput("");
+    }
   };
 
   const handleConditionChange = (c: string) => {
     setCondition(c);
-    // Update box/manual/digital without triggering useEffect re-renders
     if (c === "CIB") { setHasBox(true); setHasManual(true); setIsDigital(false); }
     else if (c === "Loose") { setHasBox(false); setHasManual(false); setIsDigital(false); }
     else if (c === "Digital") { setHasBox(false); setHasManual(false); setIsDigital(true); }
     else { setIsDigital(false); }
   };
 
-  const selectSuggestion = (s: string) => {
+  const selectTitleSuggestion = (s: string) => {
     setTitleInput(s);
-    setShowSuggestions(false);
-    setSuggestions([]);
+    setShowTitleSuggestions(false);
+    setTitleSuggestions([]);
   };
 
-  // Close dropdown on outside click
+  const selectPlatformSuggestion = (s: string) => {
+    handlePlatformChange(s);
+  };
+
   useEffect(() => {
-    if (!showSuggestions) return;
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!dropdownRef.current?.contains(target) && target !== titleInputRef.current) {
-        setShowSuggestions(false);
+      if (!titleDropdownRef.current?.contains(target) && target !== titleInputRef.current) {
+        setShowTitleSuggestions(false);
+      }
+      if (!platformDropdownRef.current?.contains(target) && target !== platformInputRef.current) {
+        setShowPlatformSuggestions(false);
       }
     };
     setTimeout(() => document.addEventListener("click", handler), 0);
     return () => document.removeEventListener("click", handler);
-  }, [showSuggestions]);
+  }, []);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -175,15 +205,20 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
     if (!validate()) return;
     setSaving(true);
     saveRecentPlatform(platform);
-    await onSave({ title: titleInput.trim(), platform, condition, hasBox, hasManual,
-      priceAcquired: isDigital ? "0" : price, purchaseDate, source, notes, isDigital });
+    await onSave({
+      title: titleInput.trim(),
+      platform,
+      condition,
+      hasBox,
+      hasManual,
+      priceAcquired: isDigital ? "0" : price,
+      purchaseDate,
+      source,
+      notes,
+      isDigital,
+    });
     setSaving(false);
   };
-
-  const orderedPlatforms = [
-    ...recentRef.current.filter(r => SORTED_PLATFORMS.some(p => p.name === r)),
-    ...SORTED_PLATFORMS.map(p => p.name).filter(n => !recentRef.current.includes(n)),
-  ];
 
   const inputCls = (err?: string) =>
     `w-full bg-black border-2 ${err ? "border-red-700" : "border-green-800"} text-green-300 p-2 font-terminal text-xl focus:outline-none focus:border-green-400`;
@@ -196,27 +231,67 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
         <h3 className="text-2xl text-green-400 font-terminal uppercase mb-6 tracking-widest border-b-2 border-green-900 pb-2">{title}</h3>
 
         <div className="space-y-4">
-          {/* Platform */}
           <Field label="System *" error={errors.platform}>
-            <select value={platform} onChange={e => handlePlatformChange(e.target.value)}
-              className={inputCls(errors.platform) + " cursor-pointer"}>
-              <option value="">— SELECT SYSTEM —</option>
+            <div className="space-y-2">
+              <div className="relative">
+                <input
+                  ref={platformInputRef}
+                  type="text"
+                  className={inputCls(errors.platform)}
+                  placeholder="Type a system name..."
+                  value={platformInput}
+                  onChange={e => handlePlatformInputChange(e.target.value)}
+                  onFocus={() => {
+                    const sugg = getPlatformSuggestions(platformInput);
+                    setPlatformSuggestions(sugg);
+                    setShowPlatformSuggestions(sugg.length > 0);
+                  }}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                {showPlatformSuggestions && platformSuggestions.length > 0 && (
+                  <div
+                    ref={platformDropdownRef}
+                    className="absolute top-full left-0 right-0 z-30 bg-zinc-900 border-2 border-green-700 max-h-56 overflow-y-auto shadow-xl"
+                  >
+                    {platformSuggestions.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          selectPlatformSuggestion(s);
+                        }}
+                        className="w-full px-3 py-2 text-left text-green-300 hover:bg-green-900/50 font-terminal text-lg"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               {recentRef.current.length > 0 && (
-                <optgroup label="Recently Used">
+                <div className="flex flex-wrap gap-1">
                   {recentRef.current.filter(r => SORTED_PLATFORMS.some(p => p.name === r)).map(r => (
-                    <option key={r} value={r}>{r}</option>
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => handlePlatformChange(r)}
+                      className={`px-2 py-0.5 font-terminal text-xs border transition-colors ${
+                        platform === r ? 'bg-green-700 text-black border-green-500' : 'text-zinc-500 border-zinc-700 hover:border-zinc-500'
+                      }`}
+                    >
+                      {r}
+                    </button>
                   ))}
-                </optgroup>
+                </div>
               )}
-              <optgroup label="All Systems (newest first)">
-                {SORTED_PLATFORMS.filter(p => !recentRef.current.includes(p.name)).map(p => (
-                  <option key={p.name} value={p.name}>{p.name} ({p.year})</option>
-                ))}
-              </optgroup>
-            </select>
+              {platform && (
+                <p className="text-zinc-600 font-terminal text-xs">Selected: {platform}</p>
+              )}
+            </div>
           </Field>
 
-          {/* Title */}
           <Field label="Game Title *" error={errors.title}>
             <div className="relative">
               <input
@@ -230,15 +305,15 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
                 autoComplete="off"
                 spellCheck={false}
               />
-              {showSuggestions && suggestions.length > 0 && (
-                <div ref={dropdownRef}
+              {showTitleSuggestions && titleSuggestions.length > 0 && (
+                <div ref={titleDropdownRef}
                   className="absolute top-full left-0 right-0 z-30 bg-zinc-900 border-2 border-green-700 max-h-48 overflow-y-auto shadow-xl">
-                  {suggestions.map(s => (
+                  {titleSuggestions.map(s => (
                     <button key={s}
                       type="button"
                       onMouseDown={e => {
                         e.preventDefault();
-                        selectSuggestion(s);
+                        selectTitleSuggestion(s);
                       }}
                       className="w-full px-3 py-2 text-left text-green-300 hover:bg-green-900/50 font-terminal text-lg">
                       {s}
@@ -247,12 +322,11 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
                 </div>
               )}
             </div>
-            {platform && titleInput.length > 0 && suggestions.length === 0 && (
-              <p className="text-zinc-600 font-terminal text-xs mt-1">No catalog matches — custom title will be used.</p>
+            {platform && titleInput.length > 0 && titleSuggestions.length === 0 && (
+              <p className="text-zinc-600 font-terminal text-xs mt-1">No catalog matches, custom title will be used.</p>
             )}
           </Field>
 
-          {/* Condition */}
           <Field label="Condition *">
             <div className="flex gap-2 flex-wrap">
               {["Loose","CIB","Digital","Other"].map(c => (

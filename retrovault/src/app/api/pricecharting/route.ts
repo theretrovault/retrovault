@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 import fs from 'fs';
-import { getConfigPath } from '@/lib/runtimePaths';
+import { getConfigPath } from '@/lib/runtimeDataPaths';
 
 function getRegion(): string {
   try {

@@ -8,7 +8,7 @@
  */
 import { NextRequest } from 'next/server';
 import { requireApiAuth, apiResponse } from '@/lib/apiAuth';
-import { ACHIEVEMENTS, getTotalPoints } from '@/data/achievements';
+import { ACHIEVEMENTS, getCompletionPercent, getTotalPoints } from '@/data/achievements';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,12 +47,14 @@ export async function GET(req: NextRequest) {
       condition: a.condition,
     }));
 
+  const nonSecretUnlockedIds = unlockedIds.filter(id => ACHIEVEMENTS.some(a => a.id === id && !a.secret));
+
   return apiResponse({
     summary: {
-      unlocked: unlockedIds.length,
+      unlocked: nonSecretUnlockedIds.length,
       total: ACHIEVEMENTS.filter(a => !a.secret).length,
       points,
-      completionPercent: Math.round((unlocked.length / locked.length + unlocked.length) * 100),
+      completionPercent: getCompletionPercent(nonSecretUnlockedIds),
     },
     unlocked,
     locked,

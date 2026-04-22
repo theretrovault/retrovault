@@ -1,89 +1,45 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import { resolveDataPath } from '@/lib/runtimePaths';
-
-const filePath = resolveDataPath('favorites.json');
-
-function getData() {
-  if (!fs.existsSync(filePath)) return { people: [], favorites: {}, regrets: {} };
-  const d = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  if (!d.regrets) d.regrets = {};
-  return d;
-}
-function saveData(data: any) {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-}
+import {
+  addPersonCompat,
+  readFavoritesCompat,
+  removePersonCompat,
+  renamePersonCompat,
+  toggleFavoriteCompat,
+  toggleRegretCompat,
+} from '@/lib/storageCompat';
 
 export async function GET() {
-  return NextResponse.json(getData());
+  return NextResponse.json(await readFavoritesCompat(), { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const data = getData();
 
-  // Add a new person
   if (body.action === 'add_person') {
-    const newPerson = { id: Date.now().toString(), name: body.name.trim() };
-    data.people.push(newPerson);
-    data.favorites[newPerson.id] = [];
-    data.regrets[newPerson.id] = [];
-    saveData(data);
+    const newPerson = await addPersonCompat(body.name.trim());
     return NextResponse.json(newPerson);
   }
 
-  // Rename person
   if (body.action === 'rename_person') {
-    const person = data.people.find((p: any) => p.id === body.id);
+    const person = await renamePersonCompat(body.id, body.name.trim());
     if (!person) return NextResponse.json({ error: 'Person not found' }, { status: 404 });
-    person.name = body.name.trim();
-    saveData(data);
     return NextResponse.json(person);
   }
 
-  // Remove person
   if (body.action === 'remove_person') {
-    data.people = data.people.filter((p: any) => p.id !== body.id);
-    delete data.favorites[body.id];
-    delete data.regrets[body.id];
-    saveData(data);
+    const removed = await removePersonCompat(body.id);
+    if (!removed) return NextResponse.json({ error: 'Person not found' }, { status: 404 });
     return NextResponse.json({ ok: true });
   }
 
-  // Toggle favorite for a person + game
   if (body.action === 'toggle_favorite') {
-    const { personId, gameId } = body;
-    if (!data.favorites[personId]) data.favorites[personId] = [];
-    const list: string[] = data.favorites[personId];
-    const idx = list.indexOf(gameId);
-    if (idx === -1) {
-      list.push(gameId);
-      // Remove from regrets if it's there
-      if (data.regrets[personId]) {
-        data.regrets[personId] = data.regrets[personId].filter((id: string) => id !== gameId);
-      }
-    }
-    else list.splice(idx, 1);
-    saveData(data);
-    return NextResponse.json({ favorites: data.favorites[personId] });
+    const favorites = await toggleFavoriteCompat(body.personId, body.gameId);
+    return NextResponse.json({ favorites });
   }
 
-  // Toggle regret for a person + game
   if (body.action === 'toggle_regret') {
-    const { personId, gameId } = body;
-    if (!data.regrets[personId]) data.regrets[personId] = [];
-    const list: string[] = data.regrets[personId];
-    const idx = list.indexOf(gameId);
-    if (idx === -1) {
-      list.push(gameId);
-      // Remove from favorites if it's there
-      if (data.favorites[personId]) {
-        data.favorites[personId] = data.favorites[personId].filter((id: string) => id !== gameId);
-      }
-    }
-    else list.splice(idx, 1);
-    saveData(data);
-    return NextResponse.json({ regrets: data.regrets[personId] });
+    const regrets = await toggleRegretCompat(body.personId, body.gameId);
+    return NextResponse.json({ regrets });
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

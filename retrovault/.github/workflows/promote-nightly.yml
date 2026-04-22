@@ -74,4 +74,4 @@ jobs:
           script: |
             cd ${{ vars.DEPLOY_APP_DIR || '/home/apesch/.openclaw/workspace/retrovault' }}
             bash scripts/deploy.sh nightly nightly
-            npm run smoke:release -- --base-url "${{ vars.NIGHTLY_PUBLIC_BASE_URL || 'https://nightly.peschpit.com' }}"
+            npm run smoke:release -- --base-url "${{ vars.NIGHTLY_PUBLIC_BASE_URL || 'https://nightly.peschpit.com' }}" --retries 5 --retry-delay-ms 2000 --asset-limit 20

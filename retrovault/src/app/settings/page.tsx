@@ -7,7 +7,7 @@
  *         PlexSettings, ScraperSettings, PlatformSettings,
  *         FeaturesSettings, BugReportingSettings, AuthSettings
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "@/components/ThemeProvider";
 import { COLOR_PALETTES, STYLE_THEMES } from "@/data/themes";
 import { NAV_GROUPS } from "@/data/navConfig";
@@ -130,17 +130,30 @@ function BugReportingSettings({ config, setConfig }: { config: any; setConfig: (
 }
 
 // Hoisted outside SettingsPage to prevent focus loss on re-render
-function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+function Section({ id, title, icon, children }: { id: string; title: string; icon: string; children: React.ReactNode }) {
   return (
-    <div className="bg-zinc-950 border-2 border-green-800 rounded-sm p-6 space-y-5">
+    <section id={id} className="scroll-mt-36 bg-zinc-950 border-2 border-green-800 rounded-sm p-6 space-y-5">
       <h3 className="text-green-400 font-terminal text-2xl uppercase border-b border-green-900 pb-2">{icon} {title}</h3>
       {children}
-    </div>
+    </section>
   );
 }
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const settingsSections = useMemo(() => [
+    { id: 'theme', label: 'Theme', icon: '🎨' },
+    { id: 'identity', label: 'Identity', icon: '🏷️' },
+    { id: 'localization', label: 'Localization', icon: '🌍' },
+    { id: 'deployment', label: 'Deployment', icon: '🌐' },
+    { id: 'price-data', label: 'Price Data', icon: '📊' },
+    { id: 'platforms', label: 'Platforms', icon: '🕹️' },
+    { id: 'scrapers', label: 'Scrapers', icon: '🔧' },
+    { id: 'features', label: 'Features', icon: '🎛️' },
+    { id: 'youtube', label: 'YouTube', icon: '📺' },
+    { id: 'bug-reporting', label: 'Bug Reporting', icon: '🐛' },
+    { id: 'authentication', label: 'Authentication', icon: '🔒' },
+  ], []);
   const [config, setConfig] = useState<Config | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -282,7 +295,22 @@ export default function SettingsPage() {
         </button>
       </header>
 
-      <Section title="Theme" icon="🎨">
+      <nav className="sticky top-[76px] z-30 -mx-2 rounded border border-green-900 bg-black/95 px-2 py-3 shadow-[0_0_12px_rgba(34,197,94,0.12)] backdrop-blur supports-[backdrop-filter]:bg-black/85">
+        <div className="mb-2 text-zinc-500 font-terminal text-xs uppercase tracking-wide">Jump to section</div>
+        <div className="flex flex-wrap gap-2">
+          {settingsSections.map(section => (
+            <a
+              key={section.id}
+              href={`#${section.id}`}
+              className="px-3 py-1.5 font-terminal text-xs border border-zinc-700 text-zinc-400 hover:text-green-300 hover:border-green-600 hover:bg-green-950/30 transition-colors"
+            >
+              {section.icon} {section.label}
+            </a>
+          ))}
+        </div>
+      </nav>
+
+      <Section id="theme" title="Theme" icon="🎨">
         {/* Light / Dark Mode Toggle */}
         <div>
           <label className="block text-zinc-400 font-terminal text-sm mb-3 uppercase">Mode</label>
@@ -356,7 +384,7 @@ export default function SettingsPage() {
         <p className="text-zinc-600 font-terminal text-xs">Theme changes apply instantly and are saved in your browser.</p>
       </Section>
 
-      <Section title="Identity" icon="🏷️">
+      <Section id="identity" title="Identity" icon="🏷️">
         {input("appName", "App Name")}
         {input("tagline", "Tagline")}
         {input("ownerName", "Collection Owner Name", "text", "e.g. John's Collection")}
@@ -389,7 +417,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      <Section title="Localization" icon="🌍">
+      <Section id="localization" title="Localization" icon="🌍">
         <div>
           <label className="block text-zinc-400 font-terminal text-sm mb-1 uppercase">Currency Symbol</label>
           <input type="text" maxLength={3} className="w-24 bg-black border-2 border-green-800 text-green-300 p-2 font-terminal text-2xl text-center focus:outline-none focus:border-green-400"
@@ -429,7 +457,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      <Section title="Deployment" icon="🌐">
+      <Section id="deployment" title="Deployment" icon="🌐">
         {input("publicUrl", "Public URL", "url", "https://retrovault.yourdomain.com")}
         <div>
           <label className="block text-zinc-400 font-terminal text-sm mb-2 uppercase">Mode</label>
@@ -447,7 +475,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      <Section title="Price Data" icon="📊">
+      <Section id="price-data" title="Price Data" icon="📊">
         <div>
           <label className="block text-zinc-400 font-terminal text-sm mb-1 uppercase">Fetch Schedule (24h clock)</label>
           <input type="number" min={0} max={23}
@@ -458,7 +486,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      <Section title="Platforms" icon="🕹️">
+      <Section id="platforms" title="Platforms" icon="🕹️">
         <div>
           {platformStatus && (
             <div className="mb-4 border border-yellow-700 bg-yellow-950/20 p-3 text-yellow-300 font-terminal text-xs">
@@ -539,7 +567,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      <Section title="Scrapers" icon="🔧">
+      <Section id="scrapers" title="Scrapers" icon="🔧">
         <div>
           <label className="block text-zinc-400 font-terminal text-sm mb-2 uppercase">Craigslist City</label>
           <div className="flex gap-2 flex-wrap items-start">
@@ -564,7 +592,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      <Section title="Features" icon="🎛️">
+      <Section id="features" title="Features" icon="🎛️">
         <div className="flex items-center justify-between mb-3">
           <p className="text-zinc-500 font-terminal text-sm">Enable or disable feature groups. The navigation updates instantly to show only what you use. Collection is always on.</p>
           <button
@@ -628,17 +656,15 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      <div id="youtube">
-        <Section title="YouTube Videos" icon="📺">
+      <Section id="youtube" title="YouTube Videos" icon="📺">
           <YouTubeSettings />
-        </Section>
-      </div>
+      </Section>
 
-      <Section title="Bug Reporting" icon="🐛">
+      <Section id="bug-reporting" title="Bug Reporting" icon="🐛">
         <BugReportingSettings config={config} setConfig={setConfig} />
       </Section>
 
-      <Section title="Authentication" icon="🔒">
+      <Section id="authentication" title="Authentication" icon="🔒">
         <div className="flex items-center gap-4">
           <button onClick={() => setConfig({ ...config, auth: { ...config.auth, enabled: !config.auth?.enabled } })}
             className={`px-4 py-2 font-terminal text-xl border-2 transition-colors ${config.auth?.enabled ? "bg-green-600 text-black border-green-400" : "text-zinc-400 border-zinc-700"}`}>

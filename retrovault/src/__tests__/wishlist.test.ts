@@ -25,8 +25,8 @@ function makeCtx(overrides: Partial<AchievementContext> = {}): AchievementContex
     scraperRuns: 0, dealsDismissed: 0, whatnotSellers: 0, streamsWatched: 0,
     apiKeysCreated: 0, bugReportsFiled: 0, collectionExported: false, csvImported: false,
     valueHistoryDays: 0, uptimeDays: 0,
-    setupWizardMode: null, setupWizardDone: false,
-    wishlistCount: 0, wishlistFound: 0,
+    setupWizardMode: null, setupWizardDone: false, authConfigured: false, themeCustomized: false,
+    wishlistCount: 0, wishlistFound: 0, wishlistShared: false, wishlistMustHaveCount: 0,
     ...overrides,
   };
 }
@@ -71,6 +71,16 @@ describe('Wishlist achievements', () => {
     expect(evaluateAchievements(ctx).has('wish_found1')).toBe(true);
     expect(evaluateAchievements(ctx).has('wish_first')).toBe(false);
   });
+
+  it('wish_shared unlocks when a wishlist share exists', () => {
+    expect(evaluateAchievements(makeCtx({ wishlistShared: false })).has('wish_shared')).toBe(false);
+    expect(evaluateAchievements(makeCtx({ wishlistShared: true })).has('wish_shared')).toBe(true);
+  });
+
+  it('wish_must_have unlocks at 5 must-have wishlist items', () => {
+    expect(evaluateAchievements(makeCtx({ wishlistMustHaveCount: 4 })).has('wish_must_have')).toBe(false);
+    expect(evaluateAchievements(makeCtx({ wishlistMustHaveCount: 5 })).has('wish_must_have')).toBe(true);
+  });
 });
 
 // ─── Setup Wizard achievements ────────────────────────────────────────────────
@@ -112,6 +122,16 @@ describe('Setup Wizard achievements', () => {
     expect(unlocked.has('setup_empire')).toBe(true);
     expect(unlocked.has('setup_collector')).toBe(false);
     expect(unlocked.has('setup_dealer')).toBe(false);
+  });
+
+  it('a_auth unlocks only when auth is enabled and has a password hash', () => {
+    expect(evaluateAchievements(makeCtx({ authConfigured: false })).has('a_auth')).toBe(false);
+    expect(evaluateAchievements(makeCtx({ authConfigured: true })).has('a_auth')).toBe(true);
+  });
+
+  it('a_theme unlocks when theme differs from default green', () => {
+    expect(evaluateAchievements(makeCtx({ themeCustomized: false })).has('a_theme')).toBe(false);
+    expect(evaluateAchievements(makeCtx({ themeCustomized: true })).has('a_theme')).toBe(true);
   });
 });
 

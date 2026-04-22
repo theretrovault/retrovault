@@ -7,16 +7,16 @@
  * - ACHIEVEMENTS array: static definitions with a check() predicate
  * - AchievementContext: snapshot of collection state passed to check()
  * - evaluateAchievements(ctx): returns Set<string> of auto-unlocked IDs
- * - Manual unlocks (secret achievements, action-triggered): stored in
- *   localStorage under "rv-achievements-manual" and merged server-side
- *   in /api/achievements
+ * - Manual unlocks (secret achievements, action-triggered): persisted by
+ *   /api/achievements into env-local runtime state (`achievements-unlocked.json`)
+ *   and merged with auto-evaluated achievements in the API payload
  *
  * Adding an achievement:
  * 1. Add an entry to ACHIEVEMENTS with a unique id, category, rarity, and check()
  * 2. If it requires new context data, add the field to AchievementContext
- *    and populate it in /api/achievements route.ts buildContext()
+ *    and populate it in the achievement context builder
  * 3. For manual unlocks (check: _ => false), trigger from the relevant UI
- *    component by writing to localStorage "rv-achievements-manual"
+ *    component via POST /api/achievements with action: "unlock_manual"
  *
  * Rarity points: Common=10, Uncommon=25, Rare=50, Epic=100, Legendary=250
  */
@@ -109,9 +109,13 @@ export type AchievementContext = {
   // Setup wizard
   setupWizardMode: "collector" | "dealer" | "empire" | null;
   setupWizardDone: boolean;
+  authConfigured: boolean;
+  themeCustomized: boolean;
   // Wishlist
   wishlistCount: number;
   wishlistFound: number;
+  wishlistShared: boolean;
+  wishlistMustHaveCount: number;
 };
 
 const RARITIES: Record<AchievementRarity, { color: string; bg: string; border: string; label: string; points: number }> = {
@@ -257,8 +261,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "a_negotiator", name: "The Negotiator",      icon: "🤝", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Use the Negotiation Helper",         check: _ => false }, // triggered manually
   { id: "a_guide",      name: "Student of the Game", icon: "📖", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Read the Field Guide",               check: _ => false }, // triggered manually
   { id: "a_insurance",  name: "Properly Insured",    icon: "📋", category: "milestone",  rarity: "rare",      points: 50,  condition: "Generate an insurance report",       check: _ => false }, // triggered manually
-  { id: "a_theme",      name: "Customizer",          icon: "🎨", category: "milestone",  rarity: "common",    points: 10,  condition: "Change the app theme",               check: _ => false }, // triggered manually
-  { id: "a_auth",       name: "Locked Down",         icon: "🔐", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Enable app authentication",          check: _ => false }, // triggered manually
+  { id: "a_theme",      name: "Customizer",          icon: "🎨", category: "milestone",  rarity: "common",    points: 10,  condition: "Change the app theme",               check: c => c.themeCustomized },
+  { id: "a_auth",       name: "Locked Down",         icon: "🔐", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Enable app authentication",          check: c => c.authConfigured },
 
   // ─── SETUP WIZARD & IDENTITY ─────────────────────────────────────────────────
   { id: "setup_done",       name: "Choose Your Adventure",  icon: "🗺️",  category: "milestone", rarity: "common",    points: 10,  condition: "Complete the Setup Wizard",                            check: c => c.setupWizardDone },
@@ -274,16 +278,16 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "wish_found1",      name: "Found One!",              icon: "✅",  category: "personal",  rarity: "common",    points: 10,  condition: "Mark your first Wishlist game as Found",               check: c => c.wishlistFound >= 1 },
   { id: "wish_found5",      name: "Making It Happen",        icon: "🎯",  category: "personal",  rarity: "uncommon",  points: 25,  condition: "Mark 5 Wishlist games as Found",                       check: c => c.wishlistFound >= 5 },
   { id: "wish_found10",     name: "The Fulfiller",           icon: "🌟",  category: "personal",  rarity: "rare",      points: 50,  condition: "Mark 10 Wishlist games as Found",                      check: c => c.wishlistFound >= 10 },
-  { id: "wish_shared",      name: "Share the Love",          icon: "🔗",  category: "social",    rarity: "uncommon",  points: 25,  condition: "Share your Wishlist via public link",                  check: _ => false }, // triggered manually
-  { id: "wish_must_have",   name: "Gotta Have It",           icon: "⭐",  category: "personal",  rarity: "uncommon",  points: 25,  condition: "Add 5 Must-Have items to your Wishlist",               check: _ => false }, // triggered manually
+  { id: "wish_shared",      name: "Share the Love",          icon: "🔗",  category: "social",    rarity: "uncommon",  points: 25,  condition: "Share your Wishlist via public link",                  check: c => c.wishlistShared },
+  { id: "wish_must_have",   name: "Gotta Have It",           icon: "⭐",  category: "personal",  rarity: "uncommon",  points: 25,  condition: "Add 5 Must-Have items to your Wishlist",               check: c => c.wishlistMustHaveCount >= 5 },
 ];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 /**
  * Evaluate all auto-checkable achievements against the current collection context.
- * Secret achievements (check: _ => false) are skipped — they're unlocked manually
- * from UI actions and stored in localStorage.
+ * Secret achievements (check: _ => false) are skipped during auto evaluation and
+ * are instead unlocked explicitly through the manual-achievement API path.
  */
 export function evaluateAchievements(ctx: AchievementContext): Set<string> {
   const unlocked = new Set<string>();

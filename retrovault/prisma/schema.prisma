@@ -292,3 +292,11 @@ model WishlistShare {
   label     String   @default("My Wishlist")
   createdAt DateTime @default(now())
 }
+
+model CollectionShare {
+  id        String    @id @default(cuid())
+  token     String    @unique @default(cuid())
+  label     String    @default("My Collection")
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+}
