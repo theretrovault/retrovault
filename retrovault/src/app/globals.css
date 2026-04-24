@@ -369,6 +369,23 @@ body.theme-galaxy .bg-black {
   }
 }
 
+@layer utilities {
+  .text-xs {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .text-\[11px\] {
+    font-size: 0.9375rem;
+    line-height: 1.25rem;
+  }
+
+  .text-\[10px\] {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+}
+
 .markdown-body h1 {
   font-size: 1.5rem;
   line-height: 2rem;

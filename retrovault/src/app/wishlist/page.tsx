@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ALL_PLATFORMS } from "@/data/platformGroups";
 import { readFieldCache } from "@/lib/fieldCache";
@@ -90,6 +91,7 @@ export default function WishlistPage() {
   const [search,  setSearch]  = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareQrSvg, setShareQrSvg] = useState("");
   const [copyMsg,  setCopyMsg]  = useState("");
   const [form, setForm] = useState({
     title: "", platform: PLATFORMS[0], priority: 2 as 1 | 2 | 3, notes: "",
@@ -102,6 +104,8 @@ export default function WishlistPage() {
   const [priceLoading, setPriceLoading] = useState(false);
   const [priceError, setPriceError] = useState("");
   const [saveStatus, setSaveStatus] = useState("");
+  const [bulkFetchLoading, setBulkFetchLoading] = useState(false);
+  const [fetchingWishlistIds, setFetchingWishlistIds] = useState<string[]>([]);
   const [foundPrompt, setFoundPrompt] = useState<FoundPromptState>({
     open: false,
     item: null,
@@ -232,7 +236,11 @@ export default function WishlistPage() {
 
   const fetchPrice = async (title = form.title, platform = form.platform, wishlistId?: string) => {
     if (!title.trim() || !platform.trim()) return;
-    setPriceLoading(true);
+    if (wishlistId) {
+      setFetchingWishlistIds((current) => current.includes(wishlistId) ? current : [...current, wishlistId]);
+    } else {
+      setPriceLoading(true);
+    }
     setPriceError("");
     try {
       const res = await fetch(`/api/pricecharting?title=${encodeURIComponent(title)}&platform=${encodeURIComponent(platform)}`);
@@ -290,8 +298,40 @@ export default function WishlistPage() {
       setPriceLookup(null);
       setPriceError(error?.message || "Price lookup failed");
     } finally {
-      setPriceLoading(false);
+      if (wishlistId) {
+        setFetchingWishlistIds((current) => current.filter((id) => id !== wishlistId));
+      } else {
+        setPriceLoading(false);
+      }
     }
+  };
+
+  const fetchAllPrices = async () => {
+    const activeItems = items.filter((item) => !item.foundAt);
+    if (activeItems.length === 0) return;
+
+    setBulkFetchLoading(true);
+    setSaveStatus(`⏳ Fetching prices for ${activeItems.length} wishlist game${activeItems.length === 1 ? '' : 's'}...`);
+    setPriceError('');
+
+    let updated = 0;
+    let failed = 0;
+
+    for (const item of activeItems) {
+      try {
+        await fetchPrice(item.title, item.platform, item.id);
+        updated += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    setBulkFetchLoading(false);
+    setSaveStatus(
+      failed > 0
+        ? `✅ Updated ${updated} wishlist price${updated === 1 ? '' : 's'}, ${failed} failed.`
+        : `✅ Updated ${updated} wishlist price${updated === 1 ? '' : 's'}.`
+    );
   };
 
   const pickSuggestion = (suggestion: SuggestionItem) => {
@@ -438,17 +478,58 @@ export default function WishlistPage() {
     load();
   };
 
+  const buildPriceChartingUrl = (title: string, platform: string) => {
+    const params = new URLSearchParams({
+      type: "prices",
+      q: `${title} ${platform}`,
+    });
+    return `https://www.pricecharting.com/search-products?${params.toString()}`;
+  };
+
+  const generateShareQr = async (url: string) => {
+    const QRCode = (await import("qrcode")).default;
+    const svg = await QRCode.toString(url, {
+      type: "svg",
+      width: 256,
+      margin: 2,
+      color: { dark: "#4ade80", light: "#09090b" },
+    });
+    setShareQrSvg(svg);
+  };
+
+  const downloadShareQr = () => {
+    if (!shareQrSvg) return;
+    const blob = new Blob([shareQrSvg], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "retrovault-wishlist-qr.svg";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const getShareLink = async () => {
-    const r = await fetch("/api/wishlist/share");
-    const d = await r.json();
-    const url = `${window.location.origin}/wishlist/public/${d.token}`;
-    setShareUrl(url);
+    setCopyMsg("");
     try {
-      await navigator.clipboard.writeText(url);
-      setCopyMsg("Copied!");
-      setTimeout(() => setCopyMsg(""), 2000);
-    } catch {
-      setCopyMsg("Copy the link above");
+      const r = await fetch("/api/wishlist/share");
+      const d = await r.json();
+      if (!r.ok || !d?.token) {
+        throw new Error(d?.error || "Could not generate wishlist share link");
+      }
+      const url = `${window.location.origin}/wishlist/public/${d.token}`;
+      setShareUrl(url);
+      await generateShareQr(url);
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopyMsg("Copied!");
+        setTimeout(() => setCopyMsg(""), 2000);
+      } catch {
+        setCopyMsg("Copy the link above");
+      }
+    } catch (error: any) {
+      setShareUrl(null);
+      setShareQrSvg("");
+      setCopyMsg(error?.message || "Share link failed");
     }
   };
 
@@ -462,10 +543,18 @@ export default function WishlistPage() {
     return true;
   });
 
+  const compareWishlistItems = (a: WishlistItem, b: WishlistItem) => {
+    const platformCompare = a.platform.localeCompare(b.platform, undefined, { sensitivity: "base" });
+    if (platformCompare !== 0) return platformCompare;
+    return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+  };
+
+  const sortedFiltered = [...filtered].sort(compareWishlistItems);
+
   // Group by priority for active view
   const grouped = [1, 2, 3].map(p => ({
     priority: p as 1 | 2 | 3,
-    items: filtered.filter(i => i.priority === p && !i.foundAt),
+    items: filtered.filter(i => i.priority === p && !i.foundAt).sort(compareWishlistItems),
   }));
 
   const inputCls = "bg-black border border-green-800 text-green-300 font-terminal px-3 py-2 focus:outline-none focus:border-green-500 w-full";
@@ -492,6 +581,13 @@ export default function WishlistPage() {
             🔗 Share
           </button>
           <button
+            onClick={fetchAllPrices}
+            disabled={bulkFetchLoading || active === 0}
+            className={`${btnCls} border-blue-700 text-blue-300 hover:bg-blue-950 disabled:opacity-50`}
+          >
+            {bulkFetchLoading ? '… Fetching All' : '💰 Fetch All'}
+          </button>
+          <button
             onClick={() => setShowAdd(true)}
             className={`${btnCls} border-green-500 bg-green-900 hover:bg-green-800 text-green-200`}
           >
@@ -502,10 +598,38 @@ export default function WishlistPage() {
 
       {/* Share URL banner */}
       {shareUrl && (
-        <div className="mb-6 p-4 border border-green-700 bg-green-950/30 flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <span className="text-green-400 font-terminal text-sm flex-1 break-all">{shareUrl}</span>
-          <span className="text-green-300 font-terminal text-xs">{copyMsg}</span>
-          <button onClick={() => setShareUrl(null)} className="text-zinc-500 hover:text-red-400 font-terminal text-xs">dismiss</button>
+        <div className="mb-6 p-4 border border-green-700 bg-green-950/30 space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <span className="text-green-400 font-terminal text-sm flex-1 break-all">{shareUrl}</span>
+            <span className="text-green-300 font-terminal text-xs">{copyMsg}</span>
+            <button onClick={() => { setShareUrl(null); setShareQrSvg(""); setCopyMsg(""); }} className="text-zinc-500 hover:text-red-400 font-terminal text-xs">dismiss</button>
+          </div>
+          <div className="flex flex-col lg:flex-row gap-4 items-start">
+            {shareQrSvg ? (
+              <>
+                <div className="border-4 border-green-700 p-3 bg-zinc-950" dangerouslySetInnerHTML={{ __html: shareQrSvg }} />
+                <div className="space-y-3">
+                  <button
+                    onClick={downloadShareQr}
+                    className={`${btnCls} border-blue-700 text-blue-300 hover:bg-blue-950`}
+                  >
+                    ⬇️ Download QR
+                  </button>
+                  <p className="text-zinc-500 font-terminal text-xs max-w-sm">
+                    Scan this QR code to open the public wishlist link fast at conventions, trades, or local pickups.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className="text-zinc-500 font-terminal text-xs">Generating QR...</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!shareUrl && copyMsg && (
+        <div className="mb-6 p-3 border border-red-800 bg-red-950/20 text-red-300 font-terminal text-xs">
+          {copyMsg}
         </div>
       )}
 
@@ -691,8 +815,10 @@ export default function WishlistPage() {
                       item={item}
                       onFound={openFoundPrompt}
                       onFetchPrice={(wishlistItem) => fetchPrice(wishlistItem.title, wishlistItem.platform, wishlistItem.id)}
+                      isFetchingPrice={fetchingWishlistIds.includes(item.id)}
                       onUnfound={unmarkFound}
                       onDelete={del}
+                      getPriceChartingUrl={buildPriceChartingUrl}
                     />
                   ))}
                 </div>
@@ -703,14 +829,16 @@ export default function WishlistPage() {
       ) : (
         // Flat list for found / all
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filtered.map(item => (
+          {sortedFiltered.map(item => (
             <ItemCard
               key={item.id}
               item={item}
               onFound={openFoundPrompt}
               onFetchPrice={(wishlistItem) => fetchPrice(wishlistItem.title, wishlistItem.platform, wishlistItem.id)}
+              isFetchingPrice={fetchingWishlistIds.includes(item.id)}
               onUnfound={unmarkFound}
               onDelete={del}
+              getPriceChartingUrl={buildPriceChartingUrl}
             />
           ))}
         </div>
@@ -778,14 +906,18 @@ function ItemCard({
   item,
   onFound,
   onFetchPrice,
+  isFetchingPrice,
   onUnfound,
   onDelete,
+  getPriceChartingUrl,
 }: {
   item: WishlistItem;
   onFound: (item: WishlistItem) => void;
   onFetchPrice: (item: WishlistItem) => void;
+  isFetchingPrice: boolean;
   onUnfound: (id: string) => void;
   onDelete: (id: string) => void;
+  getPriceChartingUrl: (title: string, platform: string) => string;
 }) {
   const meta  = PRIORITY_META[item.priority];
   const found = !!item.foundAt;
@@ -825,10 +957,19 @@ function ItemCard({
       <div className="mt-2 flex gap-2 flex-wrap">
         <button
           onClick={() => onFetchPrice(item)}
-          className="text-blue-400 hover:text-blue-200 font-terminal text-sm border border-blue-900 hover:border-blue-500 px-2 py-0.5 transition-colors"
+          disabled={isFetchingPrice}
+          className="text-blue-400 hover:text-blue-200 font-terminal text-sm border border-blue-900 hover:border-blue-500 px-2 py-0.5 transition-colors disabled:opacity-50"
         >
-          💰 Fetch Price
+          {isFetchingPrice ? '… Fetching' : '💰 Fetch Price'}
         </button>
+        <Link
+          href={getPriceChartingUrl(item.title, item.platform)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-purple-400 hover:text-purple-200 font-terminal text-sm border border-purple-900 hover:border-purple-500 px-2 py-0.5 transition-colors"
+        >
+          ↗ PriceCharting
+        </Link>
         {found ? (
           <button
             onClick={() => onUnfound(item.id)}

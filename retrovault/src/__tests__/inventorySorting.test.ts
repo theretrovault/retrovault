@@ -19,4 +19,9 @@ describe('inventory sorting UX', () => {
     expect(src).toContain('SORT: GAME AGE (OLDEST)');
     expect(src).toContain('SORT: GAME AGE (NEWEST)');
   });
+
+  it('does not silently restrict the vault to enabled platform subsets', () => {
+    expect(src).toContain('const filteredByPlatform = items;');
+    expect(src).toContain('Platform enablement is a settings/input convenience');
+  });
 });

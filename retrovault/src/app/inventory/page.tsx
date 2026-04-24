@@ -81,7 +81,7 @@ function SortHeader({
 }
 
 export default function InventoryPage() {
-  const { platforms: enabledPlatforms } = useAppConfig();
+  useAppConfig();
   const [items, setItems] = useState<GameItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -254,10 +254,9 @@ export default function InventoryPage() {
 
   const totalPaid = (copies: GameCopy[]) => getTotalPaid(copies);
 
-  // Filter items to only enabled platforms (from app config)
-  const filteredByPlatform = enabledPlatforms && enabledPlatforms.length > 0
-    ? items.filter(i => enabledPlatforms.includes(i.platform))
-    : items;
+  // The Vault should show the full inventory/catalog truth, not just currently enabled platform subsets.
+  // Platform enablement is a settings/input convenience, not a hidden global vault filter.
+  const filteredByPlatform = items;
 
   // Get unique platforms for the filter dropdown
   const platforms = Array.from(new Set(filteredByPlatform.map(i => i.platform))).sort();
@@ -576,21 +575,25 @@ export default function InventoryPage() {
       body: JSON.stringify(newItem),
     }).then((r) => r.json());
 
-    // Auto-enable platform if it's not in the current enabled list
-    if (data.platform && enabledPlatforms && enabledPlatforms.length > 0 && !enabledPlatforms.includes(data.platform)) {
-      const syncRes = await fetch("/api/platforms/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform: data.platform, enabled: true, autoPopulate: true })
-      }).then(r => r.json()).catch(() => ({}));
-      const added = syncRes?.sync?.populated?.added || 0;
-      const toast = document.createElement('div');
-      toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[500] bg-yellow-950 border-2 border-yellow-600 px-6 py-3 font-terminal text-yellow-300 text-sm shadow-lg';
-      toast.textContent = added > 0
-        ? `📺 Platform enabled: ${data.platform} — added ${added.toLocaleString()} catalog games for this system.`
-        : `📺 Platform enabled: ${data.platform} — catalog sync ${syncRes?.sync?.catalogFound === false ? 'is not available for this system yet' : 'found no new games to add'}.`;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 5000);
+    // Auto-enable platform if it's not currently enabled in config.
+    if (data.platform) {
+      const config = await fetch("/api/config").then((r) => r.json()).catch(() => ({}));
+      const enabledPlatforms = Array.isArray(config?.platforms) ? config.platforms : [];
+      if (!enabledPlatforms.includes(data.platform)) {
+        const syncRes = await fetch("/api/platforms/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ platform: data.platform, enabled: true, autoPopulate: true })
+        }).then(r => r.json()).catch(() => ({}));
+        const added = syncRes?.sync?.populated?.added || 0;
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[500] bg-yellow-950 border-2 border-yellow-600 px-6 py-3 font-terminal text-yellow-300 text-sm shadow-lg';
+        toast.textContent = added > 0
+          ? `📺 Platform enabled: ${data.platform} — added ${added.toLocaleString()} catalog games for this system.`
+          : `📺 Platform enabled: ${data.platform} — catalog sync ${syncRes?.sync?.catalogFound === false ? 'is not available for this system yet' : 'found no new games to add'}.`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 5000);
+      }
     }
 
     mergeItemIntoInventory(created);
@@ -649,12 +652,6 @@ export default function InventoryPage() {
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-2xl">🕹️</span>
           <h2 className="text-xl sm:text-3xl text-green-400 tracking-widest uppercase leading-tight">Vault Inventory</h2>
-          {enabledPlatforms && enabledPlatforms.length > 0 && enabledPlatforms.length < 35 && (
-            <span className="text-zinc-600 font-terminal text-xs">
-              {enabledPlatforms.length} platform{enabledPlatforms.length !== 1 ? 's' : ''} active
-              <a href="/settings" className="ml-2 text-blue-700 hover:text-blue-500 transition-colors">change →</a>
-            </span>
-          )}
         </div>
         <div className="flex flex-wrap gap-3 items-center">
           <button
