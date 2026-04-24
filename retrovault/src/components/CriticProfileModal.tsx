@@ -69,8 +69,8 @@ export function CriticProfileModal({ critic, people, items, favData, regretData,
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] backdrop-blur-sm" onClick={onClose}>
       <div className="bg-zinc-950 border-4 border-purple-600 p-6 rounded-sm w-full max-w-2xl shadow-[0_0_30px_rgba(168,85,247,0.4)] mx-4 overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
         <div className="border-b-2 border-purple-900 pb-4 mb-6">
-          <h2 className="text-3xl text-purple-400 font-terminal uppercase tracking-widest">🎬 {critic.name}</h2>
-          <p className="text-purple-700 font-terminal text-sm mt-1">Critic Profile</p>
+          <h2 className="text-3xl text-purple-400 font-terminal uppercase tracking-widest">🎮 {critic.name}</h2>
+          <p className="text-purple-700 font-terminal text-sm mt-1">Player Profile</p>
         </div>
 
         {/* KPIs */}

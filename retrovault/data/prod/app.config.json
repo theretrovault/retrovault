@@ -16,7 +16,7 @@
   },
   "plex": {
     "url": "https://192.168.1.2:32400",
-    "token": "s3_dpsVi8rCxG-ciJP32"
+    "token": "(set)"
   },
   "fetchScheduleHour": 0,
   "priceDataSource": "pricecharting",
@@ -38,7 +38,10 @@
     "Wii",
     "Sega Dreamcast",
     "PlayStation 2",
-    "Virtual Boy"
+    "Virtual Boy",
+    "PS4",
+    "PS5",
+    "Switch 2"
   ],
   "scrapers": {
     "craigslistCity": "portland"
@@ -628,5 +631,6 @@
   "setupWizardVersion": "2",
   "publicToken": "sthfqbqjdqi08ghp3zxn07e",
   "publicTokenExpiresAt": "2026-05-17T23:13:17.961Z",
-  "setupSuggestAuth": true
+  "setupSuggestAuth": true,
+  "runtimeEnv": "prod"
 }

@@ -12,7 +12,7 @@ const TYPE_STYLES: Record<string, { color: string; bg: string; border: string; l
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Foundation": "🏗️", "Game Inventory": "🕹️", "Price Data": "📊", "P&L System": "💰",
-  "Analytics": "📈", "Market Tools": "🎯", "Critics System": "🎬", "Collection Showcase": "🎮",
+  "Analytics": "📈", "Market Tools": "🎯", "Players System": "🎮", "Collection Showcase": "🎮",
   "UX": "✨", "App Configuration": "⚙️", "Standalone Mode": "🔌", "Authentication": "🔒",
   "Themes": "🎨", "Tags & Mentions": "🏷️", "Search": "🔍", "Feature Groups": "🔧",
   "Navigation Overhaul": "🗺️", "Field Tools": "🔦", "Business Intelligence": "💹",

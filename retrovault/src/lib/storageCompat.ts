@@ -570,9 +570,9 @@ export async function readFavoritesCompat(): Promise<LegacyFavoritesData> {
   });
 
   const legacy = readDataFile<LegacyFavoritesData>('favorites.json', { people: [], favorites: {}, regrets: {} });
-  const mergedPeople = new Map<string, { id: string; name: string }>();
+  const mergedPeople = new Map<string, { id: string; name: string; color?: string | null }>();
   for (const person of legacy.people || []) mergedPeople.set(person.id, person);
-  for (const person of people) mergedPeople.set(person.id, { id: person.id, name: person.name });
+  for (const person of people) mergedPeople.set(person.id, { id: person.id, name: person.name, color: (person as any).color ?? null });
 
   const favorites: Record<string, string[]> = { ...(legacy.favorites || {}) };
   const regrets: Record<string, string[]> = { ...(legacy.regrets || {}) };
@@ -589,15 +589,15 @@ export async function readFavoritesCompat(): Promise<LegacyFavoritesData> {
   };
 }
 
-export async function addPersonCompat(name: string) {
-  const created = await prisma.person.create({ data: { name } });
-  return { id: created.id, name: created.name };
+export async function addPersonCompat(name: string, color?: string | null) {
+  const created = await prisma.person.create({ data: { name, color: color || null } });
+  return { id: created.id, name: created.name, color: created.color };
 }
 
-export async function renamePersonCompat(id: string, name: string) {
+export async function renamePersonCompat(id: string, name: string, color?: string | null) {
   try {
-    const updated = await prisma.person.update({ where: { id }, data: { name } });
-    return { id: updated.id, name: updated.name };
+    const updated = await prisma.person.update({ where: { id }, data: { name, ...(color !== undefined ? { color: color || null } : {}) } });
+    return { id: updated.id, name: updated.name, color: updated.color };
   } catch {
     return null;
   }

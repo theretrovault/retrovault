@@ -144,7 +144,7 @@ describe('Layout overflow — button rows must use flex-wrap', () => {
     expect(headerRegion).toContain('shrink-0');
   });
 
-  it('Inventory action dropdown is viewport-safe for longer critic lists', () => {
+  it('Inventory action dropdown is viewport-safe for longer player lists', () => {
     const src = readFile(path.join(SRC, 'app/inventory/page.tsx'));
     const dropdownCtx = src.match(/<div className="absolute right-0 top-full mt-1 z-20[^"]*" data-menu>/)?.[0] ?? '';
     expect(dropdownCtx).toContain('w-64');
@@ -154,7 +154,7 @@ describe('Layout overflow — button rows must use flex-wrap', () => {
     expect(dropdownCtx).toContain('overflow-x-hidden');
   });
 
-  it('Inventory action dropdown renders sorted critic lists from all people', () => {
+  it('Inventory action dropdown renders sorted player lists from all people', () => {
     const src = readFile(path.join(SRC, 'app/inventory/page.tsx'));
     expect(src).toContain('[...people].sort((a, b) => a.name.localeCompare(b.name)).map(p => (');
   });

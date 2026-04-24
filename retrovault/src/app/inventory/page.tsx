@@ -7,13 +7,13 @@
  *
  *       - VaultTable         — the game table with sort/filter/pagination
  *       - VaultFilters       — search bar, platform/filter dropdowns
- *       - CriticsManager     — "The Critics" people manager modal
+ *       - PlayersManager     — players people manager modal
  *       - CrudModal          — edit/add copy modal
  *       - VaultCodex         — the Codex help modal
  *
  *       Custom hooks to extract:
  *       - useInventory()     — data fetching (see src/hooks/useInventory.ts)
- *       - useCritics()       — critics data (see src/hooks/useCritics.ts)
+ *       - useCritics()       — player/social data (see src/hooks/useCritics.ts)
  *       - useVaultScores()   — buy/sell score computation
  *
  *       See CONTRIBUTING.md for coding conventions.
@@ -23,7 +23,7 @@ import { useEffect, useState } from "react";
 import { PriceDetailModal } from "@/components/PriceDetailModal";
 import { ConsoleModal, PlatformButton } from "@/components/ConsoleModal";
 import { AddAssetModal, type AssetFormData } from "@/components/AddAssetModal";
-import { CriticProfileModal } from "@/components/CriticProfileModal";
+import { PlayerProfileModal } from "@/components/PlayerProfileModal";
 import { useAppConfig } from "@/components/AppConfig";
 import { Tip } from "@/components/Tooltip";
 import { getCopyMarketValue } from "@/lib/copyCondition";
@@ -45,6 +45,16 @@ type PriceHistoryEntry = {
   fetchedAt?: string;
 };
 
+const PLAYER_COLOR_OPTIONS = [
+  "#f472b6",
+  "#22d3ee",
+  "#fb923c",
+  "#a78bfa",
+  "#34d399",
+  "#facc15",
+  "#60a5fa",
+];
+
 type GameItem = {
   id: string;
   title: string;
@@ -60,6 +70,8 @@ type GameItem = {
   purchaseDate?: string;
   isDigital?: boolean;
   copies: GameCopy[];
+  hasVariants?: boolean;
+  variantMatches?: { title: string; platform: string; loose: string | null; cib: string | null; new: string | null; graded: string | null }[];
 };
 
 // Hoisted to module scope — prevents focus loss on re-render
@@ -101,16 +113,18 @@ export default function InventoryPage() {
   const [codexTab, setCodexTab] = useState<'player' | 'tech'>('player');
 
   // Favorites state
-  type Person = { id: string; name: string };
+  type Person = { id: string; name: string; color?: string | null };
   const [people, setPeople] = useState<Person[]>([]);
   const [favData, setFavData] = useState<Record<string, string[]>>({});
   const [regretData, setRegretData] = useState<Record<string, string[]>>({});
   const [showPeopleManager, setShowPeopleManager] = useState(false);
   const [newPersonName, setNewPersonName] = useState("");
+  const [newPersonColor, setNewPersonColor] = useState("");
   const [editingPersonId, setEditingPersonId] = useState<string | null>(null);
   const [editingPersonName, setEditingPersonName] = useState("");
+  const [editingPersonColor, setEditingPersonColor] = useState("");
   const [favPersonFilter, setFavPersonFilter] = useState<string | null>(null);
-  const [criticProfile, setCriticProfile] = useState<Person | null>(null);
+  const [playerProfile, setPlayerProfile] = useState<Person | null>(null);
   const [tagsData, setTagsData] = useState<{ gameTags: Record<string, string[]>; mentions: Record<string, any[]> }>({ gameTags: {}, mentions: {} });
   const [tagSearch, setTagSearch] = useState("");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -204,9 +218,10 @@ export default function InventoryPage() {
     await fetch("/api/favorites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "add_person", name: newPersonName })
+      body: JSON.stringify({ action: "add_person", name: newPersonName, color: newPersonColor || null })
     });
     setNewPersonName("");
+    setNewPersonColor("");
     fetchFavorites();
   };
 
@@ -215,10 +230,11 @@ export default function InventoryPage() {
     await fetch("/api/favorites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "rename_person", id, name: editingPersonName })
+      body: JSON.stringify({ action: "rename_person", id, name: editingPersonName, color: editingPersonColor || null })
     });
     setEditingPersonId(null);
     setEditingPersonName("");
+    setEditingPersonColor("");
     fetchFavorites();
   };
 
@@ -480,7 +496,7 @@ export default function InventoryPage() {
         await fetch("/api/inventory", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...item, marketLoose: data.loose, marketCib: data.cib, marketNew: data.new, marketGraded: data.graded, lastFetched: new Date().toISOString() }),
+          body: JSON.stringify({ ...item, marketLoose: data.loose, marketCib: data.cib, marketNew: data.new, marketGraded: data.graded, lastFetched: new Date().toISOString(), hasVariants: !!data.hasVariants }),
         });
         fetchInventory();
       }
@@ -665,8 +681,8 @@ export default function InventoryPage() {
           <button onClick={() => setShowCodex(true)} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-terminal font-bold text-sm sm:text-xl px-3 sm:px-4 py-2 rounded-sm border-2 border-zinc-600 transition-all whitespace-nowrap" title="Vault Codex — How to use this app">
             📜 CODEX
           </button>
-          <button onClick={() => setShowPeopleManager(true)} className="bg-purple-900/60 hover:bg-purple-700 text-purple-300 font-terminal font-bold text-sm sm:text-xl px-3 sm:px-4 py-2 rounded-sm border-2 border-purple-600 transition-all whitespace-nowrap" title="Manage Critics — people who track favorites and regrets">
-            🎬 THE CRITICS
+          <button onClick={() => setShowPeopleManager(true)} className="bg-purple-900/60 hover:bg-purple-700 text-purple-300 font-terminal font-bold text-sm sm:text-xl px-3 sm:px-4 py-2 rounded-sm border-2 border-purple-600 transition-all whitespace-nowrap" title="Manage Players — people who track favorites and regrets">
+            🎮 PLAYERS
           </button>
           <button onClick={openNew} className="bg-green-600 hover:bg-green-500 text-black font-terminal font-bold text-sm sm:text-xl px-3 sm:px-4 py-2 rounded-sm border-2 border-green-400 transition-all whitespace-nowrap ml-auto">
             + ADD ASSET
@@ -688,7 +704,7 @@ export default function InventoryPage() {
           />
           <input
             type="text"
-            placeholder="#tag or @critic..."
+            placeholder="#tag or @player..."
             value={tagSearch}
             onChange={(e) => setTagSearch(e.target.value)}
             className="bg-zinc-950 border-2 border-purple-900 text-purple-300 p-2 font-terminal text-xl w-full sm:max-w-xs focus:outline-none focus:border-purple-400 focus:bg-purple-950/20 focus:shadow-[0_0_12px_rgba(168,85,247,0.25)] transition-all"
@@ -780,8 +796,11 @@ export default function InventoryPage() {
                     <td className="p-3">
                       <PlatformButton platform={item.platform} onClick={setConsoleModalPlatform} className="text-green-500 hover:text-green-300" />
                     </td>
-                    <td className="p-3 text-green-300 font-bold max-w-xs truncate" title={item.title}>
+                    <td className="p-3 text-green-300 font-bold max-w-xs" title={item.title}>
                       <button onClick={() => setPriceDetailItem(item)} className="hover:text-green-100 hover:underline text-left truncate w-full">{item.title}</button>
+                      {item.hasVariants && (
+                        <span className="inline-block ml-1 text-xs font-terminal border border-amber-700 bg-amber-950/40 text-amber-300 px-1.5 py-0.5">⚠</span>
+                      )}
                     </td>
                     <td className="p-3 text-center">
                       {qty === 0 ? <span className="text-zinc-600">-</span> : (
@@ -991,14 +1010,14 @@ export default function InventoryPage() {
       {/* Price Detail Modal - using shared component */}
       {priceDetailItem && <PriceDetailModal item={priceDetailItem} onClose={() => setPriceDetailItem(null)} favoritedBy={whoFavorited(priceDetailItem.id)} regrettedBy={whoRegreted(priceDetailItem.id)} allPeople={people} />}
 
-      {criticProfile && (
-        <CriticProfileModal
-          critic={criticProfile}
+      {playerProfile && (
+        <PlayerProfileModal
+          critic={playerProfile}
           people={people}
           items={items}
           favData={favData}
           regretData={regretData}
-          onClose={() => setCriticProfile(null)}
+          onClose={() => setPlayerProfile(null)}
         />
       )}
 
@@ -1089,7 +1108,7 @@ export default function InventoryPage() {
                     "Favorites and Regrets are mutually exclusive per person per game.",
                     "VIBE column: ⭐ = loved by all, 👎 = regretted, ⚖️ = mixed.",
                     "Filter the Vault by a person's Favorites or Regrets via the filter dropdown.",
-                    "Click a critic's name to open their Profile: total counts, top platforms, full game lists.",
+                    "Click a player's name to open their Profile: total counts, top platforms, full game lists.",
                   ]
                 }, {
                   icon: "⋯", title: "ROW ACTIONS MENU",
@@ -1147,7 +1166,7 @@ export default function InventoryPage() {
                     "LOCAL DEALS (/deals) — Craigslist and Reddit r/gameswap alerts matched to your watchlist.",
                     "WHATNOT (/whatnot) — follow sellers and log their scheduled streams.",
                     "FIELD GUIDE (/guide) — 8 chapters, 60+ hunter principles and resource links.",
-                    "FRIENDS MODE (/friends) — per-critic profiles with mentions, favorites, and regrets.",
+                    "FRIENDS MODE (/friends) — per-player profiles with mentions, favorites, and regrets.",
                     "SCRAPER CENTER (/scrapers) — manage all data scrapers (run, schedule, view logs).",
                   ]
                 }, {
@@ -1308,22 +1327,44 @@ export default function InventoryPage() {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm" onClick={() => setShowPeopleManager(false)}>
           <div className="bg-zinc-950 border-4 border-purple-600 p-6 rounded-sm w-full max-w-lg shadow-[0_0_30px_rgba(168,85,247,0.4)]" onClick={e => e.stopPropagation()}>
             <h3 className="text-2xl text-purple-400 font-terminal uppercase mb-6 tracking-widest border-b-2 border-purple-900 pb-2">
-              🎬 THE CRITICS
+              🎮 PLAYERS
             </h3>
 
             {/* Add new person */}
-            <div className="flex gap-3 mb-6">
-              <input
-                type="text"
-                placeholder="ENTER NAME..."
-                value={newPersonName}
-                onChange={e => setNewPersonName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addPerson()}
-                className="flex-1 bg-black border-2 border-purple-800 text-purple-300 p-2 font-terminal text-xl uppercase focus:outline-none focus:border-purple-400"
-              />
-              <button onClick={addPerson} className="bg-purple-700 hover:bg-purple-600 text-white font-terminal text-xl px-4 py-2 transition-colors">
-                + ADD
-              </button>
+            <div className="space-y-3 mb-6">
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  placeholder="ENTER PLAYER NAME..."
+                  value={newPersonName}
+                  onChange={e => setNewPersonName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addPerson()}
+                  className="flex-1 bg-black border-2 border-purple-800 text-purple-300 p-2 font-terminal text-xl uppercase focus:outline-none focus:border-purple-400"
+                />
+                <button onClick={addPerson} className="bg-purple-700 hover:bg-purple-600 text-white font-terminal text-xl px-4 py-2 transition-colors">
+                  + ADD
+                </button>
+              </div>
+              <div>
+                <p className="text-zinc-500 font-terminal text-sm mb-2 uppercase">Player Color</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setNewPersonColor("")}
+                    className={`px-3 py-1 font-terminal text-sm border ${!newPersonColor ? 'border-white text-white' : 'border-zinc-700 text-zinc-500'}`}
+                  >
+                    Auto
+                  </button>
+                  {PLAYER_COLOR_OPTIONS.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setNewPersonColor(color)}
+                      className={`h-8 w-8 border-2 ${newPersonColor === color ? 'border-white' : 'border-zinc-700'}`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* People list */}
@@ -1334,22 +1375,45 @@ export default function InventoryPage() {
                 {people.map(p => (
                   <div key={p.id} className="bg-zinc-900 border border-purple-900/50 p-4 rounded-sm">
                     {editingPersonId === p.id ? (
-                      <div className="flex gap-3">
-                        <input
-                          autoFocus
-                          type="text"
-                          value={editingPersonName}
-                          onChange={e => setEditingPersonName(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && renamePerson(p.id)}
-                          className="flex-1 bg-black border-2 border-purple-800 text-purple-300 p-2 font-terminal text-xl uppercase focus:outline-none"
-                        />
-                        <button onClick={() => renamePerson(p.id)} className="text-green-400 hover:text-green-200 font-terminal text-xl px-3">SAVE</button>
-                        <button onClick={() => setEditingPersonId(null)} className="text-zinc-400 hover:text-white font-terminal text-xl px-3">CANCEL</button>
+                      <div className="space-y-3">
+                        <div className="flex gap-3">
+                          <input
+                            autoFocus
+                            type="text"
+                            value={editingPersonName}
+                            onChange={e => setEditingPersonName(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && renamePerson(p.id)}
+                            className="flex-1 bg-black border-2 border-purple-800 text-purple-300 p-2 font-terminal text-xl uppercase focus:outline-none"
+                          />
+                          <button onClick={() => renamePerson(p.id)} className="text-green-400 hover:text-green-200 font-terminal text-xl px-3">SAVE</button>
+                          <button onClick={() => { setEditingPersonId(null); setEditingPersonColor(""); }} className="text-zinc-400 hover:text-white font-terminal text-xl px-3">CANCEL</button>
+                        </div>
+                        <div>
+                          <p className="text-zinc-500 font-terminal text-sm mb-2 uppercase">Player Color</p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => setEditingPersonColor("")}
+                              className={`px-3 py-1 font-terminal text-sm border ${!editingPersonColor ? 'border-white text-white' : 'border-zinc-700 text-zinc-500'}`}
+                            >
+                              Auto
+                            </button>
+                            {PLAYER_COLOR_OPTIONS.map((color) => (
+                              <button
+                                key={color}
+                                onClick={() => setEditingPersonColor(color)}
+                                className={`h-8 w-8 border-2 ${editingPersonColor === color ? 'border-white' : 'border-zinc-700'}`}
+                                style={{ backgroundColor: color }}
+                                title={color}
+                              />
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between">
                         <div>
-                          <button onClick={() => setCriticProfile(p)} className="text-purple-300 hover:text-purple-100 hover:underline font-terminal text-xl font-bold">{p.name}</button>
+                          <button onClick={() => setPlayerProfile(p)} className="text-purple-300 hover:text-purple-100 hover:underline font-terminal text-xl font-bold">{p.name}</button>
+                          <span className="inline-block h-3 w-3 rounded-full ml-3 border border-zinc-700" style={{ backgroundColor: p.color || undefined }} />
                           <span className="text-yellow-500 font-terminal text-sm ml-3">
                             {(favData[p.id] || []).length} ⭐
                           </span>
@@ -1359,7 +1423,7 @@ export default function InventoryPage() {
                         </div>
                         <div className="flex gap-3">
                           <button
-                            onClick={() => { setEditingPersonId(p.id); setEditingPersonName(p.name); }}
+                            onClick={() => { setEditingPersonId(p.id); setEditingPersonName(p.name); setEditingPersonColor(p.color || ''); }}
                             className="text-yellow-400 hover:text-yellow-200 font-terminal text-sm px-2 py-1 border border-yellow-900/50 hover:border-yellow-500"
                           >
                             RENAME
@@ -1379,7 +1443,7 @@ export default function InventoryPage() {
             )}
 
             <div className="mt-6 flex justify-between items-center">
-              <p className="text-zinc-600 font-terminal text-sm">Toggle ⭐ / 👎 opinions via the ⋯ menu on each game row.</p>
+              <p className="text-zinc-600 font-terminal text-sm">Toggle ⭐ / 👎 opinions via the ⋯ menu on each game row. Player colors carry into shared wishlist views.</p>
               <button onClick={() => setShowPeopleManager(false)} className="px-4 py-2 font-terminal text-xl text-zinc-400 hover:text-white">
                 DONE
               </button>

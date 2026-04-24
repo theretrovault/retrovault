@@ -8,7 +8,7 @@ export async function GET() {
     const items = await prisma.wishlistItem.findMany({
       include: {
         player: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, color: true },
         },
       },
       orderBy: [{ priority: 'asc' }, { addedAt: 'desc' }],

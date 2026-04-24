@@ -64,13 +64,21 @@ describe('Wishlist page contextual flow', () => {
     expect(source).toContain('hasWishlistTotals');
   });
 
-  it('supports sticky player assignment and colored player badges on wishlist items', () => {
+  it('supports sticky player assignment, reassignment, and colored player badges on wishlist items', () => {
     expect(source).toContain('WISHLIST_PLAYER_STORAGE_KEY');
     expect(source).toContain('localStorage.setItem(WISHLIST_PLAYER_STORAGE_KEY');
     expect(source).toContain('playerId');
     expect(source).toContain('getPlayerBadgeStyle');
+    expect(source).toContain('player.color');
     expect(source).toContain('👤');
     expect(source).toContain('No player');
+    expect(source).toContain('updateWishlistPlayer');
+    expect(source).toContain('setItems((current) => current.map');
+    expect(source).toContain('player: selectedPlayer');
+    expect(source).toContain('onPlayerChange');
+    expect(source).toContain('Choose which player wants this game');
+    expect(source).toContain('borderColor: playerAccent || undefined');
+    expect(source).toContain('boxShadow: playerAccent ? `0 0 0 1px ${playerAccent}` : undefined');
   });
 
   it('prompts before found items disappear, routes them into collection, and ignores catalog-only ownership ghosts', () => {

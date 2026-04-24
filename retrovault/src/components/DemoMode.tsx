@@ -159,9 +159,9 @@ const ALL_DEMO_STEPS: DemoStep[] = [
     requires: ["collection"],
   },
   {
-    id: "critics",
-    title: "⭐ Critics & Friends Mode",
-    description: "Add people to your Critics list and track which games they love or regret. Friends Mode shows what your crew recommends. Great for trading recommendations and party game picks.",
+    id: "players",
+    title: "⭐ Players & Friends Mode",
+    description: "Add people to your Players list and track which games they love or regret. Friends Mode shows what your crew recommends. Great for trading recommendations and party game picks.",
     position: "center",
     navigateTo: "/friends",
     requires: ["social"],

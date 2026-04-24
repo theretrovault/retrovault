@@ -159,7 +159,7 @@ For the high-context system map, read [`docs/architecture.md`](architecture.md) 
 
 **Shared types** are in `src/types/index.ts`. Always import from there — don't redefine `GameItem`, `Person`, etc. in individual files.
 
-**Shared hooks** are in `src/hooks/`. Use `useInventory()`, `useCritics()`, `usePriceData.ts` utilities rather than rolling your own fetch logic.
+**Shared hooks** are in `src/hooks/`. Use `useInventory()`, `usePlayers()` (preferred for player/social data), `useCritics()` (legacy alias), and `usePriceData.ts` utilities rather than rolling your own fetch logic.
 
 **Static data** (achievements, quotes, changelog, nav config, platform groups, themes, consoles) lives in `src/data/`. This is TypeScript, not JSON — it gets bundled and is never user-editable.
 
@@ -218,7 +218,7 @@ Some data is still read from JSON. During the env-separation transition, these f
 |---|---|
 | `app.config.json` | App settings (theme, auth, platforms, API keys config) |
 | `inventory.json` | Main collection/inventory dataset for current collection views |
-| `favorites.json` | Critics, favorites, regrets |
+| `favorites.json` | Players, favorites, regrets |
 | `sales.json` | P&L ledger (sales + acquisitions) |
 | `watchlist.json` | Target Radar price alerts |
 | `goals.json` | Platform completion goals |

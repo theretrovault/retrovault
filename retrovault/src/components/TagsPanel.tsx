@@ -162,7 +162,7 @@ export function TagsPanel({ entityId, entityType, entityName, people }: TagsPane
       {activeTab === "mentions" && (
         <div className="space-y-4">
           <div className="bg-zinc-900/60 border border-purple-900/40 p-3 space-y-2 rounded-sm">
-            <p className="text-purple-500 font-terminal text-xs uppercase tracking-widest">@ Mention a Critic</p>
+            <p className="text-purple-500 font-terminal text-xs uppercase tracking-widest">@ Mention a Player</p>
             <div className="flex gap-2 flex-wrap sm:flex-nowrap">
               <select value={mentionFrom} onChange={e => setMentionFrom(e.target.value)}
                 className="flex-1 min-w-0 bg-black border border-purple-900 text-purple-300 font-terminal text-sm p-2 focus:outline-none focus:border-purple-500">
@@ -172,7 +172,7 @@ export function TagsPanel({ entityId, entityType, entityName, people }: TagsPane
               <span className="text-purple-700 font-terminal self-center hidden sm:block">→</span>
               <select value={mentionTarget} onChange={e => setMentionTarget(e.target.value)}
                 className="flex-1 min-w-0 bg-black border border-purple-900 text-purple-300 font-terminal text-sm p-2 focus:outline-none focus:border-purple-500">
-                <option value="">@ notify critic...</option>
+                <option value="">@ notify player...</option>
                 {people.filter(p => p.name !== mentionFrom).map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
@@ -198,7 +198,7 @@ export function TagsPanel({ entityId, entityType, entityName, people }: TagsPane
                   <div key={m.id} className="bg-zinc-900 border border-purple-900/30 p-3 rounded-sm">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-purple-400 font-terminal text-xs">
-                        <span className="text-zinc-300">{m.fromPerson}</span> → <span className="text-purple-300">@{toCritic?.name || "critic"}</span>
+                        <span className="text-zinc-300">{m.fromPerson}</span> → <span className="text-purple-300">@{toCritic?.name || "player"}</span>
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="text-zinc-700 font-terminal text-xs">{new Date(m.createdAt).toLocaleDateString()}</span>

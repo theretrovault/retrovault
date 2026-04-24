@@ -18,7 +18,7 @@ type WishlistItem = {
   platform: string;
   gameId?: string | null;
   playerId?: string | null;
-  player?: { id: string; name: string } | null;
+  player?: { id: string; name: string; color?: string | null } | null;
   priority: 1 | 2 | 3;
   notes?: string | null;
   marketLoose?: number | null;
@@ -28,9 +28,10 @@ type WishlistItem = {
   lastFetched?: string | null;
   addedAt: string;
   foundAt?: string | null;
+  hasVariants?: boolean;
 };
 
-type PlayerOption = { id: string; name: string };
+type PlayerOption = { id: string; name: string; color?: string | null };
 
 type InventoryItem = {
   id: string;
@@ -54,6 +55,15 @@ type SuggestionItem = {
   source: "owned" | "not-owned" | "wishlist";
 };
 
+type VariantMatch = {
+  title: string;
+  platform: string;
+  loose: string | null;
+  cib: string | null;
+  new: string | null;
+  graded: string | null;
+};
+
 type PriceLookup = {
   title: string;
   platform: string;
@@ -63,6 +73,8 @@ type PriceLookup = {
   graded: string | null;
   confidence?: number;
   matchedTitle?: string | null;
+  hasVariants?: boolean;
+  variantMatches?: VariantMatch[];
 };
 
 type FoundPromptState = {
@@ -88,6 +100,8 @@ const WISHLIST_PLAYER_STORAGE_KEY = "retrovault-wishlist-player";
 
 type Filter = "all" | "active" | "found";
 
+type PlayerFilter = "all" | string;
+
 const PLAYER_BADGE_STYLES = [
   "border-pink-700 bg-pink-950/20 text-pink-300",
   "border-cyan-700 bg-cyan-950/20 text-cyan-300",
@@ -96,7 +110,8 @@ const PLAYER_BADGE_STYLES = [
   "border-emerald-700 bg-emerald-950/20 text-emerald-300",
 ];
 
-function getPlayerBadgeStyle(playerId?: string | null) {
+function getPlayerBadgeStyle(playerId?: string | null, playerColor?: string | null) {
+  if (playerColor) return "text-black border-transparent";
   if (!playerId) return "border-zinc-700 bg-zinc-900/40 text-zinc-300";
   const total = playerId.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
   return PLAYER_BADGE_STYLES[total % PLAYER_BADGE_STYLES.length];
@@ -108,6 +123,7 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(true);
   const [filter,  setFilter]  = useState<Filter>("active");
   const [players, setPlayers] = useState<PlayerOption[]>([]);
+  const [playerFilter, setPlayerFilter] = useState<PlayerFilter>("all");
   const [search,  setSearch]  = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -293,6 +309,8 @@ export default function WishlistPage() {
         graded: data.graded ?? null,
         confidence: data.confidence,
         matchedTitle: data.matchedTitle ?? null,
+        hasVariants: !!data.hasVariants,
+        variantMatches: Array.isArray(data.variantMatches) ? data.variantMatches : [],
       };
       setPriceLookup(lookup);
 
@@ -509,6 +527,24 @@ export default function WishlistPage() {
     load();
   };
 
+  const updateWishlistPlayer = async (id: string, playerId: string) => {
+    const selectedPlayer = players.find((player) => player.id === playerId) || null;
+
+    setItems((current) => current.map((item) => (
+      item.id === id
+        ? { ...item, playerId: playerId || null, player: selectedPlayer }
+        : item
+    )));
+
+    await fetch(`/api/wishlist/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerId: playerId || null }),
+    });
+
+    load();
+  };
+
   const del = async (id: string) => {
     if (!confirm("Remove from wishlist?")) return;
     await fetch(`/api/wishlist/${id}`, { method: "DELETE" });
@@ -576,6 +612,7 @@ export default function WishlistPage() {
   const filtered = items.filter(i => {
     if (filter === "active" && i.foundAt) return false;
     if (filter === "found"  && !i.foundAt) return false;
+    if (playerFilter !== "all" && (i.playerId || "") !== playerFilter) return false;
     if (search && !i.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -791,9 +828,16 @@ export default function WishlistPage() {
                 </div>
               )}
               {priceLookup && (
-                <div className="border border-blue-800 bg-blue-950/20 px-3 py-2 text-blue-300 font-terminal text-xs">
-                  💰 Loose ${priceLookup.loose ?? "N/A"} · CIB ${priceLookup.cib ?? "N/A"} · New ${priceLookup.new ?? "N/A"}
-                  {getMatchConfidence(priceLookup.confidence) ? ` · ${getMatchConfidence(priceLookup.confidence)}` : ""}
+                <div className="border border-blue-800 bg-blue-950/20 px-3 py-2 text-blue-300 font-terminal text-xs space-y-1">
+                  <div>
+                    💰 Loose ${priceLookup.loose ?? "N/A"} · CIB ${priceLookup.cib ?? "N/A"} · New ${priceLookup.new ?? "N/A"}
+                    {getMatchConfidence(priceLookup.confidence) ? ` · ${getMatchConfidence(priceLookup.confidence)}` : ""}
+                  </div>
+                  {priceLookup.hasVariants && (
+                    <div className="inline-block text-amber-300 border border-amber-700 bg-amber-950/40 px-2 py-0.5">
+                      ⚠ Variant-sensitive pricing
+                    </div>
+                  )}
                 </div>
               )}
               {priceError && (
@@ -853,6 +897,27 @@ export default function WishlistPage() {
         </div>
       )}
 
+      {players.length > 0 && (
+        <div className="flex gap-2 mb-4 flex-wrap items-center">
+          <button
+            onClick={() => setPlayerFilter("all")}
+            className={`px-3 py-1 font-terminal text-sm border transition-colors ${playerFilter === "all" ? "border-green-500 text-green-300 bg-green-950" : "border-zinc-800 text-zinc-500 hover:text-green-400"}`}
+          >
+            All Players
+          </button>
+          {players.map((player) => (
+            <button
+              key={player.id}
+              onClick={() => setPlayerFilter(player.id)}
+              className={`px-3 py-1 font-terminal text-sm border transition-colors ${playerFilter === player.id ? "text-black border-transparent" : getPlayerBadgeStyle(player.id, player.color)}`}
+              style={player.color ? { backgroundColor: player.color } : undefined}
+            >
+              {player.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Filter bar */}
       <div className="flex gap-3 mb-6 flex-wrap items-center">
         {([
@@ -909,6 +974,8 @@ export default function WishlistPage() {
                       onDelete={del}
                       getPriceChartingUrl={buildPriceChartingUrl}
                       getPlayerBadgeStyle={getPlayerBadgeStyle}
+                      players={players}
+                      onPlayerChange={updateWishlistPlayer}
                     />
                   ))}
                 </div>
@@ -930,6 +997,8 @@ export default function WishlistPage() {
               onDelete={del}
               getPriceChartingUrl={buildPriceChartingUrl}
               getPlayerBadgeStyle={getPlayerBadgeStyle}
+              players={players}
+              onPlayerChange={updateWishlistPlayer}
             />
           ))}
         </div>
@@ -1002,6 +1071,8 @@ function ItemCard({
   onDelete,
   getPriceChartingUrl,
   getPlayerBadgeStyle,
+  players,
+  onPlayerChange,
 }: {
   item: WishlistItem;
   onFound: (item: WishlistItem) => void;
@@ -1010,13 +1081,22 @@ function ItemCard({
   onUnfound: (id: string) => void;
   onDelete: (id: string) => void;
   getPriceChartingUrl: (title: string, platform: string) => string;
-  getPlayerBadgeStyle: (playerId?: string | null) => string;
+  getPlayerBadgeStyle: (playerId?: string | null, playerColor?: string | null) => string;
+  players: PlayerOption[];
+  onPlayerChange: (id: string, playerId: string) => void;
 }) {
   const meta  = PRIORITY_META[item.priority];
   const found = !!item.foundAt;
+  const playerAccent = item.player?.color || null;
 
   return (
-    <div className={`border p-3 relative group ${found ? "border-zinc-800 opacity-60" : meta.color}`}>
+    <div
+      className={`border p-3 relative group ${found ? "opacity-60" : meta.color}`}
+      style={{
+        borderColor: playerAccent || undefined,
+        boxShadow: playerAccent ? `0 0 0 1px ${playerAccent}` : undefined,
+      }}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className={`font-terminal text-base font-bold truncate ${found ? "line-through text-zinc-500" : ""}`}>
@@ -1027,7 +1107,10 @@ function ItemCard({
               {item.platform}
             </span>
             {item.player && (
-              <span className={`inline-block text-sm px-2 py-0.5 font-terminal border ${getPlayerBadgeStyle(item.playerId)}`}>
+              <span
+                className={`inline-block text-sm px-2 py-0.5 font-terminal border ${getPlayerBadgeStyle(item.playerId, item.player.color)}`}
+                style={item.player.color ? { backgroundColor: item.player.color } : undefined}
+              >
                 👤 {item.player.name}
               </span>
             )}
@@ -1042,6 +1125,11 @@ function ItemCard({
               {item.lastFetched && <p className="text-zinc-500">Updated {new Date(item.lastFetched).toLocaleString()}</p>}
             </div>
           )}
+          {item.hasVariants && (
+            <div className="mt-1 inline-block text-xs font-terminal border border-amber-700 bg-amber-950/40 text-amber-300 px-2 py-0.5">
+              ⚠ Variants affect price
+            </div>
+          )}
           {found && item.foundAt && (
             <p className="text-green-600 font-terminal text-sm mt-1">
               ✅ Found {new Date(item.foundAt).toLocaleDateString()}
@@ -1054,7 +1142,7 @@ function ItemCard({
           title="Remove"
         >✕</button>
       </div>
-      <div className="mt-2 flex gap-2 flex-wrap">
+      <div className="mt-2 flex gap-2 flex-wrap items-center">
         <button
           onClick={() => onFetchPrice(item)}
           disabled={isFetchingPrice}
@@ -1070,6 +1158,17 @@ function ItemCard({
         >
           ↗ PriceCharting
         </Link>
+        <select
+          value={item.playerId || ""}
+          onChange={(e) => onPlayerChange(item.id, e.target.value)}
+          className="bg-black border border-purple-900 text-purple-300 font-terminal text-sm px-2 py-0.5 focus:outline-none focus:border-purple-500"
+          title="Choose which player wants this game"
+        >
+          <option value="">No player</option>
+          {players.map((player) => (
+            <option key={player.id} value={player.id}>{player.name}</option>
+          ))}
+        </select>
         {found ? (
           <button
             onClick={() => onUnfound(item.id)}

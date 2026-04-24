@@ -24,4 +24,11 @@ describe('inventory sorting UX', () => {
     expect(src).toContain('const filteredByPlatform = items;');
     expect(src).toContain('Platform enablement is a settings/input convenience');
   });
+
+  it('renames critics to players in the people manager and supports player colors', () => {
+    expect(src).toContain('🎮 PLAYERS');
+    expect(src).toContain('PLAYER_COLOR_OPTIONS');
+    expect(src).toContain('Player Color');
+    expect(src).toContain('color: newPersonColor || null');
+  });
 });

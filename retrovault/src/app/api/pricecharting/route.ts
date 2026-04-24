@@ -187,6 +187,10 @@ function extractPageTitle($root: cheerio.CheerioAPI): string {
 
 const FETCH_TIMEOUT_MS = 8000; // 8 seconds — enough for slow connections, not enough to hang in field
 
+function isVariantSensitiveTitle(title: string): boolean {
+  return /\[(.*?)\]|not for resale|first print|player'?s choice|variant|bundle|big box|red box|yellow box|classics|reversed nintendo seal/i.test(title);
+}
+
 /** AbortSignal that times out after ms milliseconds */
 function timeoutSignal(ms: number): AbortSignal {
   const controller = new AbortController();
@@ -290,7 +294,12 @@ export async function GET(request: Request) {
 
           // If we got prices directly, return immediately — most reliable path
           if (loose || cib) {
-            directResult = { loose: loose || 'N/A', cib: cib || 'N/A', new: newPrice || 'N/A', graded: graded || 'N/A', matchedTitle: pageTitle, confidence: 1.0 };
+            directResult = {
+              loose: loose || 'N/A', cib: cib || 'N/A', new: newPrice || 'N/A', graded: graded || 'N/A',
+              matchedTitle: pageTitle, confidence: 1.0,
+              hasVariants: isVariantSensitiveTitle(pageTitle),
+              variantMatches: [],
+            };
             break;
           }
 
@@ -347,7 +356,12 @@ export async function GET(request: Request) {
           }
           
           if (loose || cib) {
-            directResult = { loose: loose || 'N/A', cib: cib || 'N/A', new: newPrice || 'N/A', graded: graded || 'N/A', matchedTitle: pageTitle, confidence: 1.0 };
+            directResult = {
+              loose: loose || 'N/A', cib: cib || 'N/A', new: newPrice || 'N/A', graded: graded || 'N/A',
+              matchedTitle: pageTitle, confidence: 1.0,
+              hasVariants: isVariantSensitiveTitle(pageTitle),
+              variantMatches: [],
+            };
             break;
           }
         }
@@ -388,6 +402,7 @@ export async function GET(request: Request) {
     let newPrice = extractPrice($, 'new_price');
     let gradedPrice = extractPrice($, 'graded_price');
     let matchedTitle = extractPageTitle($);
+    let variantMatches: Array<{ title: string; platform: string; loose: string | null; cib: string | null; new: string | null; graded: string | null }> = [];
 
     if (!loosePrice) {
       // Search results page — find the best-matching row
@@ -411,6 +426,17 @@ export async function GET(request: Request) {
         const score = tokenScore(queryTitle, rowTitle) + (platformMatches(platformParam, platformCell) ? 0.15 : 0);
         const suspicious = hasSuspiciousSuffix(queryTitle, rowTitle);
         const adjustedScore = suspicious ? score * 0.5 : score;
+
+        if (isVariantSensitiveTitle(rowTitle)) {
+          variantMatches.push({
+            title: rowTitle,
+            platform: platformCell,
+            loose: rowEl.find('td.used_price .js-price, td.used_price').text().trim().split('\n')[0] || null,
+            cib: rowEl.find('td.cib_price .js-price, td.cib_price').text().trim().split('\n')[0] || null,
+            new: rowEl.find('td.new_price .js-price, td.new_price').text().trim().split('\n')[0] || null,
+            graded: rowEl.find('td.graded_price .js-price, td.graded_price').text().trim().split('\n')[0] || null,
+          });
+        }
 
         if (adjustedScore > bestScore) {
           bestScore = adjustedScore;
@@ -446,7 +472,9 @@ export async function GET(request: Request) {
       new: clean(newPrice),
       graded: clean(gradedPrice),
       matchedTitle,
-      confidence: 1.0
+      confidence: 1.0,
+      hasVariants: isVariantSensitiveTitle(matchedTitle || '') || variantMatches.length > 0,
+      variantMatches,
     });
 
   } catch (error: any) {

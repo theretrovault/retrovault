@@ -210,10 +210,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "Social & Collection Features",
     type: "feature",
     changes: [
-      { category: "Critics System", items: [
+      { category: "Players System", items: [
         "Favorites ⭐ / Regrets 👎 per person",
-        "Critic Profile modal with platform breakdown and positivity score",
-        "People Manager for adding/editing/removing critics",
+        "Player Profile modal with platform breakdown and positivity score",
+        "People Manager for adding/editing/removing players",
         "Favorite-person filter in Vault",
       ]},
       { category: "Collection Showcase", items: [
@@ -272,13 +272,13 @@ export const CHANGELOG: ChangelogEntry[] = [
       { category: "Tags & Mentions", items: [
         "TagsPanel component: add/remove metadata tags with autocomplete suggestions",
         "Tags available on all games and platforms via Price Detail and Console modals",
-        "@ Mention system: send critic-specific notes on games/platforms",
-        "Mentions viewable on Critic Profile modal",
+        "@ Mention system: send player-specific notes on games/platforms",
+        "Mentions viewable on Player Profile modal",
         "/api/tags REST API for full tag/mention CRUD",
       ]},
       { category: "Search", items: [
         "Tag search bar in Vault (#tag syntax)",
-        "Critic mention search (@critic syntax)",
+        "Player mention search (@player syntax)",
         "Dual search bars: title/platform + tag/mention",
       ]},
     ],
@@ -339,7 +339,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { category: "Personal", items: [
         "Play Log: 5 statuses (Playing/Beaten/Backlog/Want/Gave Up), 1-5 star ratings",
         "Holy Grail Tracker: priority-ranked wish list with FOUND IT! tracking",
-        "Friends Mode: per-critic profile view with mentions, favorites, regrets",
+        "Friends Mode: per-player profile view with mentions, favorites, regrets",
         "Collection Milestones: 25+ auto-computed achievements",
       ]},
       { category: "Discovery", items: [

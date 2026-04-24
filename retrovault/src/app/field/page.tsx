@@ -18,6 +18,15 @@ import {
   getMatchConfidence,
 } from "@/lib/fieldMode";
 
+type PriceVariantMatch = {
+  title: string;
+  platform: string;
+  loose: string | null;
+  cib: string | null;
+  new: string | null;
+  graded: string | null;
+};
+
 type PriceResult = {
   title: string;
   platform: string;
@@ -38,6 +47,9 @@ type PriceResult = {
   // Wishlist metadata (from offline cache)
   wishlistPriority?: number | null;
   wishlistNotes?: string | null;
+  // Variant pricing
+  hasVariants?: boolean;
+  variantMatches?: PriceVariantMatch[];
 };
 
 type OwnedItem = {
@@ -56,6 +68,12 @@ type WatchlistItem = {
   title: string;
   platform: string;
   alertPrice: string;
+};
+
+type PlayerOption = {
+  id: string;
+  name: string;
+  color?: string | null;
 };
 
 const MARGIN_THRESHOLD = 30; // % profit margin to recommend BUY
@@ -98,6 +116,8 @@ export default function FieldPage() {
   const [saveStatus, setSaveStatus] = useState("");
   const [savingKey, setSavingKey] = useState("");
   const [enabledPlatforms, setEnabledPlatforms] = useState<string[]>(RETRO_DEFAULTS);
+  const [players, setPlayers] = useState<PlayerOption[]>([]);
+  const [wishlistPlayerId, setWishlistPlayerId] = useState('');
   const [fieldCondition, setFieldCondition] = useState<CopyCondition>("Loose");
   const [purchaseQuantity, setPurchaseQuantity] = useState("1");
   const [lastSearchIssue, setLastSearchIssue] = useState<{ isOffline: boolean; hadTimeout: boolean } | null>(null);
@@ -129,6 +149,11 @@ export default function FieldPage() {
     }).catch(() => {});
     fetch('/api/config').then(r => r.json()).then(cfg => {
       if (Array.isArray(cfg?.platforms) && cfg.platforms.length > 0) setEnabledPlatforms(cfg.platforms);
+    }).catch(() => {});
+    fetch('/api/favorites').then(r => r.json()).then(data => {
+      const nextPlayers = Array.isArray(data?.people) ? data.people : [];
+      setPlayers(nextPlayers);
+      setWishlistPlayerId((current) => current || nextPlayers[0]?.id || '');
     }).catch(() => {});
     // Load offline cache metadata on mount
     readFieldCache().then(cache => {
@@ -324,6 +349,8 @@ export default function FieldPage() {
           owned: 0, paidTotal: 0, paidEach: [], conditions: [],
           watchlisted: false,
           wishlistNotes: getMatchConfidence(d.confidence) || undefined,
+          hasVariants: !!d.hasVariants,
+          variantMatches: Array.isArray(d.variantMatches) ? d.variantMatches : [],
         }]);
         if (!fieldAchievementFired) {
           setFieldAchievementFired(true);
@@ -548,6 +575,42 @@ export default function FieldPage() {
     }
   };
 
+  const saveToWishlist = async (r: PriceResult) => {
+    const key = `wishlist:${r.title}:${r.platform}`;
+    setSavingKey(key);
+    setSaveStatus('');
+    try {
+      const platformSync = await ensurePlatformEnabled(r.platform);
+      const res = await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: r.title,
+          platform: r.platform,
+          priority: 2,
+          notes: 'Added from Field Mode',
+          playerId: wishlistPlayerId || null,
+          marketLoose: normalizeMoney(r.loose),
+          marketCib: normalizeMoney(r.cib),
+          marketNew: normalizeMoney(r.newPrice),
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to add to wishlist');
+      const platformMessage = platformSync.changed
+        ? (platformSync.sync?.populated?.added > 0
+          ? `, enabled ${r.platform}, and added ${platformSync.sync.populated.added.toLocaleString()} catalog game${platformSync.sync.populated.added === 1 ? '' : 's'}`
+          : `, and enabled ${r.platform}${platformSync.sync?.catalogFound === false ? ' (catalog sync unavailable for this system yet)' : ''}`)
+        : '';
+      setSaveStatus(`🎁 Added ${r.title} (${r.platform}) to Wishlist${platformMessage}.`);
+      setNeedsCacheRefresh(!!cacheMeta);
+      await refreshFieldData();
+    } catch (e: any) {
+      setSaveStatus(`Error: ${e.message || 'Could not add to wishlist'}`);
+    } finally {
+      setSavingKey('');
+    }
+  };
+
   const askNum = parseFloat(askPrice);
   const hasAsk = !isNaN(askNum) && askNum > 0;
 
@@ -705,6 +768,20 @@ export default function FieldPage() {
         </div>
       )}
 
+      {players.length > 0 && (
+        <div className="mb-4 flex items-center gap-2">
+          <span className="text-zinc-500 font-terminal text-sm uppercase">Wishlist Player:</span>
+          <select
+            value={wishlistPlayerId}
+            onChange={e => setWishlistPlayerId(e.target.value)}
+            className="flex-1 bg-zinc-950 border-2 border-pink-900 text-pink-300 font-terminal text-lg p-3 focus:outline-none cursor-pointer"
+          >
+            <option value="">No player</option>
+            {players.map(player => <option key={player.id} value={player.id}>{player.name}</option>)}
+          </select>
+        </div>
+      )}
+
       {/* Results */}
       {results.length > 0 && results.map((r, i) => {
         const looseNum = r.loose ? parseFloat(r.loose) : null;
@@ -757,6 +834,26 @@ export default function FieldPage() {
             {r.watchlisted && (
               <div className="border border-yellow-700 bg-yellow-950/20 px-4 py-2 font-terminal text-xl text-yellow-400">
                 ⭐ ON YOUR WATCHLIST{r.watchlistPrice ? ` — alert at $${r.watchlistPrice}` : ""}
+              </div>
+            )}
+
+            {/* Variant pricing alert */}
+            {r.hasVariants && (
+              <div className="border border-amber-700 bg-amber-950/20 px-4 py-2 font-terminal text-sm text-amber-300">
+                <div className="text-base font-bold mb-1">⚠ Variant-sensitive pricing</div>
+                <p className="text-xs text-amber-500 mb-2">This title has editions (e.g. Not For Resale, First Print, Player's Choice) that command different prices. Verify which version you're looking at before buying or selling.</p>
+                {r.variantMatches && r.variantMatches.length > 0 && (
+                  <div className="space-y-1 mt-1">
+                    {r.variantMatches.map((v, vi) => (
+                      <div key={vi} className="text-xs text-amber-400 font-terminal border border-amber-900 px-2 py-1">
+                        <span className="font-bold">{v.title}</span>
+                        {v.loose && ` · Loose $${v.loose}`}
+                        {v.cib && ` · CIB $${v.cib}`}
+                        {v.new && ` · New $${v.new}`}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -826,6 +923,13 @@ export default function FieldPage() {
                     className="px-3 py-2 font-terminal text-sm border border-yellow-700 text-yellow-300 hover:bg-yellow-950/30 disabled:opacity-50 transition-colors"
                   >
                     {savingKey === `watchlist:${r.title}:${r.platform}` ? '...' : '⭐ Add to Watchlist'}
+                  </button>
+                  <button
+                    onClick={() => saveToWishlist(r)}
+                    disabled={savingKey === `wishlist:${r.title}:${r.platform}`}
+                    className="px-3 py-2 font-terminal text-sm border border-pink-700 text-pink-300 hover:bg-pink-950/30 disabled:opacity-50 transition-colors"
+                  >
+                    {savingKey === `wishlist:${r.title}:${r.platform}` ? '...' : '🎁 Add to Wishlist'}
                   </button>
                   <button
                     onClick={() => saveToInventory(r, {

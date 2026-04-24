@@ -16,12 +16,12 @@ export async function POST(req: Request) {
   const body = await req.json();
 
   if (body.action === 'add_person') {
-    const newPerson = await addPersonCompat(body.name.trim());
+    const newPerson = await addPersonCompat(body.name.trim(), body.color ?? null);
     return NextResponse.json(newPerson);
   }
 
   if (body.action === 'rename_person') {
-    const person = await renamePersonCompat(body.id, body.name.trim());
+    const person = await renamePersonCompat(body.id, body.name.trim(), body.color);
     if (!person) return NextResponse.json({ error: 'Person not found' }, { status: 404 });
     return NextResponse.json(person);
   }

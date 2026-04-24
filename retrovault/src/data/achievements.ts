@@ -215,13 +215,13 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "pl_1star",     name: "Harsh Critic",        icon: "💀", category: "personal",   rarity: "uncommon",  points: 25,  condition: "Give a 1-star rating",              check: c => c.ratingsOne >= 1 },
   { id: "pl_all_status",name: "Status Updater",      icon: "📊", category: "personal",   rarity: "rare",      points: 50,  condition: "Have games in all 5 play statuses", check: c => c.gamesBeaten > 0 && c.gamesGivenUp > 0 && c.currentlyPlaying > 0 && c.backlogCount > 0 },
 
-  // ─── SOCIAL / CRITICS ────────────────────────────────────────────────────────
-  { id: "s_first_critic",name: "The Jury",           icon: "🧑‍⚖️",category: "social",     rarity: "common",    points: 10,  condition: "Add your first critic",             check: c => c.criticCount >= 1 },
-  { id: "s_5critics",   name: "The Panel",           icon: "👥", category: "social",     rarity: "uncommon",  points: 25,  condition: "Add 5 critics",                     check: c => c.criticCount >= 5 },
-  { id: "s_10critics",  name: "The Academy",         icon: "🎬", category: "social",     rarity: "rare",      points: 50,  condition: "Add 10 critics",                    check: c => c.criticCount >= 10 },
-  { id: "s_fav10",      name: "Fan Club",            icon: "⭐", category: "social",     rarity: "common",    points: 10,  condition: "Critics favorite 10 games",         check: c => c.totalFavorites >= 10 },
-  { id: "s_fav50",      name: "Beloved Collection",  icon: "❤️", category: "social",     rarity: "uncommon",  points: 25,  condition: "Critics favorite 50 games",         check: c => c.totalFavorites >= 50 },
-  { id: "s_regret10",   name: "The Jury Has Spoken", icon: "👎", category: "social",     rarity: "uncommon",  points: 25,  condition: "Critics regret 10 games",           check: c => c.totalRegrets >= 10 },
+  // ─── SOCIAL / PLAYERS ────────────────────────────────────────────────────────
+  { id: "s_first_critic",name: "The Jury",           icon: "🧑‍⚖️",category: "social",     rarity: "common",    points: 10,  condition: "Add your first player",             check: c => c.criticCount >= 1 },
+  { id: "s_5critics",   name: "The Panel",           icon: "👥", category: "social",     rarity: "uncommon",  points: 25,  condition: "Add 5 players",                     check: c => c.criticCount >= 5 },
+  { id: "s_10critics",  name: "The Academy",         icon: "🎬", category: "social",     rarity: "rare",      points: 50,  condition: "Add 10 players",                    check: c => c.criticCount >= 10 },
+  { id: "s_fav10",      name: "Fan Club",            icon: "⭐", category: "social",     rarity: "common",    points: 10,  condition: "Players favorite 10 games",         check: c => c.totalFavorites >= 10 },
+  { id: "s_fav50",      name: "Beloved Collection",  icon: "❤️", category: "social",     rarity: "uncommon",  points: 25,  condition: "Players favorite 50 games",         check: c => c.totalFavorites >= 50 },
+  { id: "s_regret10",   name: "The Jury Has Spoken", icon: "👎", category: "social",     rarity: "uncommon",  points: 25,  condition: "Players regret 10 games",           check: c => c.totalRegrets >= 10 },
   { id: "s_tags25",     name: "Metadata Nerd",       icon: "🏷️", category: "social",     rarity: "uncommon",  points: 25,  condition: "Add 25 tags across your library",   check: c => c.totalTags >= 25 },
   { id: "s_tags100",    name: "Catalogued",          icon: "📚", category: "social",     rarity: "rare",      points: 50,  condition: "Add 100 tags across your library",  check: c => c.totalTags >= 100 },
   { id: "s_mention10",  name: "The Messenger",       icon: "💬", category: "social",     rarity: "uncommon",  points: 25,  condition: "Send 10 @ mentions",                check: c => c.totalMentions >= 10 },

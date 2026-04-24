@@ -46,13 +46,16 @@ export type GameItem = {
 export type Person = {
   id: string;
   name: string;
+  color?: string | null;
 };
 
-export type CriticData = {
+export type PlayerData = {
   people: Person[];
   favorites: Record<string, string[]>;  // personId → gameId[]
   regrets: Record<string, string[]>;    // personId → gameId[]
 };
+
+export type CriticData = PlayerData;
 
 // ─── Business Types ───────────────────────────────────────────────────────────
 

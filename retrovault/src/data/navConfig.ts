@@ -119,11 +119,11 @@ export const NAV_GROUPS: NavGroup[] = [
     icon: "👥",
     description: "Share your collection with friends and get their takes.",
     benefits: [
-      "Add critics (friends) who can favorite and rate games",
+      "Add players (friends) who can favorite and rate games",
       "VIBE column shows group consensus on each game",
       "Tag any game with metadata labels for search and discovery",
-      "@ mention critics on specific games with notes",
-      "Friends Mode: each critic gets their own personalized view",
+      "@ mention players on specific games with notes",
+      "Friends Mode: each player gets their own personalized view",
     ],
     alwaysOn: false,
     items: [

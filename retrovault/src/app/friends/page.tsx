@@ -49,7 +49,7 @@ export default function FriendsPage() {
     <div className="w-full bg-black border-4 border-green-500 rounded p-6 shadow-[0_0_15px_rgba(34,197,94,0.3)] min-h-[80vh]">
       <div className="border-b-4 border-green-900 pb-6 mb-8">
         <h2 className="text-2xl sm:text-3xl text-green-400 tracking-widest uppercase font-terminal">👥 Friends Mode</h2>
-        <p className="text-zinc-500 font-terminal text-sm mt-1">Each critic's personal view of your collection</p>
+        <p className="text-zinc-500 font-terminal text-sm mt-1">Each player's personal view of your collection</p>
       </div>
 
       {loading ? (
@@ -57,14 +57,14 @@ export default function FriendsPage() {
       ) : people.length === 0 ? (
         <div className="text-center py-16">
           <div className="text-5xl mb-4">👥</div>
-          <p className="text-zinc-500 font-terminal text-xl mb-2">No critics added yet.</p>
-          <p className="text-zinc-700 font-terminal text-sm">Add critics from the Vault → Critics button.</p>
+          <p className="text-zinc-500 font-terminal text-xl mb-2">No players added yet.</p>
+          <p className="text-zinc-700 font-terminal text-sm">Add players from the Vault → Players button.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* People list */}
           <div className="space-y-3">
-            <h3 className="text-zinc-400 font-terminal text-lg uppercase mb-3">Critics ({people.length})</h3>
+            <h3 className="text-zinc-400 font-terminal text-lg uppercase mb-3">Players ({people.length})</h3>
             {people.map(p => {
               const profile = getProfile(p);
               const isSelected = selected === p.id;
@@ -173,7 +173,7 @@ export default function FriendsPage() {
               );
             })() : (
               <div className="border-2 border-dashed border-zinc-800 p-12 text-center">
-                <div className="text-zinc-700 font-terminal text-xl">Select a critic to see their profile</div>
+                <div className="text-zinc-700 font-terminal text-xl">Select a player to see their profile</div>
               </div>
             )}
           </div>

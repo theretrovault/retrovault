@@ -49,7 +49,7 @@ RetroVault is self-hosted. Your collection data lives in plain files on your own
 | 💰 **Business** | P&L ledger · Hot List · Flip Calculator · Target Radar watchlist · Sourcing analytics · Platform market report · Seasonal buy/sell calendar · eBay listing checklist |
 | 🔦 **Field Tools** | Field Mode · Negotiation Helper · Lot Calculator · Convention Tracker · Condition Grader · Insurance valuation report |
 | 🎮 **Personal** | Play Log · Holy Grail Tracker · Collection Randomizer · Duplicate Detector |
-| 👥 **Social** | Critics & VIBE system · Tags & @mentions · Friends Mode |
+| 👥 **Social** | Players & VIBE system · Tags & @mentions · Friends Mode |
 | 🌐 **Discovery** | Gaming Events calendar · Whatnot seller tracker · Local Deals (Craigslist + Reddit r/gameswap) · Field Guide |
 | ⚙️ **Platform** | 8 color themes · 5 style themes · Feature flags · Global search · Keyboard shortcuts · PWA · CSV import · Shareable collection URL + QR code |
 
@@ -108,7 +108,7 @@ CLZ Games is the most polished dedicated game collection app available. It's gen
 | Negotiation assistance | ❌ | ✅ |
 | Local deal alerts | ❌ | ✅ |
 | Convention tracker | ❌ | ✅ |
-| Critics / social ratings | ❌ | ✅ |
+| Players / social ratings | ❌ | ✅ |
 | Achievement system | ❌ | ✅ |
 | Open source | ❌ (proprietary SaaS) | ✅ MIT license |
 | Subscription required | ✅ ~$4-6/month | ❌ Free forever |

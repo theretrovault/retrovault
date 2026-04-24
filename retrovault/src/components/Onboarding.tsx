@@ -660,7 +660,7 @@ function StepDone({
     collection: "📦 Collection Vault",
     business:   "💰 Business Suite (P&L, Flip, Sourcing)",
     fieldTools: "🔍 Field Tools (Field Mode, Negotiation, Lot Calc)",
-    social:     "👥 Social (Critics, Friends Mode, Tags)",
+    social:     "👥 Social (Players, Friends Mode, Tags)",
     personal:   "🎮 Personal (Play Log, Wishlist, Grails)",
   };
 

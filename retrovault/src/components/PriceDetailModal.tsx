@@ -21,6 +21,15 @@ type PriceHistoryEntry = {
   fetchedAt?: string;
 };
 
+type PriceVariantMatch = {
+  title: string;
+  platform: string;
+  loose: string | null;
+  cib: string | null;
+  new: string | null;
+  graded: string | null;
+};
+
 type GameItem = {
   id: string;
   title: string;
@@ -33,6 +42,8 @@ type GameItem = {
   lastFetched?: string;
   purchaseDate?: string;
   copies: GameCopy[];
+  hasVariants?: boolean;
+  variantMatches?: PriceVariantMatch[];
 };
 
 function trendLabel(t: number | null) {
@@ -88,6 +99,25 @@ export function PriceDetailModal({
   const [savedDate, setSavedDate] = React.useState(item.purchaseDate || '');
   const [savingDate, setSavingDate] = React.useState(false);
   const [showUpdateField, setShowUpdateField] = React.useState(false);
+  const [variantInfo, setVariantInfo] = React.useState<{ hasVariants: boolean; variantMatches: PriceVariantMatch[] }>({
+    hasVariants: !!item.hasVariants,
+    variantMatches: item.variantMatches || [],
+  });
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/pricecharting?title=${encodeURIComponent(item.title)}&platform=${encodeURIComponent(item.platform)}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (cancelled || !data) return;
+        setVariantInfo({
+          hasVariants: !!data.hasVariants,
+          variantMatches: Array.isArray(data.variantMatches) ? data.variantMatches : [],
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [item.title, item.platform]);
 
   const saveDate = async () => {
     if (!dateInput) return;
@@ -189,10 +219,30 @@ export function PriceDetailModal({
         </div>
         {qty > 0 ? (
           <p className="text-emerald-400 font-terminal text-sm mb-5">
-            YOU OWN {qty} COPY{qty > 1 ? " (MULTIPLE)" : ""}
+            YOU OWN {qty} {qty === 1 ? "COPY" : "COPIES"}{qty > 1 ? " (MULTIPLE)" : ""}
           </p>
         ) : (
           <p className="text-zinc-500 font-terminal text-sm mb-5">NOT IN COLLECTION</p>
+        )}
+
+        {/* Variant Pricing Alert */}
+        {variantInfo.hasVariants && (
+          <div className="mt-3 mb-4 border border-amber-700 bg-amber-950/20 p-3">
+            <div className="text-amber-300 font-terminal text-base font-bold mb-1">⚠ Variant-sensitive pricing</div>
+            <p className="text-amber-500 font-terminal text-xs mb-2">This title has editions that command different prices (e.g. Not For Resale, First Print, Player’s Choice). Confirm which version this is before buying, selling, or comparing prices.</p>
+            {variantInfo.variantMatches && variantInfo.variantMatches.length > 0 && (
+              <div className="space-y-1">
+                {variantInfo.variantMatches.map((v, i) => (
+                  <div key={i} className="border border-amber-900 px-2 py-1 font-terminal text-xs text-amber-400">
+                    <span className="font-bold">{v.title}</span>
+                    {v.loose && v.loose !== 'N/A' && ` · Loose $${v.loose}`}
+                    {v.cib && v.cib !== 'N/A' && ` · CIB $${v.cib}`}
+                    {v.new && v.new !== 'N/A' && ` · New $${v.new}`}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Market Prices */}
