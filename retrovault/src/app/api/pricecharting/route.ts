@@ -28,6 +28,30 @@ function tokenScore(query: string, candidate: string): number {
   return matches / qTokens.length;
 }
 
+function normalizePlatform(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function platformMatches(requestedPlatform: string | null | undefined, candidatePlatform: string): boolean {
+  if (!requestedPlatform) return true;
+  const requested = normalizePlatform(requestedPlatform);
+  const candidate = normalizePlatform(candidatePlatform);
+  if (!requested || !candidate) return true;
+
+  const slug = PLATFORM_SLUGS[requested] || requested.replace(/\s+/g, '-');
+  const aliases = new Set([
+    requested,
+    slug,
+    slug.replace(/-/g, ' '),
+  ]);
+
+  for (const [name, mappedSlug] of Object.entries(PLATFORM_SLUGS)) {
+    if (mappedSlug === slug) aliases.add(normalizePlatform(name));
+  }
+
+  return Array.from(aliases).some((alias) => candidate.includes(alias));
+}
+
 // Exact suffix penalty: if result title ends with a number/word the query doesn't have, penalize
 function hasSuspiciousSuffix(query: string, candidate: string): boolean {
   const qNorm = normalizeTitle(query);
@@ -64,6 +88,7 @@ const PLATFORM_SLUGS: Record<string, string> = {
   'gameboy': 'gameboy',
   'game boy color': 'gameboy-color',
   'gameboy color': 'gameboy-color',
+  'virtual boy': 'virtual-boy',
   'game boy advance': 'gameboy-advance',
   'gameboy advance': 'gameboy-advance',
   'gba': 'gameboy-advance',
@@ -140,6 +165,26 @@ function titleToSlug(s: string): string {
     .trim();
 }
 
+function cleanText(value: string | null | undefined): string {
+  return (value || '').replace(/\s+/g, ' ').trim();
+}
+
+function extractRowTitle(rowEl: cheerio.Cheerio<any>, $root: cheerio.CheerioAPI): string {
+  return cleanText(
+    rowEl.find('td.title > a').first().text()
+    || rowEl.find('td.title a').first().text()
+    || rowEl.find('td.title').first().clone().children().remove().end().text()
+  );
+}
+
+function extractPageTitle($root: cheerio.CheerioAPI): string {
+  return cleanText(
+    $root('h1 span[itemprop="name"]').first().text()
+    || $root('h1').first().clone().children().remove().end().text()
+    || $root('h1').first().text()
+  );
+}
+
 const FETCH_TIMEOUT_MS = 8000; // 8 seconds — enough for slow connections, not enough to hang in field
 
 /** AbortSignal that times out after ms milliseconds */
@@ -160,7 +205,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });
   }
 
-  const queryTitle = titleParam || q;
+  const queryTitle = titleParam || (platformParam
+    ? q.replace(new RegExp(`\\s+${platformParam.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'), '').trim() || q
+    : q);
   const signal = timeoutSignal(FETCH_TIMEOUT_MS);
 
   try {
@@ -199,20 +246,30 @@ export async function GET(request: Request) {
             if (location.includes('search-products')) continue;
           }
 
-          // Follow manually if needed
+          // Follow manually if needed, but reject redirects that just dump us into search.
           const fetchUrl = directRes.status >= 300 && directRes.status < 400
             ? (directRes.headers.get('location') || directUrl)
             : directUrl;
-          
+
+          if (fetchUrl.includes('/search-products')) continue;
+
           const finalRes = await fetch(fetchUrl, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
             signal
           });
           directHtml = await finalRes.text();
           $d = cheerio.load(directHtml);
-          pageTitle = $d('h1').first().text().trim();
+          pageTitle = extractPageTitle($d);
           usedUrl = fetchUrl;
-          break; // Got a real page
+
+          if (finalRes.url.includes('/search-products')) {
+            $d = null;
+            pageTitle = '';
+            usedUrl = '';
+            continue;
+          }
+
+          break; // Got a real product page
         }
 
         if (!$d) break; // No valid page found for any slug variant
@@ -259,8 +316,7 @@ export async function GET(request: Request) {
             if (prices.length < 2) return;
 
             // Score this row: how well does the row title match our game title?
-            const rowTitleEl = rowEl.find('a').first();
-            const rowTitle = rowTitleEl.text().replace(/\s+/g, ' ').trim() || rowText.slice(0, 50);
+            const rowTitle = extractRowTitle(rowEl, $d) || rowText.slice(0, 50);
             const score = tokenScore(gameTitle, rowTitle) - (hasSuspiciousSuffix(gameTitle, rowTitle) ? 0.5 : 0);
 
             if (score > bestRowScore) {
@@ -331,7 +387,7 @@ export async function GET(request: Request) {
     let cibPrice = extractPrice($, 'complete_price');
     let newPrice = extractPrice($, 'new_price');
     let gradedPrice = extractPrice($, 'graded_price');
-    let matchedTitle = $('h1').first().text().trim();
+    let matchedTitle = extractPageTitle($);
 
     if (!loosePrice) {
       // Search results page — find the best-matching row
@@ -342,16 +398,17 @@ export async function GET(request: Request) {
 
       for (const row of rows) {
         const rowEl = $(row);
-        const titleEl = rowEl.find('td.title a, td.title');
-        const rowTitle = titleEl.text().trim();
+        const rowTitle = extractRowTitle(rowEl, $);
         if (!rowTitle) continue;
 
         // Skip PAL/JP results — prefer NTSC prices
-        const platformCell = rowEl.find('td').eq(1).text().trim();
+        const platformCell = rowEl.find('td.console, td.phone-landscape-hidden').first().text().trim()
+          || rowEl.find('td').eq(2).text().trim();
         if (shouldSkipRegion(platformCell)) continue;
+        if (!platformMatches(platformParam, platformCell)) continue;
 
         // Score this result
-        const score = tokenScore(queryTitle, rowTitle);
+        const score = tokenScore(queryTitle, rowTitle) + (platformMatches(platformParam, platformCell) ? 0.15 : 0);
         const suspicious = hasSuspiciousSuffix(queryTitle, rowTitle);
         const adjustedScore = suspicious ? score * 0.5 : score;
 

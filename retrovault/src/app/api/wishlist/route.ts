@@ -27,6 +27,11 @@ export async function POST(req: NextRequest) {
         gameId:   body.gameId   ?? null,
         priority: body.priority ?? 2,
         notes:    body.notes    ?? null,
+        marketLoose: body.marketLoose != null ? Number(body.marketLoose) : null,
+        marketCib: body.marketCib != null ? Number(body.marketCib) : null,
+        marketNew: body.marketNew != null ? Number(body.marketNew) : null,
+        marketGraded: body.marketGraded != null ? Number(body.marketGraded) : null,
+        lastFetched: body.lastFetched ? new Date(body.lastFetched) : null,
       },
     })
     return NextResponse.json({ item }, { status: 201 })

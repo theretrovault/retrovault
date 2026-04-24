@@ -1,15 +1,73 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { ALL_PLATFORMS } from "@/data/platformGroups";
+import { readFieldCache } from "@/lib/fieldCache";
+import {
+  buildAcquisitionEntry,
+  buildFieldCopy,
+  findInventoryMatch,
+  getMatchConfidence,
+  type CopyCondition,
+} from "@/lib/fieldMode";
 
 type WishlistItem = {
   id: string;
   title: string;
   platform: string;
+  gameId?: string | null;
   priority: 1 | 2 | 3;
   notes?: string | null;
+  marketLoose?: number | null;
+  marketCib?: number | null;
+  marketNew?: number | null;
+  marketGraded?: number | null;
+  lastFetched?: string | null;
   addedAt: string;
   foundAt?: string | null;
+};
+
+type InventoryItem = {
+  id: string;
+  title: string;
+  platform: string;
+  marketLoose?: string | number | null;
+  marketCib?: string | number | null;
+  marketNew?: string | number | null;
+  copies?: {
+    id: string;
+    condition?: string;
+    hasBox?: boolean;
+    hasManual?: boolean;
+    priceAcquired?: string | number;
+  }[];
+};
+
+type SuggestionItem = {
+  title: string;
+  platform: string;
+  source: "inventory" | "wishlist";
+};
+
+type PriceLookup = {
+  title: string;
+  platform: string;
+  loose: string | null;
+  cib: string | null;
+  new: string | null;
+  graded: string | null;
+  confidence?: number;
+  matchedTitle?: string | null;
+};
+
+type FoundPromptState = {
+  open: boolean;
+  item: WishlistItem | null;
+  pricePaid: string;
+  condition: CopyCondition;
+  notes: string;
+  saving: boolean;
+  error: string;
 };
 
 const PRIORITY_META = {
@@ -18,20 +76,15 @@ const PRIORITY_META = {
   3: { label: "📦 Someday",   color: "border-zinc-700   bg-zinc-900/20   text-zinc-400",   badge: "bg-zinc-800   text-zinc-300"   },
 };
 
-const PLATFORMS = [
-  "NES","SNES","N64","GameCube","Wii","Wii U","Nintendo Switch",
-  "Game Boy","Game Boy Color","Game Boy Advance","Nintendo DS","Nintendo 3DS",
-  "Sega Genesis","Sega CD","Sega 32X","Sega Saturn","Dreamcast",
-  "PlayStation","PlayStation 2","PlayStation 3","PlayStation 4","PlayStation 5",
-  "PSP","PS Vita",
-  "Xbox","Xbox 360","Xbox One","Xbox Series X",
-  "Atari 2600","Atari 7800","TurboGrafx-16","Neo Geo","Other",
-];
+const PLATFORMS = [...ALL_PLATFORMS, "Other"];
+const MAX_SUGGESTIONS = 8;
+const SUGGEST_DEBOUNCE_MS = 150;
 
 type Filter = "all" | "active" | "found";
 
 export default function WishlistPage() {
   const [items,   setItems]   = useState<WishlistItem[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter,  setFilter]  = useState<Filter>("active");
   const [search,  setSearch]  = useState("");
@@ -41,6 +94,25 @@ export default function WishlistPage() {
   const [form, setForm] = useState({
     title: "", platform: PLATFORMS[0], priority: 2 as 1 | 2 | 3, notes: "",
   });
+  const [titleSearch, setTitleSearch] = useState("");
+  const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const [priceLookup, setPriceLookup] = useState<PriceLookup | null>(null);
+  const [priceLoading, setPriceLoading] = useState(false);
+  const [priceError, setPriceError] = useState("");
+  const [saveStatus, setSaveStatus] = useState("");
+  const [foundPrompt, setFoundPrompt] = useState<FoundPromptState>({
+    open: false,
+    item: null,
+    pricePaid: "",
+    condition: "Loose",
+    notes: "",
+    saving: false,
+    error: "",
+  });
+  const catalogRef = useRef<SuggestionItem[]>([]);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -51,25 +123,304 @@ export default function WishlistPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    fetch("/api/inventory")
+      .then(r => r.json())
+      .then((d: InventoryItem[]) => setInventory(Array.isArray(d) ? d : []))
+      .catch(() => setInventory([]));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCatalog = async () => {
+      const merged = new Map<string, SuggestionItem>();
+      for (const item of inventory) {
+        merged.set(`${item.title}::${item.platform}`.toLowerCase(), {
+          title: item.title,
+          platform: item.platform,
+          source: "inventory",
+        });
+      }
+      for (const item of items) {
+        const key = `${item.title}::${item.platform}`.toLowerCase();
+        if (!merged.has(key)) {
+          merged.set(key, {
+            title: item.title,
+            platform: item.platform,
+            source: "wishlist",
+          });
+        }
+      }
+
+      const cache = await readFieldCache().catch(() => null);
+      if (cache?.games?.length) {
+        for (const game of cache.games) {
+          const key = `${game.title}::${game.platform}`.toLowerCase();
+          if (!merged.has(key)) {
+            merged.set(key, {
+              title: game.title,
+              platform: game.platform,
+              source: "inventory",
+            });
+          }
+        }
+      }
+
+      if (!cancelled) {
+        catalogRef.current = Array.from(merged.values());
+      }
+    };
+
+    loadCatalog();
+    return () => {
+      cancelled = true;
+    };
+  }, [inventory, items]);
+
+  const existingInventoryMatch = useMemo(
+    () => findInventoryMatch(
+      inventory.filter((item) => Array.isArray(item.copies) && item.copies.length > 0),
+      form.title,
+      form.platform
+    ),
+    [inventory, form.title, form.platform]
+  );
+
+  const resetAddForm = () => {
+    setForm({ title: "", platform: PLATFORMS[0], priority: 2, notes: "" });
+    setTitleSearch("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setActiveSuggestion(-1);
+    setPriceLookup(null);
+    setPriceError("");
+    setPriceLoading(false);
+    setSaveStatus("");
+  };
+
+  const updateSuggestions = (q: string, platform: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!q || q.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      const lower = q.toLowerCase();
+      const startsWith = catalogRef.current.filter((item) =>
+        item.title.toLowerCase().startsWith(lower) && item.platform === platform
+      );
+      const contains = catalogRef.current.filter((item) =>
+        !item.title.toLowerCase().startsWith(lower) &&
+        item.title.toLowerCase().includes(lower) &&
+        item.platform === platform
+      );
+      const fallbackStarts = platform === "Other"
+        ? []
+        : catalogRef.current.filter((item) =>
+            item.title.toLowerCase().startsWith(lower) && item.platform !== platform
+          );
+      const merged = [...startsWith, ...contains, ...fallbackStarts]
+        .filter((item, index, arr) => arr.findIndex((candidate) => candidate.title === item.title && candidate.platform === item.platform) === index)
+        .slice(0, MAX_SUGGESTIONS);
+      setSuggestions(merged);
+      setShowSuggestions(merged.length > 0);
+      setActiveSuggestion(-1);
+    }, SUGGEST_DEBOUNCE_MS);
+  };
+
+  const fetchPrice = async (title = form.title, platform = form.platform, wishlistId?: string) => {
+    if (!title.trim() || !platform.trim()) return;
+    setPriceLoading(true);
+    setPriceError("");
+    try {
+      const res = await fetch(`/api/pricecharting?title=${encodeURIComponent(title)}&platform=${encodeURIComponent(platform)}`);
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.message || data.error || "Price lookup failed");
+      }
+      const lookup = {
+        title,
+        platform,
+        loose: data.loose ?? null,
+        cib: data.cib ?? null,
+        new: data.new ?? null,
+        graded: data.graded ?? null,
+        confidence: data.confidence,
+        matchedTitle: data.matchedTitle ?? null,
+      };
+      setPriceLookup(lookup);
+
+      const existingWishlist = wishlistId
+        ? items.find((item) => item.id === wishlistId)
+        : items.find((item) => item.title === title && item.platform === platform && !item.foundAt);
+
+      if (showAdd || existingWishlist) {
+        const payload = {
+          marketLoose: lookup.loose,
+          marketCib: lookup.cib,
+          marketNew: lookup.new,
+          marketGraded: lookup.graded,
+          lastFetched: new Date().toISOString(),
+        };
+
+        if (existingWishlist) {
+          await fetch(`/api/wishlist/${existingWishlist.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        }
+
+        setItems((current) => current.map((item) => (
+          item.title === title && item.platform === platform && !item.foundAt
+            ? {
+                ...item,
+                marketLoose: lookup.loose != null ? Number(lookup.loose) : null,
+                marketCib: lookup.cib != null ? Number(lookup.cib) : null,
+                marketNew: lookup.new != null ? Number(lookup.new) : null,
+                marketGraded: lookup.graded != null ? Number(lookup.graded) : null,
+                lastFetched: payload.lastFetched,
+              }
+            : item
+        )));
+      }
+    } catch (error: any) {
+      setPriceLookup(null);
+      setPriceError(error?.message || "Price lookup failed");
+    } finally {
+      setPriceLoading(false);
+    }
+  };
+
+  const pickSuggestion = (suggestion: SuggestionItem) => {
+    setForm((current) => ({
+      ...current,
+      title: suggestion.title,
+      platform: suggestion.platform && suggestion.platform !== 'Unknown' ? suggestion.platform : current.platform,
+    }));
+    setTitleSearch(suggestion.title);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setActiveSuggestion(-1);
+  };
+
   const add = async () => {
     if (!form.title.trim()) return;
     await fetch("/api/wishlist", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        ...form,
+        marketLoose: priceLookup?.title === form.title && priceLookup?.platform === form.platform ? priceLookup.loose : null,
+        marketCib: priceLookup?.title === form.title && priceLookup?.platform === form.platform ? priceLookup.cib : null,
+        marketNew: priceLookup?.title === form.title && priceLookup?.platform === form.platform ? priceLookup.new : null,
+        marketGraded: priceLookup?.title === form.title && priceLookup?.platform === form.platform ? priceLookup.graded : null,
+        lastFetched: priceLookup?.title === form.title && priceLookup?.platform === form.platform ? new Date().toISOString() : null,
+      }),
     });
     setShowAdd(false);
-    setForm({ title: "", platform: PLATFORMS[0], priority: 2, notes: "" });
+    resetAddForm();
     load();
   };
 
-  const markFound = async (id: string) => {
-    await fetch(`/api/wishlist/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ foundAt: new Date().toISOString() }),
+  const openFoundPrompt = (item: WishlistItem) => {
+    setFoundPrompt({
+      open: true,
+      item,
+      pricePaid: "",
+      condition: "Loose",
+      notes: item.notes || "",
+      saving: false,
+      error: "",
     });
-    load();
+  };
+
+  const closeFoundPrompt = () => {
+    setFoundPrompt({
+      open: false,
+      item: null,
+      pricePaid: "",
+      condition: "Loose",
+      notes: "",
+      saving: false,
+      error: "",
+    });
+  };
+
+  const confirmFound = async () => {
+    if (!foundPrompt.item) return;
+    setFoundPrompt((current) => ({ ...current, saving: true, error: "" }));
+
+    const item = foundPrompt.item;
+    const existing = findInventoryMatch(inventory, item.title, item.platform);
+    const loose = priceLookup?.title === item.title && priceLookup?.platform === item.platform ? priceLookup.loose : null;
+    const cib = priceLookup?.title === item.title && priceLookup?.platform === item.platform ? priceLookup.cib : null;
+    const nextCopy = buildFieldCopy(foundPrompt.condition, foundPrompt.pricePaid || "0.00");
+
+    try {
+      if (existing) {
+        const updatedCopies = [...(existing.copies || []), nextCopy];
+        await fetch("/api/inventory", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...existing,
+            copies: updatedCopies,
+            marketLoose: loose ?? existing.marketLoose ?? null,
+            marketCib: cib ?? existing.marketCib ?? null,
+            marketNew: priceLookup?.new ?? existing.marketNew ?? null,
+          }),
+        });
+      } else {
+        await fetch("/api/inventory", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: item.title,
+            platform: item.platform,
+            status: "owned",
+            notes: foundPrompt.notes || item.notes || "Added from Wishlist",
+            marketLoose: loose,
+            marketCib: cib,
+            marketNew: priceLookup?.new ?? null,
+            copies: [nextCopy],
+          }),
+        });
+      }
+
+      await fetch("/api/sales", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "acquisitions",
+          ...buildAcquisitionEntry({
+            title: item.title,
+            platform: item.platform,
+            priceAcquired: foundPrompt.pricePaid || "0.00",
+            notes: foundPrompt.notes || "Found from Wishlist",
+            source: "Wishlist",
+          }),
+        }),
+      }).catch(() => {});
+
+      await fetch(`/api/wishlist/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ foundAt: new Date().toISOString() }),
+      });
+
+      closeFoundPrompt();
+      setSaveStatus(`✅ ${item.title} added to your collection.`);
+      await Promise.all([load(), fetch("/api/inventory").then(r => r.json()).then((d: InventoryItem[]) => setInventory(Array.isArray(d) ? d : [])).catch(() => {})]);
+    } catch (error: any) {
+      setFoundPrompt((current) => ({
+        ...current,
+        saving: false,
+        error: error?.message || "Failed to add this wishlist item to your collection.",
+      }));
+    }
   };
 
   const unmarkFound = async (id: string) => {
@@ -166,19 +517,63 @@ export default function WishlistPage() {
             <input
               className={inputCls}
               placeholder="Game title *"
-              value={form.title}
-              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              onKeyDown={e => e.key === "Enter" && add()}
+              value={titleSearch}
+              onChange={e => {
+                const value = e.target.value;
+                setTitleSearch(value);
+                setForm(f => ({ ...f, title: value }));
+                updateSuggestions(value, form.platform);
+              }}
+              onKeyDown={e => {
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setActiveSuggestion((current) => Math.min(current + 1, suggestions.length - 1));
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setActiveSuggestion((current) => Math.max(current - 1, 0));
+                } else if (e.key === "Enter" && showSuggestions && activeSuggestion >= 0) {
+                  e.preventDefault();
+                  pickSuggestion(suggestions[activeSuggestion]);
+                } else if (e.key === "Enter") {
+                  e.preventDefault();
+                  add();
+                }
+              }}
               autoFocus
             />
             <select
               className={inputCls}
               value={form.platform}
-              onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
+              onChange={e => {
+                const value = e.target.value;
+                setForm(f => ({ ...f, platform: value }));
+                updateSuggestions(titleSearch, value);
+              }}
             >
               {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="mb-3 border border-green-900 bg-black/80">
+              {suggestions.map((suggestion, index) => (
+                <button
+                  key={`${suggestion.title}-${suggestion.platform}`}
+                  type="button"
+                  onClick={() => pickSuggestion(suggestion)}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-left font-terminal text-sm border-b border-green-950 last:border-b-0 ${
+                    activeSuggestion === index ? "bg-green-950/40 text-green-200" : "text-green-400 hover:bg-green-950/20"
+                  }`}
+                >
+                  <span>{suggestion.title}</span>
+                  <span className="text-xs text-zinc-500">
+                    {suggestion.platform && suggestion.platform !== 'Unknown'
+                      ? `${suggestion.platform} · ${suggestion.source}`
+                      : `Platform unknown · ${suggestion.source}`}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <select
               className={inputCls}
@@ -196,7 +591,39 @@ export default function WishlistPage() {
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
             />
           </div>
+          {(existingInventoryMatch || priceLookup || priceLoading || priceError || saveStatus) && (
+            <div className="mb-3 space-y-2">
+              {existingInventoryMatch && (
+                <div className="border border-yellow-700 bg-yellow-950/20 px-3 py-2 text-yellow-300 font-terminal text-xs">
+                  Already in your collection on {existingInventoryMatch.platform}. A found action will add another copy, not a duplicate game row.
+                </div>
+              )}
+              {priceLookup && (
+                <div className="border border-blue-800 bg-blue-950/20 px-3 py-2 text-blue-300 font-terminal text-xs">
+                  💰 Loose ${priceLookup.loose ?? "N/A"} · CIB ${priceLookup.cib ?? "N/A"} · New ${priceLookup.new ?? "N/A"}
+                  {getMatchConfidence(priceLookup.confidence) ? ` · ${getMatchConfidence(priceLookup.confidence)}` : ""}
+                </div>
+              )}
+              {priceError && (
+                <div className="border border-red-800 bg-red-950/20 px-3 py-2 text-red-300 font-terminal text-xs">
+                  {priceError}
+                </div>
+              )}
+              {saveStatus && (
+                <div className="border border-green-800 bg-green-950/20 px-3 py-2 text-green-300 font-terminal text-xs">
+                  {saveStatus}
+                </div>
+              )}
+            </div>
+          )}
           <div className="flex gap-2">
+            <button
+              onClick={() => fetchPrice()}
+              disabled={priceLoading || !form.title.trim()}
+              className={`${btnCls} border-blue-700 text-blue-300 hover:bg-blue-950 disabled:opacity-50`}
+            >
+              {priceLoading ? "… Fetching Price" : "💰 Fetch Price"}
+            </button>
             <button
               onClick={add}
               className={`${btnCls} border-green-500 bg-green-900 hover:bg-green-800 text-green-200`}
@@ -262,7 +689,8 @@ export default function WishlistPage() {
                     <ItemCard
                       key={item.id}
                       item={item}
-                      onFound={markFound}
+                      onFound={openFoundPrompt}
+                      onFetchPrice={(wishlistItem) => fetchPrice(wishlistItem.title, wishlistItem.platform, wishlistItem.id)}
                       onUnfound={unmarkFound}
                       onDelete={del}
                     />
@@ -279,11 +707,67 @@ export default function WishlistPage() {
             <ItemCard
               key={item.id}
               item={item}
-              onFound={markFound}
+              onFound={openFoundPrompt}
+              onFetchPrice={(wishlistItem) => fetchPrice(wishlistItem.title, wishlistItem.platform, wishlistItem.id)}
               onUnfound={unmarkFound}
               onDelete={del}
             />
           ))}
+        </div>
+      )}
+
+      {foundPrompt.open && foundPrompt.item && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center px-4">
+          <div className="w-full max-w-lg border-2 border-green-700 bg-black p-5 shadow-[0_0_20px_rgba(34,197,94,0.25)]">
+            <h3 className="text-green-400 font-terminal text-lg mb-2">FOUND IT?</h3>
+            <p className="text-zinc-400 font-terminal text-sm mb-4">
+              {foundPrompt.item.title} on {foundPrompt.item.platform} will be marked found and added to your collection.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <input
+                className={inputCls}
+                placeholder="Price paid"
+                value={foundPrompt.pricePaid}
+                onChange={e => setFoundPrompt(current => ({ ...current, pricePaid: e.target.value }))}
+              />
+              <select
+                className={inputCls}
+                value={foundPrompt.condition}
+                onChange={e => setFoundPrompt(current => ({ ...current, condition: e.target.value as CopyCondition }))}
+              >
+                <option value="Loose">Loose</option>
+                <option value="CIB">CIB</option>
+                <option value="New/Sealed">New/Sealed</option>
+                <option value="Good">Good</option>
+              </select>
+            </div>
+            <input
+              className={`${inputCls} mb-3`}
+              placeholder="Notes (optional)"
+              value={foundPrompt.notes}
+              onChange={e => setFoundPrompt(current => ({ ...current, notes: e.target.value }))}
+            />
+            {foundPrompt.error && (
+              <div className="mb-3 border border-red-800 bg-red-950/20 px-3 py-2 text-red-300 font-terminal text-xs">
+                {foundPrompt.error}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={confirmFound}
+                disabled={foundPrompt.saving}
+                className={`${btnCls} border-green-500 bg-green-900 hover:bg-green-800 text-green-200 disabled:opacity-50`}
+              >
+                {foundPrompt.saving ? "Saving..." : "✓ Add to Collection"}
+              </button>
+              <button
+                onClick={closeFoundPrompt}
+                className={`${btnCls} border-zinc-700 text-zinc-400 hover:text-red-400`}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -293,11 +777,13 @@ export default function WishlistPage() {
 function ItemCard({
   item,
   onFound,
+  onFetchPrice,
   onUnfound,
   onDelete,
 }: {
   item: WishlistItem;
-  onFound: (id: string) => void;
+  onFound: (item: WishlistItem) => void;
+  onFetchPrice: (item: WishlistItem) => void;
   onUnfound: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
@@ -308,39 +794,52 @@ function ItemCard({
     <div className={`border p-3 relative group ${found ? "border-zinc-800 opacity-60" : meta.color}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className={`font-terminal text-sm font-bold truncate ${found ? "line-through text-zinc-500" : ""}`}>
+          <p className={`font-terminal text-base font-bold truncate ${found ? "line-through text-zinc-500" : ""}`}>
             {item.title}
           </p>
-          <span className={`inline-block text-xs px-2 py-0.5 mt-1 font-terminal ${meta.badge}`}>
+          <span className={`inline-block text-sm px-2 py-0.5 mt-1 font-terminal ${meta.badge}`}>
             {item.platform}
           </span>
           {item.notes && (
-            <p className="text-zinc-500 font-terminal text-xs mt-1 truncate">{item.notes}</p>
+            <p className="text-zinc-500 font-terminal text-sm mt-1 truncate">{item.notes}</p>
+          )}
+          {(item.marketLoose != null || item.marketCib != null || item.marketNew != null) && (
+            <div className="mt-2 text-xs font-terminal text-blue-300 space-y-1">
+              <p>💰 Loose ${item.marketLoose != null ? Number(item.marketLoose).toFixed(2) : 'N/A'}</p>
+              <p>📦 CIB ${item.marketCib != null ? Number(item.marketCib).toFixed(2) : 'N/A'} · New ${item.marketNew != null ? Number(item.marketNew).toFixed(2) : 'N/A'}</p>
+              {item.lastFetched && <p className="text-zinc-500">Updated {new Date(item.lastFetched).toLocaleString()}</p>}
+            </div>
           )}
           {found && item.foundAt && (
-            <p className="text-green-600 font-terminal text-xs mt-1">
+            <p className="text-green-600 font-terminal text-sm mt-1">
               ✅ Found {new Date(item.foundAt).toLocaleDateString()}
             </p>
           )}
         </div>
         <button
           onClick={() => onDelete(item.id)}
-          className="text-zinc-700 hover:text-red-500 font-terminal text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-1 shrink-0"
+          className="text-zinc-700 hover:text-red-500 font-terminal text-sm opacity-0 group-hover:opacity-100 transition-opacity ml-1 shrink-0"
           title="Remove"
         >✕</button>
       </div>
-      <div className="mt-2 flex gap-2">
+      <div className="mt-2 flex gap-2 flex-wrap">
+        <button
+          onClick={() => onFetchPrice(item)}
+          className="text-blue-400 hover:text-blue-200 font-terminal text-sm border border-blue-900 hover:border-blue-500 px-2 py-0.5 transition-colors"
+        >
+          💰 Fetch Price
+        </button>
         {found ? (
           <button
             onClick={() => onUnfound(item.id)}
-            className="text-zinc-500 hover:text-yellow-400 font-terminal text-xs border border-zinc-800 hover:border-yellow-700 px-2 py-0.5 transition-colors"
+            className="text-zinc-500 hover:text-yellow-400 font-terminal text-sm border border-zinc-800 hover:border-yellow-700 px-2 py-0.5 transition-colors"
           >
             ↩ Unmark
           </button>
         ) : (
           <button
-            onClick={() => onFound(item.id)}
-            className="text-green-500 hover:text-green-300 font-terminal text-xs border border-green-800 hover:border-green-500 px-2 py-0.5 transition-colors"
+            onClick={() => onFound(item)}
+            className="text-green-500 hover:text-green-300 font-terminal text-sm border border-green-800 hover:border-green-500 px-2 py-0.5 transition-colors"
           >
             ✓ Found It!
           </button>

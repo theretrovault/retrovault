@@ -69,7 +69,6 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       previewOnly,
-      config: previewOnly ? config : updatedConfig,
       nextPlatforms: updatedPlatforms,
       sync,
     })

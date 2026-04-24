@@ -61,6 +61,7 @@ const PLATFORM_SLUGS = [
   { name: 'Switch 2', slug: 'nintendo-switch-2' },
   { name: 'Game Boy', slug: 'gameboy' },
   { name: 'Game Boy Color', slug: 'gameboy-color' },
+  { name: 'Virtual Boy', slug: 'virtual-boy' },
   { name: 'Game Boy Advance', slug: 'gameboy-advance' },
   { name: 'Nintendo DS', slug: 'nintendo-ds' },
   { name: 'Nintendo 3DS', slug: 'nintendo-3ds' },
@@ -108,13 +109,13 @@ function htmlDecode(value: string) {
 }
 
 async function scrapePlatformPage(slug: string, offset = 0) {
-  const url = `https://www.pricecharting.com/category/${slug}?sort=title&status=&id=&offset=${offset}`
+  const url = `https://www.pricecharting.com/console/${slug}?sort=title&status=&id=&offset=${offset}`
   const res = await fetch(url, { headers: HEADERS })
   if (!res.ok) return { titles: [] as string[], hasMore: false }
 
   const html = await res.text()
   const titles: string[] = []
-  const titlePattern = /<td[^>]*class="[^"]*title[^"]*"[^>]*>(?:<span[^>]*>[^<]*<\/span>)?<a[^>]*href="\/game\/[^"]*"[^>]*>([^<]+)<\/a>/gi
+  const titlePattern = /<td[^>]*class="[^"]*title[^"]*"[^>]*>[\s\S]*?<a[^>]*href="\/game\/[^"]*"[^>]*>([^<]+)<\/a>/gi
 
   let match: RegExpExecArray | null
   while ((match = titlePattern.exec(html)) !== null) {

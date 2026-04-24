@@ -12,6 +12,7 @@
   --pg: rgba(34,197,94,0.4); /* glow */
   --pbg: #09090b;     /* page bg */
   --cbg: #18181b;     /* card bg */
+  --retrovault-font-scale: 1.18;
 }
 
 /* ── Color palette overrides via [data-color] on <html> ── */
@@ -349,6 +350,10 @@ body.theme-galaxy .bg-black {
 }
 
 @layer base {
+  html {
+    font-size: calc(16px * var(--retrovault-font-scale));
+  }
+
   body {
     /* Base styles — style themes override background via their own classes */
     color: var(--p);

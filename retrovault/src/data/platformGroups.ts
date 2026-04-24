@@ -26,7 +26,7 @@ export const PLATFORM_GROUPS: PlatformGroup[] = [
     label: "Nintendo (Handheld)",
     icon: "🎮",
     era: "handheld",
-    platforms: ["Game Boy", "Game Boy Color", "Game Boy Advance", "Nintendo DS", "Nintendo 3DS"],
+    platforms: ["Game Boy", "Game Boy Color", "Virtual Boy", "Game Boy Advance", "Nintendo DS", "Nintendo 3DS"],
   },
   {
     id: "playstation-retro",

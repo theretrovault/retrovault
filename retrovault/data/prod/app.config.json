@@ -36,7 +36,9 @@
     "Xbox",
     "Xbox 360",
     "Wii",
-    "Sega Dreamcast"
+    "Sega Dreamcast",
+    "PlayStation 2",
+    "Virtual Boy"
   ],
   "scrapers": {
     "craigslistCity": "portland"

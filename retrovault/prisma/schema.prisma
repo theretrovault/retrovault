@@ -280,6 +280,11 @@ model WishlistItem {
   gameId   String?
   priority Int       @default(2) // 1=must-have 2=want 3=someday
   notes    String?
+  marketLoose Float?
+  marketCib   Float?
+  marketNew   Float?
+  marketGraded Float?
+  lastFetched DateTime?
   addedAt  DateTime  @default(now())
   foundAt  DateTime?
 

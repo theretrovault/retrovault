@@ -243,7 +243,6 @@ export default function SettingsPage() {
         : previousPlatforms;
 
       const configPayload = { ...updates } as Partial<Config> & { newPassword?: string };
-      delete (configPayload as any).platforms;
 
       await fetch('/api/config', {
         method: 'POST',
@@ -500,7 +499,7 @@ export default function SettingsPage() {
             {[
               { label: "Retro Only (default)", platforms: RETRO_DEFAULTS, color: "bg-green-700 border-green-500" },
               { label: "All Platforms", platforms: ALL_PLATFORMS, color: "bg-blue-700 border-blue-500" },
-              { label: "Nintendo Only", platforms: ["NES","SNES","Nintendo 64","Gamecube","Wii","Wii U","Nintendo Switch","Switch 2","Game Boy","Game Boy Color","Game Boy Advance","Nintendo DS","Nintendo 3DS"], color: "bg-red-800 border-red-600" },
+              { label: "Nintendo Only", platforms: ["NES","SNES","Nintendo 64","Gamecube","Wii","Wii U","Nintendo Switch","Switch 2","Game Boy","Game Boy Color","Virtual Boy","Game Boy Advance","Nintendo DS","Nintendo 3DS"], color: "bg-red-800 border-red-600" },
               { label: "PlayStation Only", platforms: ["PS1","PS2","PS3","PS4","PS5","PSP","PS Vita"], color: "bg-blue-800 border-blue-600" },
               { label: "None", platforms: [], color: "bg-zinc-800 border-zinc-600" },
             ].map(preset => (

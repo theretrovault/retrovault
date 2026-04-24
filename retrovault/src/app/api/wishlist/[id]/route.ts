@@ -20,6 +20,11 @@ export async function PATCH(
         }),
         ...(body.title    !== undefined && { title: body.title }),
         ...(body.platform !== undefined && { platform: body.platform }),
+        ...(body.marketLoose !== undefined && { marketLoose: body.marketLoose != null ? Number(body.marketLoose) : null }),
+        ...(body.marketCib !== undefined && { marketCib: body.marketCib != null ? Number(body.marketCib) : null }),
+        ...(body.marketNew !== undefined && { marketNew: body.marketNew != null ? Number(body.marketNew) : null }),
+        ...(body.marketGraded !== undefined && { marketGraded: body.marketGraded != null ? Number(body.marketGraded) : null }),
+        ...(body.lastFetched !== undefined && { lastFetched: body.lastFetched ? new Date(body.lastFetched) : null }),
       },
     })
     return NextResponse.json({ item })

@@ -12,6 +12,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import * as cheerio from 'cheerio';
 
 // ─── Helpers extracted from the API route for unit testing ───────────────────
 
@@ -22,6 +23,26 @@ function titleToSlug(s: string): string {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .trim();
+}
+
+function cleanText(value: string | null | undefined): string {
+  return (value || '').replace(/\s+/g, ' ').trim();
+}
+
+function extractRowTitle(rowEl: cheerio.Cheerio<any>, $root: cheerio.CheerioAPI): string {
+  return cleanText(
+    rowEl.find('td.title > a').first().text()
+    || rowEl.find('td.title a').first().text()
+    || rowEl.find('td.title').first().clone().children().remove().end().text()
+  );
+}
+
+function extractPageTitle($root: cheerio.CheerioAPI): string {
+  return cleanText(
+    $root('h1 span[itemprop="name"]').first().text()
+    || $root('h1').first().clone().children().remove().end().text()
+    || $root('h1').first().text()
+  );
 }
 
 function getSlugVariants(gameTitle: string): string[] {
@@ -220,6 +241,25 @@ describe('Platform slug mapping', () => {
   it('covers all 35 supported platforms', () => {
     const total = Object.keys(PLATFORM_SLUGS).length;
     expect(total).toBeGreaterThanOrEqual(35);
+  });
+});
+
+describe('HTML title cleanup', () => {
+  it('extracts a clean row title without console noise', () => {
+    const $ = cheerio.load(`
+      <table><tbody><tr>
+        <td class="title">
+          <a>Legend of Zelda</a>
+          <div class="console-in-title"><a>NES</a></div>
+        </td>
+      </tr></tbody></table>
+    `);
+    expect(extractRowTitle($('tr').first(), $)).toBe('Legend of Zelda');
+  });
+
+  it('extracts a clean page title without duplicated nested text', () => {
+    const $ = cheerio.load('<h1><span itemprop="name">Legend of Zelda</span><span>NES</span></h1>');
+    expect(extractPageTitle($)).toBe('Legend of Zelda');
   });
 });
 
