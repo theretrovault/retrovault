@@ -78,11 +78,12 @@ model PriceHistory {
 // ─── Critics & Social ─────────────────────────────────────────────────────────
 
 model Person {
-  id        String     @id @default(cuid())
-  name      String
-  favorites Favorite[]
-  regrets   Regret[]
-  mentions  Mention[]  @relation("MentionToPerson")
+  id            String         @id @default(cuid())
+  name          String
+  favorites     Favorite[]
+  regrets       Regret[]
+  mentions      Mention[]      @relation("MentionToPerson")
+  wishlistItems WishlistItem[]
 
   createdAt DateTime @default(now())
 }
@@ -274,21 +275,24 @@ model ValueSnapshot {
 // ─── Wishlist ──────────────────────────────────────────────────────────────────
 
 model WishlistItem {
-  id       String    @id @default(cuid())
-  title    String
-  platform String
-  gameId   String?
-  priority Int       @default(2) // 1=must-have 2=want 3=someday
-  notes    String?
+  id          String    @id @default(cuid())
+  title       String
+  platform    String
+  gameId      String?
+  playerId    String?
+  player      Person?   @relation(fields: [playerId], references: [id], onDelete: SetNull)
+  priority    Int       @default(2) // 1=must-have 2=want 3=someday
+  notes       String?
   marketLoose Float?
   marketCib   Float?
   marketNew   Float?
   marketGraded Float?
   lastFetched DateTime?
-  addedAt  DateTime  @default(now())
-  foundAt  DateTime?
+  addedAt     DateTime  @default(now())
+  foundAt     DateTime?
 
   @@index([priority])
+  @@index([playerId])
 }
 
 model WishlistShare {

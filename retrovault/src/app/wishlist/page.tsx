@@ -17,6 +17,8 @@ type WishlistItem = {
   title: string;
   platform: string;
   gameId?: string | null;
+  playerId?: string | null;
+  player?: { id: string; name: string } | null;
   priority: 1 | 2 | 3;
   notes?: string | null;
   marketLoose?: number | null;
@@ -27,6 +29,8 @@ type WishlistItem = {
   addedAt: string;
   foundAt?: string | null;
 };
+
+type PlayerOption = { id: string; name: string };
 
 type InventoryItem = {
   id: string;
@@ -47,7 +51,7 @@ type InventoryItem = {
 type SuggestionItem = {
   title: string;
   platform: string;
-  source: "inventory" | "wishlist";
+  source: "owned" | "not-owned" | "wishlist";
 };
 
 type PriceLookup = {
@@ -80,21 +84,37 @@ const PRIORITY_META = {
 const PLATFORMS = [...ALL_PLATFORMS, "Other"];
 const MAX_SUGGESTIONS = 8;
 const SUGGEST_DEBOUNCE_MS = 150;
+const WISHLIST_PLAYER_STORAGE_KEY = "retrovault-wishlist-player";
 
 type Filter = "all" | "active" | "found";
+
+const PLAYER_BADGE_STYLES = [
+  "border-pink-700 bg-pink-950/20 text-pink-300",
+  "border-cyan-700 bg-cyan-950/20 text-cyan-300",
+  "border-orange-700 bg-orange-950/20 text-orange-300",
+  "border-violet-700 bg-violet-950/20 text-violet-300",
+  "border-emerald-700 bg-emerald-950/20 text-emerald-300",
+];
+
+function getPlayerBadgeStyle(playerId?: string | null) {
+  if (!playerId) return "border-zinc-700 bg-zinc-900/40 text-zinc-300";
+  const total = playerId.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return PLAYER_BADGE_STYLES[total % PLAYER_BADGE_STYLES.length];
+}
 
 export default function WishlistPage() {
   const [items,   setItems]   = useState<WishlistItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter,  setFilter]  = useState<Filter>("active");
+  const [players, setPlayers] = useState<PlayerOption[]>([]);
   const [search,  setSearch]  = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [shareQrSvg, setShareQrSvg] = useState("");
   const [copyMsg,  setCopyMsg]  = useState("");
   const [form, setForm] = useState({
-    title: "", platform: PLATFORMS[0], priority: 2 as 1 | 2 | 3, notes: "",
+    title: "", platform: PLATFORMS[0], priority: 2 as 1 | 2 | 3, notes: "", playerId: "",
   });
   const [titleSearch, setTitleSearch] = useState("");
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
@@ -135,6 +155,21 @@ export default function WishlistPage() {
   }, []);
 
   useEffect(() => {
+    fetch("/api/favorites")
+      .then(r => r.json())
+      .then((d) => {
+        const nextPlayers = Array.isArray(d?.people) ? d.people.filter((person: any) => person?.id && person?.name) : [];
+        setPlayers(nextPlayers);
+        const storedPlayerId = typeof window !== "undefined" ? localStorage.getItem(WISHLIST_PLAYER_STORAGE_KEY) || "" : "";
+        const preferredPlayerId = nextPlayers.some((player: PlayerOption) => player.id === storedPlayerId)
+          ? storedPlayerId
+          : nextPlayers[0]?.id || "";
+        setForm((current) => ({ ...current, playerId: current.playerId || preferredPlayerId }));
+      })
+      .catch(() => setPlayers([]));
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     const loadCatalog = async () => {
@@ -143,7 +178,7 @@ export default function WishlistPage() {
         merged.set(`${item.title}::${item.platform}`.toLowerCase(), {
           title: item.title,
           platform: item.platform,
-          source: "inventory",
+          source: Array.isArray(item.copies) && item.copies.length > 0 ? "owned" : "not-owned",
         });
       }
       for (const item of items) {
@@ -165,7 +200,7 @@ export default function WishlistPage() {
             merged.set(key, {
               title: game.title,
               platform: game.platform,
-              source: "inventory",
+              source: "not-owned",
             });
           }
         }
@@ -192,7 +227,8 @@ export default function WishlistPage() {
   );
 
   const resetAddForm = () => {
-    setForm({ title: "", platform: PLATFORMS[0], priority: 2, notes: "" });
+    const storedPlayerId = typeof window !== "undefined" ? localStorage.getItem(WISHLIST_PLAYER_STORAGE_KEY) || "" : "";
+    setForm({ title: "", platform: PLATFORMS[0], priority: 2, notes: "", playerId: storedPlayerId || players[0]?.id || "" });
     setTitleSearch("");
     setSuggestions([]);
     setShowSuggestions(false);
@@ -353,6 +389,7 @@ export default function WishlistPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        playerId: form.playerId || null,
         marketLoose: priceLookup?.title === form.title && priceLookup?.platform === form.platform ? priceLookup.loose : null,
         marketCib: priceLookup?.title === form.title && priceLookup?.platform === form.platform ? priceLookup.cib : null,
         marketNew: priceLookup?.title === form.title && priceLookup?.platform === form.platform ? priceLookup.new : null,
@@ -551,6 +588,17 @@ export default function WishlistPage() {
 
   const sortedFiltered = [...filtered].sort(compareWishlistItems);
 
+  const wishlistTotals = items.reduce((totals, item) => {
+    if (item.foundAt) return totals;
+    if (item.marketLoose != null) totals.loose += Number(item.marketLoose);
+    if (item.marketCib != null) totals.cib += Number(item.marketCib);
+    if (item.marketNew != null) totals.new += Number(item.marketNew);
+    if (item.marketGraded != null) totals.graded += Number(item.marketGraded);
+    return totals;
+  }, { loose: 0, cib: 0, new: 0, graded: 0 });
+
+  const hasWishlistTotals = Object.values(wishlistTotals).some((value) => value > 0);
+
   // Group by priority for active view
   const grouped = [1, 2, 3].map(p => ({
     priority: p as 1 | 2 | 3,
@@ -679,26 +727,34 @@ export default function WishlistPage() {
           </div>
           {showSuggestions && suggestions.length > 0 && (
             <div className="mb-3 border border-green-900 bg-black/80">
-              {suggestions.map((suggestion, index) => (
-                <button
-                  key={`${suggestion.title}-${suggestion.platform}`}
-                  type="button"
-                  onClick={() => pickSuggestion(suggestion)}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-left font-terminal text-sm border-b border-green-950 last:border-b-0 ${
-                    activeSuggestion === index ? "bg-green-950/40 text-green-200" : "text-green-400 hover:bg-green-950/20"
-                  }`}
-                >
-                  <span>{suggestion.title}</span>
-                  <span className="text-xs text-zinc-500">
-                    {suggestion.platform && suggestion.platform !== 'Unknown'
-                      ? `${suggestion.platform} · ${suggestion.source}`
-                      : `Platform unknown · ${suggestion.source}`}
-                  </span>
-                </button>
-              ))}
+              {suggestions.map((suggestion, index) => {
+                const sourceLabel = suggestion.source === "owned"
+                  ? "owned"
+                  : suggestion.source === "not-owned"
+                    ? "not owned"
+                    : "already wishlisted";
+
+                return (
+                  <button
+                    key={`${suggestion.title}-${suggestion.platform}`}
+                    type="button"
+                    onClick={() => pickSuggestion(suggestion)}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-left font-terminal text-sm border-b border-green-950 last:border-b-0 ${
+                      activeSuggestion === index ? "bg-green-950/40 text-green-200" : "text-green-400 hover:bg-green-950/20"
+                    }`}
+                  >
+                    <span>{suggestion.title}</span>
+                    <span className="text-xs text-zinc-500">
+                      {suggestion.platform && suggestion.platform !== 'Unknown'
+                        ? `${suggestion.platform} · ${sourceLabel}`
+                        : `Platform unknown · ${sourceLabel}`}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
             <select
               className={inputCls}
               value={form.priority}
@@ -707,6 +763,18 @@ export default function WishlistPage() {
               <option value={1}>⭐ Must-Have</option>
               <option value={2}>🎮 Want</option>
               <option value={3}>📦 Someday</option>
+            </select>
+            <select
+              className={inputCls}
+              value={form.playerId}
+              onChange={e => {
+                const value = e.target.value;
+                setForm(f => ({ ...f, playerId: value }));
+                if (typeof window !== "undefined") localStorage.setItem(WISHLIST_PLAYER_STORAGE_KEY, value);
+              }}
+            >
+              <option value="">No player</option>
+              {players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
             </select>
             <input
               className={inputCls}
@@ -760,6 +828,27 @@ export default function WishlistPage() {
             >
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {hasWishlistTotals && (
+        <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="border border-blue-900 bg-blue-950/20 px-4 py-3">
+            <p className="text-zinc-500 font-terminal text-sm uppercase">Wishlist Loose Total</p>
+            <p className="text-blue-300 font-terminal text-lg">${wishlistTotals.loose.toFixed(2)}</p>
+          </div>
+          <div className="border border-blue-900 bg-blue-950/20 px-4 py-3">
+            <p className="text-zinc-500 font-terminal text-sm uppercase">Wishlist CIB Total</p>
+            <p className="text-blue-300 font-terminal text-lg">${wishlistTotals.cib.toFixed(2)}</p>
+          </div>
+          <div className="border border-blue-900 bg-blue-950/20 px-4 py-3">
+            <p className="text-zinc-500 font-terminal text-sm uppercase">Wishlist New Total</p>
+            <p className="text-blue-300 font-terminal text-lg">${wishlistTotals.new.toFixed(2)}</p>
+          </div>
+          <div className="border border-blue-900 bg-blue-950/20 px-4 py-3">
+            <p className="text-zinc-500 font-terminal text-sm uppercase">Wishlist Graded Total</p>
+            <p className="text-blue-300 font-terminal text-lg">${wishlistTotals.graded.toFixed(2)}</p>
           </div>
         </div>
       )}
@@ -819,6 +908,7 @@ export default function WishlistPage() {
                       onUnfound={unmarkFound}
                       onDelete={del}
                       getPriceChartingUrl={buildPriceChartingUrl}
+                      getPlayerBadgeStyle={getPlayerBadgeStyle}
                     />
                   ))}
                 </div>
@@ -839,6 +929,7 @@ export default function WishlistPage() {
               onUnfound={unmarkFound}
               onDelete={del}
               getPriceChartingUrl={buildPriceChartingUrl}
+              getPlayerBadgeStyle={getPlayerBadgeStyle}
             />
           ))}
         </div>
@@ -910,6 +1001,7 @@ function ItemCard({
   onUnfound,
   onDelete,
   getPriceChartingUrl,
+  getPlayerBadgeStyle,
 }: {
   item: WishlistItem;
   onFound: (item: WishlistItem) => void;
@@ -918,6 +1010,7 @@ function ItemCard({
   onUnfound: (id: string) => void;
   onDelete: (id: string) => void;
   getPriceChartingUrl: (title: string, platform: string) => string;
+  getPlayerBadgeStyle: (playerId?: string | null) => string;
 }) {
   const meta  = PRIORITY_META[item.priority];
   const found = !!item.foundAt;
@@ -929,9 +1022,16 @@ function ItemCard({
           <p className={`font-terminal text-base font-bold truncate ${found ? "line-through text-zinc-500" : ""}`}>
             {item.title}
           </p>
-          <span className={`inline-block text-sm px-2 py-0.5 mt-1 font-terminal ${meta.badge}`}>
-            {item.platform}
-          </span>
+          <div className="flex flex-wrap gap-2 mt-1">
+            <span className={`inline-block text-sm px-2 py-0.5 font-terminal ${meta.badge}`}>
+              {item.platform}
+            </span>
+            {item.player && (
+              <span className={`inline-block text-sm px-2 py-0.5 font-terminal border ${getPlayerBadgeStyle(item.playerId)}`}>
+                👤 {item.player.name}
+              </span>
+            )}
+          </div>
           {item.notes && (
             <p className="text-zinc-500 font-terminal text-sm mt-1 truncate">{item.notes}</p>
           )}

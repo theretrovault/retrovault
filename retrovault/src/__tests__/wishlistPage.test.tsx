@@ -43,6 +43,9 @@ describe('Wishlist page contextual flow', () => {
     expect(source).toContain('showSuggestions');
     expect(source).toContain('readFieldCache');
     expect(source).toContain('Platform unknown');
+    expect(source).toContain('"owned" | "not-owned" | "wishlist"');
+    expect(source).toContain('already wishlisted');
+    expect(source).toContain('not owned');
   });
 
   it('sorts wishlist items by platform and then title', () => {
@@ -50,6 +53,24 @@ describe('Wishlist page contextual flow', () => {
     expect(source).toContain('a.platform.localeCompare(b.platform');
     expect(source).toContain('a.title.localeCompare(b.title');
     expect(source).toContain('const sortedFiltered = [...filtered].sort(compareWishlistItems)');
+  });
+
+  it('shows aggregated fetched wishlist totals near the top', () => {
+    expect(source).toContain('const wishlistTotals = items.reduce');
+    expect(source).toContain('Wishlist Loose Total');
+    expect(source).toContain('Wishlist CIB Total');
+    expect(source).toContain('Wishlist New Total');
+    expect(source).toContain('Wishlist Graded Total');
+    expect(source).toContain('hasWishlistTotals');
+  });
+
+  it('supports sticky player assignment and colored player badges on wishlist items', () => {
+    expect(source).toContain('WISHLIST_PLAYER_STORAGE_KEY');
+    expect(source).toContain('localStorage.setItem(WISHLIST_PLAYER_STORAGE_KEY');
+    expect(source).toContain('playerId');
+    expect(source).toContain('getPlayerBadgeStyle');
+    expect(source).toContain('👤');
+    expect(source).toContain('No player');
   });
 
   it('prompts before found items disappear, routes them into collection, and ignores catalog-only ownership ghosts', () => {

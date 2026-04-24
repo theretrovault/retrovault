@@ -20,6 +20,7 @@ export async function PATCH(
         }),
         ...(body.title    !== undefined && { title: body.title }),
         ...(body.platform !== undefined && { platform: body.platform }),
+        ...(body.playerId !== undefined && { playerId: body.playerId || null }),
         ...(body.marketLoose !== undefined && { marketLoose: body.marketLoose != null ? Number(body.marketLoose) : null }),
         ...(body.marketCib !== undefined && { marketCib: body.marketCib != null ? Number(body.marketCib) : null }),
         ...(body.marketNew !== undefined && { marketNew: body.marketNew != null ? Number(body.marketNew) : null }),

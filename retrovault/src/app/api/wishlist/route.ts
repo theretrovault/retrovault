@@ -6,6 +6,11 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const items = await prisma.wishlistItem.findMany({
+      include: {
+        player: {
+          select: { id: true, name: true },
+        },
+      },
       orderBy: [{ priority: 'asc' }, { addedAt: 'desc' }],
     })
     return NextResponse.json({ items })
@@ -25,6 +30,7 @@ export async function POST(req: NextRequest) {
         title:    body.title,
         platform: body.platform,
         gameId:   body.gameId   ?? null,
+        playerId: body.playerId ?? null,
         priority: body.priority ?? 2,
         notes:    body.notes    ?? null,
         marketLoose: body.marketLoose != null ? Number(body.marketLoose) : null,
