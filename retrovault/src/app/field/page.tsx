@@ -17,6 +17,7 @@ import {
   getFieldEmptyState,
   getMatchConfidence,
 } from "@/lib/fieldMode";
+import { addPurchaseToActiveConventionSession } from "@/lib/conventionSession";
 
 type PriceVariantMatch = {
   title: string;
@@ -518,6 +519,15 @@ export default function FieldPage() {
           });
           if (!acqRes.ok) throw new Error('Saved inventory but failed to log acquisition');
         }
+        addPurchaseToActiveConventionSession({
+          title: r.title,
+          platform: r.platform,
+          price: (parseFloat(copyDetails.priceAcquired || '0') || 0) * quantity,
+          condition,
+          notes: `Field purchase${quantity > 1 ? ` · ${quantity} copies` : ''}`,
+          at: 'Field Mode',
+          source: 'Convention',
+        });
       }
 
       const platformMessage = platformSync.changed

@@ -1,29 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {
+  loadConventionSessions,
+  saveConventionSessions,
+  type ConventionSession as Session,
+  type ConventionPurchase as Purchase,
+} from "@/lib/conventionSession";
 
-type Purchase = {
-  id: string; title: string; platform: string; price: number;
-  condition: string; notes: string; at: string; timestamp: string;
-};
-
-type Session = {
-  id: string; name: string; budget: number;
-  purchases: Purchase[]; createdAt: string;
-};
 
 const CONDITIONS = ["Loose", "CIB", "New/Sealed", "Damaged"];
 const PLATFORMS = ["NES","SNES","N64","Gamecube","Switch","Sega Genesis","Sega CD","Dreamcast","PS1","PS2","PS3","PSP","Xbox","Xbox 360","Other"];
 
-const STORAGE_KEY = "rv-convention-sessions";
-
-function loadSessions(): Session[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
-}
-function saveSessions(s: Session[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-}
 
 export default function ConventionPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -37,9 +25,18 @@ export default function ConventionPage() {
   const [showPurchase, setShowPurchase] = useState(false);
 
   useEffect(() => {
-    const s = loadSessions();
-    setSessions(s);
-    if (s.length > 0) setActiveId(s[s.length - 1].id);
+    const sync = () => {
+      const s = loadConventionSessions();
+      setSessions(s);
+      setActiveId((current) => current && s.some((session) => session.id === current) ? current : (s.find((session) => session.isActive)?.id || s[s.length - 1]?.id || null));
+    };
+    sync();
+    window.addEventListener('storage', sync);
+    window.addEventListener('retrovault:convention-sessions-updated', sync as EventListener);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('retrovault:convention-sessions-updated', sync as EventListener);
+    };
   }, []);
 
   const active = sessions.find(s => s.id === activeId) || null;
@@ -51,10 +48,10 @@ export default function ConventionPage() {
     if (!newName.trim()) return;
     const session: Session = {
       id: Date.now().toString(), name: newName, budget: parseFloat(newBudget) || 0,
-      purchases: [], createdAt: new Date().toISOString(),
+      purchases: [], createdAt: new Date().toISOString(), isActive: true, endedAt: null,
     };
-    const updated = [...sessions, session];
-    setSessions(updated); saveSessions(updated);
+    const updated = [...sessions.map((existing) => ({ ...existing, isActive: false })), session];
+    setSessions(updated); saveConventionSessions(updated);
     setActiveId(session.id); setShowNew(false); setNewName(""); setNewBudget("");
   };
 
@@ -68,7 +65,7 @@ export default function ConventionPage() {
     const updated = sessions.map(s =>
       s.id === active.id ? { ...s, purchases: [...s.purchases, purchase] } : s
     );
-    setSessions(updated); saveSessions(updated);
+    setSessions(updated); saveConventionSessions(updated);
     setShowPurchase(false); setPForm({ title: "", platform: "", price: "", condition: "Loose", notes: "", at: "" });
   };
 
@@ -77,16 +74,31 @@ export default function ConventionPage() {
     const updated = sessions.map(s =>
       s.id === active.id ? { ...s, purchases: s.purchases.filter(p => p.id !== purchaseId) } : s
     );
-    setSessions(updated); saveSessions(updated);
+    setSessions(updated); saveConventionSessions(updated);
   };
 
   const deleteSession = (id: string) => {
     const updated = sessions.filter(s => s.id !== id);
-    setSessions(updated); saveSessions(updated);
+    setSessions(updated); saveConventionSessions(updated);
     setActiveId(updated.length > 0 ? updated[updated.length - 1].id : null);
   };
 
   const pctColor = pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-yellow-500" : "bg-green-500";
+
+  const setSessionActiveState = (id: string, isActive: boolean) => {
+    const updated = sessions.map((session) => {
+      if (session.id === id) {
+        return {
+          ...session,
+          isActive,
+          endedAt: isActive ? null : (session.endedAt || new Date().toISOString()),
+        };
+      }
+      return isActive ? { ...session, isActive: false } : session;
+    });
+    setSessions(updated);
+    saveConventionSessions(updated);
+  };
 
   return (
     <div className="w-full bg-black border-4 border-green-500 rounded p-6 shadow-[0_0_15px_rgba(34,197,94,0.3)] min-h-[80vh]">
@@ -126,6 +138,25 @@ export default function ConventionPage() {
             <>
               {/* Budget meter */}
               <div className="bg-zinc-950 border-2 border-green-900 p-5 mb-6 rounded-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <div>
+                    <div className="text-zinc-500 font-terminal text-xs uppercase">Session status</div>
+                    <div className={`font-terminal text-lg ${active.isActive ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                      {active.isActive ? '🟢 Active' : '⚪ Ended'}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {active.isActive ? (
+                      <button onClick={() => setSessionActiveState(active.id, false)} className="px-3 py-1.5 font-terminal text-sm border border-red-700 text-red-300 hover:border-red-500">
+                        End Session
+                      </button>
+                    ) : (
+                      <button onClick={() => setSessionActiveState(active.id, true)} className="px-3 py-1.5 font-terminal text-sm border border-emerald-700 text-emerald-300 hover:border-emerald-500">
+                        Mark Active
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <div className="flex justify-between items-baseline mb-3">
                   <span className="text-zinc-400 font-terminal text-sm uppercase">Budget</span>
                   <div className="flex gap-6">
@@ -155,8 +186,8 @@ export default function ConventionPage() {
 
               {/* Actions */}
               <div className="flex gap-3 mb-6">
-                <button onClick={() => setShowPurchase(true)}
-                  className="px-5 py-2 bg-blue-700 hover:bg-blue-600 text-white font-terminal text-xl font-bold border-2 border-blue-500 transition-colors">
+                <button onClick={() => setShowPurchase(true)} disabled={!active.isActive}
+                  className="px-5 py-2 bg-blue-700 hover:bg-blue-600 text-white font-terminal text-xl font-bold border-2 border-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   + LOG PURCHASE
                 </button>
                 <button onClick={() => deleteSession(active.id)}

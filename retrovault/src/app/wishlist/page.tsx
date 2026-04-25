@@ -11,6 +11,7 @@ import {
   getMatchConfidence,
   type CopyCondition,
 } from "@/lib/fieldMode";
+import { addPurchaseToActiveConventionSession } from "@/lib/conventionSession";
 
 type WishlistItem = {
   id: string;
@@ -501,6 +502,16 @@ export default function WishlistPage() {
           }),
         }),
       }).catch(() => {});
+
+      addPurchaseToActiveConventionSession({
+        title: item.title,
+        platform: item.platform,
+        price: parseFloat(foundPrompt.pricePaid || "0") || 0,
+        condition: foundPrompt.condition,
+        notes: foundPrompt.notes || item.notes || "Found from Wishlist",
+        at: "Wishlist",
+        source: "Convention",
+      });
 
       await fetch(`/api/wishlist/${item.id}`, {
         method: "PATCH",

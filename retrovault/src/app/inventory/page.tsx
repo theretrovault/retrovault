@@ -27,6 +27,7 @@ import { PlayerProfileModal } from "@/components/PlayerProfileModal";
 import { useAppConfig } from "@/components/AppConfig";
 import { Tip } from "@/components/Tooltip";
 import { getCopyMarketValue } from "@/lib/copyCondition";
+import { addPurchaseToActiveConventionSession } from "@/lib/conventionSession";
 import { getPriceTrend, getTotalMarketValue, getTotalPaid } from "@/lib/marketUtils";
 
 type GameCopy = {
@@ -590,6 +591,16 @@ export default function InventoryPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newItem),
     }).then((r) => r.json());
+
+    addPurchaseToActiveConventionSession({
+      title: data.title,
+      platform: data.platform,
+      price: parseFloat(data.priceAcquired || '0') || 0,
+      condition: data.condition,
+      notes: data.notes || '',
+      at: data.source || 'Vault',
+      source: data.source || 'Vault',
+    });
 
     // Auto-enable platform if it's not currently enabled in config.
     if (data.platform) {
