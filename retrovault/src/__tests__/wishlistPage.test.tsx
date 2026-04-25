@@ -78,7 +78,15 @@ describe('Wishlist page contextual flow', () => {
     expect(source).toContain('onPlayerChange');
     expect(source).toContain('Choose which player wants this game');
     expect(source).toContain('borderColor: playerAccent || undefined');
-    expect(source).toContain('boxShadow: playerAccent ? `0 0 0 1px ${playerAccent}` : undefined');
+    expect(source).toContain('boxShadow: playerAccent ? `0 0 0 1px ${playerAccent}, inset 0 0 0 1px ${playerAccent}22` : undefined');
+    expect(source).toContain('hasVariants: !!lookup.hasVariants');
+    expect(source).toContain('hasVariants: priceLookup?.title === form.title && priceLookup?.platform === form.platform ? !!priceLookup.hasVariants : false');
+    expect(source).toContain('const ok = await fetchPrice(item.title, item.platform, item.id);');
+    expect(source).toContain('if (ok) updated += 1;');
+    expect(source).toContain('else failed += 1;');
+    expect(source).toContain('overflow-hidden');
+    expect(source).toContain('inset 0 0 0 1px ${playerAccent}22');
+    expect(source).toContain('absolute inset-y-0 left-0 w-1 pointer-events-none');
   });
 
   it('prompts before found items disappear, routes them into collection, and ignores catalog-only ownership ghosts', () => {

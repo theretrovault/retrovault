@@ -287,7 +287,7 @@ export default function WishlistPage() {
   };
 
   const fetchPrice = async (title = form.title, platform = form.platform, wishlistId?: string) => {
-    if (!title.trim() || !platform.trim()) return;
+    if (!title.trim() || !platform.trim()) return false;
     if (wishlistId) {
       setFetchingWishlistIds((current) => current.includes(wishlistId) ? current : [...current, wishlistId]);
     } else {
@@ -325,6 +325,7 @@ export default function WishlistPage() {
           marketNew: lookup.new,
           marketGraded: lookup.graded,
           lastFetched: new Date().toISOString(),
+          hasVariants: !!lookup.hasVariants,
         };
 
         if (existingWishlist) {
@@ -344,13 +345,16 @@ export default function WishlistPage() {
                 marketNew: lookup.new != null ? Number(lookup.new) : null,
                 marketGraded: lookup.graded != null ? Number(lookup.graded) : null,
                 lastFetched: payload.lastFetched,
+                hasVariants: !!lookup.hasVariants,
               }
             : item
         )));
       }
+      return true;
     } catch (error: any) {
       setPriceLookup(null);
       setPriceError(error?.message || "Price lookup failed");
+      return false;
     } finally {
       if (wishlistId) {
         setFetchingWishlistIds((current) => current.filter((id) => id !== wishlistId));
@@ -372,12 +376,9 @@ export default function WishlistPage() {
     let failed = 0;
 
     for (const item of activeItems) {
-      try {
-        await fetchPrice(item.title, item.platform, item.id);
-        updated += 1;
-      } catch {
-        failed += 1;
-      }
+      const ok = await fetchPrice(item.title, item.platform, item.id);
+      if (ok) updated += 1;
+      else failed += 1;
     }
 
     setBulkFetchLoading(false);
@@ -413,6 +414,7 @@ export default function WishlistPage() {
         marketNew: priceLookup?.title === form.title && priceLookup?.platform === form.platform ? priceLookup.new : null,
         marketGraded: priceLookup?.title === form.title && priceLookup?.platform === form.platform ? priceLookup.graded : null,
         lastFetched: priceLookup?.title === form.title && priceLookup?.platform === form.platform ? new Date().toISOString() : null,
+        hasVariants: priceLookup?.title === form.title && priceLookup?.platform === form.platform ? !!priceLookup.hasVariants : false,
       }),
     });
     setShowAdd(false);
@@ -1091,12 +1093,19 @@ function ItemCard({
 
   return (
     <div
-      className={`border p-3 relative group ${found ? "opacity-60" : meta.color}`}
+      className={`border p-3 relative group overflow-hidden ${found ? "opacity-60" : meta.color}`}
       style={{
         borderColor: playerAccent || undefined,
-        boxShadow: playerAccent ? `0 0 0 1px ${playerAccent}` : undefined,
+        boxShadow: playerAccent ? `0 0 0 1px ${playerAccent}, inset 0 0 0 1px ${playerAccent}22` : undefined,
       }}
     >
+      {playerAccent && (
+        <div
+          className="absolute inset-y-0 left-0 w-1 pointer-events-none"
+          style={{ backgroundColor: playerAccent }}
+          aria-hidden="true"
+        />
+      )}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className={`font-terminal text-base font-bold truncate ${found ? "line-through text-zinc-500" : ""}`}>
