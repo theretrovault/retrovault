@@ -921,6 +921,13 @@ export default function FieldPage() {
 
                 <div className="flex flex-wrap gap-2">
                   <button
+                    onClick={() => doSearch(r.title, r.platform === 'Unknown' ? '' : r.platform)}
+                    disabled={searching}
+                    className="px-3 py-2 font-terminal text-sm border border-blue-700 text-blue-300 hover:bg-blue-950/30 disabled:opacity-50 transition-colors"
+                  >
+                    {searching ? '…' : '💰 Fetch Price'}
+                  </button>
+                  <button
                     onClick={() => saveToInventory(r)}
                     disabled={savingKey === `inventory:${r.title}:${r.platform}`}
                     className="px-3 py-2 font-terminal text-sm border border-cyan-700 text-cyan-300 hover:bg-cyan-950/30 disabled:opacity-50 transition-colors"
