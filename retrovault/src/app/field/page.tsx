@@ -882,10 +882,17 @@ export default function FieldPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="font-terminal text-sm text-cyan-300">📸 Photo Lookup</div>
-              <div className="font-terminal text-xs text-zinc-500">Snap a game photo, OCR it locally on the server, then drop into the normal Field Mode flow.</div>
+              <div className="font-terminal text-xs text-zinc-500">Snap a game photo, run it through Google Vision OCR, then drop into the normal Field Mode flow.</div>
             </div>
-            <div className="px-3 py-2 font-terminal text-xs border border-zinc-800 text-zinc-600">
-              📷 Photo Lookup — coming soon
+            <div className="flex flex-wrap gap-2">
+              <label className="px-3 py-2 font-terminal text-xs border border-cyan-800 text-cyan-300 hover:bg-cyan-950/30 transition-colors cursor-pointer">
+                {ocrBusy ? '⏳ Scanning...' : '📷 Take Photo'}
+                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoLookup} disabled={ocrBusy} />
+              </label>
+              <label className="px-3 py-2 font-terminal text-xs border border-cyan-800 text-cyan-300 hover:bg-cyan-950/30 transition-colors cursor-pointer">
+                {ocrBusy ? '⏳ Scanning...' : '🖼️ Choose Photo'}
+                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoLookup} disabled={ocrBusy} />
+              </label>
             </div>
           </div>
           {ocrStatus && <div className="font-terminal text-xs text-cyan-200">{ocrStatus}</div>}
