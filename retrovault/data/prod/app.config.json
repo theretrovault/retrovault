@@ -41,7 +41,9 @@
     "Virtual Boy",
     "PS4",
     "PS5",
-    "Switch 2"
+    "Switch 2",
+    "all",
+    "Playstation 2"
   ],
   "scrapers": {
     "craigslistCity": "portland"

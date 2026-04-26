@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import type { ChangeEvent } from 'react';
 import { unlockAchievement } from "@/lib/achievementUnlocks";
 import { ALL_PLATFORMS, RETRO_DEFAULTS } from "@/data/platformGroups";
 import {
@@ -48,6 +49,7 @@ type PriceResult = {
   // Wishlist metadata (from offline cache)
   wishlistPriority?: number | null;
   wishlistNotes?: string | null;
+  wishlistPlayers?: { id: string; name: string; color?: string | null }[];
   // Variant pricing
   hasVariants?: boolean;
   variantMatches?: PriceVariantMatch[];
@@ -77,6 +79,16 @@ type PlayerOption = {
   color?: string | null;
 };
 
+type WishlistItem = {
+  id: string;
+  title: string;
+  platform: string;
+  playerId?: string | null;
+  player?: { id: string; name: string; color?: string | null } | null;
+  notes?: string | null;
+  priority?: number | null;
+};
+
 const MARGIN_THRESHOLD = 30; // % profit margin to recommend BUY
 
 function getDecision(askPrice: number, loosePrice: number | null, ownedCount: number, watchlisted: boolean): {
@@ -99,14 +111,18 @@ function getDecision(askPrice: number, loosePrice: number | null, ownedCount: nu
 const MAX_SUGGESTIONS = 8;
 const SUGGEST_DEBOUNCE_MS = 150;
 
+const normalizeFieldKey = (title: string, platform: string) => `${title.trim().toLowerCase()}::${platform.trim().toLowerCase()}`;
+
 export default function FieldPage() {
   const [query, setQuery] = useState("");
   const [platform, setPlatform] = useState("all");
   const [askPrice, setAskPrice] = useState("");
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<PriceResult[]>([]);
+  const [refreshingPrices, setRefreshingPrices] = useState<string[]>([]);
   const [inventory, setInventory] = useState<OwnedItem[]>([]);
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
+  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   // Pre-seeded with all known platforms so the select works before inventory loads
   const [platforms, setPlatforms] = useState<string[]>(ALL_PLATFORMS);
   // Offline cache state
@@ -127,6 +143,9 @@ export default function FieldPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const [fieldAchievementFired, setFieldAchievementFired] = useState(false);
+  const [ocrBusy, setOcrBusy] = useState(false);
+  const [ocrStatus, setOcrStatus] = useState('');
+  const [ocrCandidates, setOcrCandidates] = useState<{ title: string; platform: string; confidence: number }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -155,6 +174,15 @@ export default function FieldPage() {
       const nextPlayers = Array.isArray(data?.people) ? data.people : [];
       setPlayers(nextPlayers);
       setWishlistPlayerId((current) => current || nextPlayers[0]?.id || '');
+    }).catch(() => {});
+    fetch('/api/wishlist').then(r => r.json()).then(data => {
+      const nextWishlist = Array.isArray(data?.items) ? data.items : [];
+      setWishlistItems(nextWishlist);
+      const merged = new Map(catalogRef.current.map((item) => [normalizeFieldKey(item.title, item.platform), item]));
+      nextWishlist.forEach((item: WishlistItem) => {
+        merged.set(normalizeFieldKey(item.title, item.platform), { title: item.title, platform: item.platform });
+      });
+      catalogRef.current = Array.from(merged.values());
     }).catch(() => {});
     // Load offline cache metadata on mount
     readFieldCache().then(cache => {
@@ -251,12 +279,12 @@ export default function FieldPage() {
 
   // Main search — accepts explicit title+platform so pickSuggestion can pass values
   // without depending on possibly-stale state closures
-  const doSearch = async (titleQ: string, plat: string) => {
+  const doSearch = async (titleQ: string, plat: string, preserveResults = false) => {
     if (!titleQ.trim()) return;
     setShowSuggestions(false);
     setSuggestions([]);
     setSearching(true);
-    setResults([]);
+    if (!preserveResults) setResults([]);
     setLastSearchIssue(null);
 
     const q = titleQ.toLowerCase();
@@ -298,6 +326,7 @@ export default function FieldPage() {
       });
       setResults(fromInventory);
       setSearching(false);
+      void Promise.all(fromInventory.map((item) => refreshResultPrice(item.title, item.platform)));
       return;
     }
 
@@ -344,7 +373,7 @@ export default function FieldPage() {
       if (d && d.title) {
         setResults([{
           title: d.title,
-          platform: d.platform || plat || "Unknown",
+          platform: d.platform || (plat !== 'all' ? plat : '') || "Unknown",
           loose: d.loose || null, cib: d.cib || null, newPrice: d.new || null,
           source: "pricecharting",
           owned: 0, paidTotal: 0, paidEach: [], conditions: [],
@@ -353,6 +382,7 @@ export default function FieldPage() {
           hasVariants: !!d.hasVariants,
           variantMatches: Array.isArray(d.variantMatches) ? d.variantMatches : [],
         }]);
+        void refreshResultPrice(d.title, d.platform || (plat !== 'all' ? plat : '') || "");
         if (!fieldAchievementFired) {
           setFieldAchievementFired(true);
           void unlockAchievement('a_field');
@@ -396,6 +426,37 @@ export default function FieldPage() {
 
   const search = () => doSearch(query, platform);
 
+  const refreshResultPrice = async (titleQ: string, plat: string) => {
+    const key = `${titleQ}::${plat || 'all'}`;
+    setRefreshingPrices((current) => current.includes(key) ? current : [...current, key]);
+    try {
+      const platParam = plat !== 'all' ? plat : '';
+      const res = await fetch(`/api/pricecharting?title=${encodeURIComponent(titleQ)}&platform=${encodeURIComponent(platParam)}`);
+      const d = await res.json();
+      if (!res.ok || !d || !d.title) return;
+      setResults((current) => current.map((item) => {
+        const sameTitle = item.title.toLowerCase() === titleQ.toLowerCase();
+        const samePlatform = (platParam ? item.platform === platParam : true) || item.platform === (d.platform || item.platform);
+        if (!sameTitle || !samePlatform) return item;
+        return {
+          ...item,
+          title: d.title,
+          platform: d.platform || item.platform,
+          loose: d.loose || null,
+          cib: d.cib || null,
+          newPrice: d.new || null,
+          source: 'pricecharting',
+          stale: false,
+          hasVariants: !!d.hasVariants,
+          variantMatches: Array.isArray(d.variantMatches) ? d.variantMatches : [],
+        };
+      }));
+    } catch {}
+    finally {
+      setRefreshingPrices((current) => current.filter((entry) => entry !== key));
+    }
+  };
+
   const normalizeMoney = (val: string | null) => {
     if (!val || val === 'N/A') return '';
     const num = parseFloat(val);
@@ -404,13 +465,15 @@ export default function FieldPage() {
 
   const refreshFieldData = async () => {
     try {
-      const [invRes, watchRes, configRes] = await Promise.all([
+      const [invRes, watchRes, wishlistRes, configRes] = await Promise.all([
         fetch('/api/inventory'),
         fetch('/api/sales?type=watchlist'),
+        fetch('/api/wishlist'),
         fetch('/api/config').catch(() => null),
       ]);
       const inv = await invRes.json();
       const watch = await watchRes.json();
+      const wishlist = await wishlistRes.json().catch(() => ({}));
       const config = configRes ? await configRes.json() : null;
       if (Array.isArray(inv)) {
         setInventory(inv);
@@ -420,6 +483,7 @@ export default function FieldPage() {
         catalogRef.current = inv.map(i => ({ title: i.title, platform: i.platform }));
       }
       if (Array.isArray(watch)) setWatchlist(watch);
+      if (Array.isArray(wishlist?.items)) setWishlistItems(wishlist.items);
       if (Array.isArray(config?.platforms) && config.platforms.length > 0) setEnabledPlatforms(config.platforms);
     } catch {}
   };
@@ -528,6 +592,20 @@ export default function FieldPage() {
           at: 'Field Mode',
           source: 'Convention',
         });
+
+        const matchingWishlistItems = wishlistItems.filter((item) => normalizeFieldKey(item.title, item.platform) === normalizeFieldKey(r.title, r.platform));
+        const selectedWishlistItem = matchingWishlistItems.find((item) => (item.playerId || '') === wishlistPlayerId) || null;
+        const otherWishlistItems = matchingWishlistItems.filter((item) => item.id !== selectedWishlistItem?.id);
+        if (selectedWishlistItem) {
+          await fetch(`/api/wishlist/${selectedWishlistItem.id}`, { method: 'DELETE' }).catch(() => {});
+        }
+        if (!selectedWishlistItem && otherWishlistItems.length > 0) {
+          const names = otherWishlistItems.map((item) => item.player?.name || 'another player').join(', ');
+          const shouldRemove = typeof window !== 'undefined' ? window.confirm(`This game is on ${names}'s wishlist. Remove it now that you bought it?`) : false;
+          if (shouldRemove) {
+            await Promise.all(otherWishlistItems.map((item) => fetch(`/api/wishlist/${item.id}`, { method: 'DELETE' }).catch(() => {})));
+          }
+        }
       }
 
       const platformMessage = platformSync.changed
@@ -590,6 +668,11 @@ export default function FieldPage() {
     setSavingKey(key);
     setSaveStatus('');
     try {
+      const matchingWishlistItems = wishlistItems.filter((item) => normalizeFieldKey(item.title, item.platform) === normalizeFieldKey(r.title, r.platform));
+      const selectedWishlistItem = matchingWishlistItems.find((item) => (item.playerId || '') === wishlistPlayerId);
+      if (selectedWishlistItem) {
+        throw new Error(`${selectedWishlistItem.player?.name || 'That player'} already has this on their wishlist`);
+      }
       const platformSync = await ensurePlatformEnabled(r.platform);
       const res = await fetch('/api/wishlist', {
         method: 'POST',
@@ -618,6 +701,53 @@ export default function FieldPage() {
       setSaveStatus(`Error: ${e.message || 'Could not add to wishlist'}`);
     } finally {
       setSavingKey('');
+    }
+  };
+
+  const handlePhotoLookup = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setOcrBusy(true);
+    setOcrStatus('Scanning cover text...');
+    setOcrCandidates([]);
+
+    try {
+      const form = new FormData();
+      form.append('image', file);
+      const res = await fetch('/api/field/identify', { method: 'POST', body: form });
+      const contentType = res.headers.get('content-type') || '';
+      const data = contentType.includes('application/json')
+        ? await res.json()
+        : { error: await res.text() };
+      if (!res.ok) {
+        const fallback = typeof data?.error === 'string' && data.error.includes('<')
+          ? 'OCR route failed before returning JSON. The server likely threw an HTML error page.'
+          : data?.error || 'Could not identify image';
+        throw new Error(fallback);
+      }
+
+      const nextCandidates = Array.isArray(data?.candidates) ? data.candidates : [];
+      setOcrCandidates(nextCandidates);
+
+      if (data?.match?.title) {
+        setQuery(data.match.title);
+        setPlatform(data.match.platform || 'all');
+      }
+
+      if (data?.autoRun && data?.match?.title) {
+        setOcrStatus(`📸 Locked on ${data.match.title} (${data.match.platform}) at ${data.confidence}% confidence.`);
+        void doSearch(data.match.title, data.match.platform || 'all');
+      } else if (data?.match?.title) {
+        setOcrStatus(`📸 Low confidence at ${data.confidence}%. I think this is ${data.match.title} (${data.match.platform}). Tap a candidate below or just type it manually.`);
+      } else {
+        setOcrStatus('📸 Could not confidently identify this one. Type the title manually.');
+      }
+    } catch (e: any) {
+      setOcrStatus(`Error: ${e.message || 'Could not identify image'}`);
+    } finally {
+      setOcrBusy(false);
     }
   };
 
@@ -703,6 +833,19 @@ export default function FieldPage() {
           {showSuggestions && suggestions.length > 0 && (
             <div ref={suggestRef}
               className="absolute z-50 w-full bg-zinc-950 border-2 border-green-700 shadow-[0_4px_20px_rgba(34,197,94,0.2)] max-h-64 overflow-y-auto">
+              <div className="sticky top-0 z-10 bg-zinc-950 border-b border-green-900 p-2 sm:hidden">
+                <button
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setShowSuggestions(false);
+                    search();
+                  }}
+                  disabled={searching || !query.trim()}
+                  className="w-full px-4 py-3 bg-green-600 hover:bg-green-500 text-black font-terminal text-lg font-bold border border-green-400 disabled:opacity-40 transition-colors"
+                >
+                  {searching ? '...' : `SEARCH "${query.trim()}"`}
+                </button>
+              </div>
               {suggestions.map((s, i) => (
                 <button
                   key={`${s.title}-${s.platform}`}
@@ -733,6 +876,44 @@ export default function FieldPage() {
             className="px-6 py-3 bg-green-600 hover:bg-green-500 text-black font-terminal text-xl font-bold border-2 border-green-400 disabled:opacity-40 transition-colors">
             {searching ? "..." : "SEARCH"}
           </button>
+        </div>
+
+        <div className="border border-cyan-900 bg-cyan-950/20 p-3 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="font-terminal text-sm text-cyan-300">📸 Photo Lookup</div>
+              <div className="font-terminal text-xs text-zinc-500">Snap a game photo, OCR it locally on the server, then drop into the normal Field Mode flow.</div>
+            </div>
+            <div className="px-3 py-2 font-terminal text-xs border border-zinc-800 text-zinc-600">
+              📷 Photo Lookup — coming soon
+            </div>
+          </div>
+          {ocrStatus && <div className="font-terminal text-xs text-cyan-200">{ocrStatus}</div>}
+          {!ocrBusy && ocrCandidates.length > 0 && (
+            <div className="font-terminal text-xs text-zinc-500">
+              Under 70% confidence, Photo Lookup will wait for your confirmation instead of auto-running.
+            </div>
+          )}
+          {ocrCandidates.length > 0 && (
+            <div className="space-y-2">
+              <div className="font-terminal text-xs text-zinc-400">Top guesses — tap to search, or just type the title above:</div>
+              <div className="flex flex-wrap gap-2">
+                {ocrCandidates.map((candidate) => (
+                  <button
+                    key={`${candidate.title}:${candidate.platform}`}
+                    onClick={() => {
+                      setQuery(candidate.title);
+                      setPlatform(candidate.platform || 'all');
+                      void doSearch(candidate.title, candidate.platform || 'all');
+                    }}
+                    className="px-3 py-2 font-terminal text-xs border border-cyan-800 text-cyan-300 hover:bg-cyan-950/30 transition-colors"
+                  >
+                    {candidate.title} · {candidate.platform} · {Math.round(candidate.confidence * 100)}%
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Ask Price */}
@@ -796,6 +977,11 @@ export default function FieldPage() {
       {results.length > 0 && results.map((r, i) => {
         const looseNum = r.loose ? parseFloat(r.loose) : null;
         const decision = hasAsk ? getDecision(askNum, looseNum, r.owned, r.watchlisted) : null;
+        const refreshKey = `${r.title}::${r.platform}`;
+        const isRefreshingPrice = refreshingPrices.includes(refreshKey);
+        const matchingWishlistItems = wishlistItems.filter((item) => normalizeFieldKey(item.title, item.platform) === normalizeFieldKey(r.title, r.platform));
+        const selectedWishlistItem = matchingWishlistItems.find((item) => (item.playerId || '') === wishlistPlayerId) || null;
+        const otherWishlistItems = matchingWishlistItems.filter((item) => (item.playerId || '') !== wishlistPlayerId);
 
         return (
           <div key={i} className={`bg-zinc-950 border-2 mb-4 p-5 space-y-4 ${
@@ -807,7 +993,7 @@ export default function FieldPage() {
             {/* Title + platform */}
             <div>
               <h2 className="text-green-300 font-terminal text-2xl uppercase leading-tight">{r.title}</h2>
-              <p className="text-zinc-500 font-terminal text-sm">{r.platform} · {r.source === "inventory" ? "📦 In your vault" : "🌐 PriceCharting"}</p>
+              <p className="text-zinc-500 font-terminal text-sm">{r.platform} · {r.owned > 0 ? `📦 Owned${r.owned > 1 ? ` (${r.owned} copies)` : ''}` : '⭕ Not owned'}</p>
             </div>
 
             {/* Dupe alert + what you paid */}
@@ -850,20 +1036,7 @@ export default function FieldPage() {
             {/* Variant pricing alert */}
             {r.hasVariants && (
               <div className="border border-amber-700 bg-amber-950/20 px-4 py-2 font-terminal text-sm text-amber-300">
-                <div className="text-base font-bold mb-1">⚠ Variant-sensitive pricing</div>
-                <p className="text-xs text-amber-500 mb-2">This title has editions (e.g. Not For Resale, First Print, Player's Choice) that command different prices. Verify which version you're looking at before buying or selling.</p>
-                {r.variantMatches && r.variantMatches.length > 0 && (
-                  <div className="space-y-1 mt-1">
-                    {r.variantMatches.map((v, vi) => (
-                      <div key={vi} className="text-xs text-amber-400 font-terminal border border-amber-900 px-2 py-1">
-                        <span className="font-bold">{v.title}</span>
-                        {v.loose && ` · Loose $${v.loose}`}
-                        {v.cib && ` · CIB $${v.cib}`}
-                        {v.new && ` · New $${v.new}`}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="text-base font-bold">⚠ Variant-sensitive pricing</div>
               </div>
             )}
 
@@ -886,143 +1059,153 @@ export default function FieldPage() {
               </div>
             )}
 
-            {r.source === "pricecharting" && (
-              <div className="space-y-3">
-                {!enabledPlatforms.includes(r.platform) && (
-                  <div className="border border-purple-800 bg-purple-950/20 px-4 py-2 font-terminal text-sm text-purple-300">
-                    🕹️ {r.platform} isn’t currently enabled. Field Mode will enable it automatically when you save, or you can do it now.
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => refreshResultPrice(r.title, r.platform === 'Unknown' ? '' : r.platform)}
+                  disabled={isRefreshingPrice}
+                  className="px-3 py-2 font-terminal text-sm border border-blue-700 text-blue-300 hover:bg-blue-950/30 disabled:opacity-50 transition-colors"
+                >
+                  {isRefreshingPrice ? '… Refreshing' : '💰 Fetch Price'}
+                </button>
+              </div>
+
+              {r.source === "pricecharting" && (
+                <>
+                  {!enabledPlatforms.includes(r.platform) && (
+                    <div className="border border-purple-800 bg-purple-950/20 px-4 py-2 font-terminal text-sm text-purple-300">
+                      🕹️ {r.platform} isn’t currently enabled. Field Mode will enable it automatically when you save, or you can do it now.
+                      <button
+                        onClick={async () => {
+                          const key = `enable:${r.platform}`;
+                          setSavingKey(key);
+                          setSaveStatus('');
+                          try {
+                            await ensurePlatformEnabled(r.platform);
+                            setSaveStatus(`🕹️ Enabled ${r.platform} for RetroVault.`);
+                          } catch (e: any) {
+                            setSaveStatus(`Error: ${e.message || 'Could not enable platform'}`);
+                          } finally {
+                            setSavingKey('');
+                          }
+                        }}
+                        disabled={savingKey === `enable:${r.platform}`}
+                        className="ml-3 px-3 py-1 font-terminal text-xs border border-purple-700 text-purple-300 hover:bg-purple-950/40 disabled:opacity-50 transition-colors"
+                      >
+                        {savingKey === `enable:${r.platform}` ? '...' : `Enable ${r.platform}`}
+                      </button>
+                    </div>
+                  )}
+
+                  {findInventoryMatch(inventory, r.title, r.platform) && (
+                    <div className="border border-blue-800 bg-blue-950/20 px-4 py-2 font-terminal text-sm text-blue-300">
+                      📦 You already have this game record. Bought It will add a new copy to it instead of creating a duplicate.
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={async () => {
-                        const key = `enable:${r.platform}`;
-                        setSavingKey(key);
-                        setSaveStatus('');
-                        try {
-                          await ensurePlatformEnabled(r.platform);
-                          setSaveStatus(`🕹️ Enabled ${r.platform} for RetroVault.`);
-                        } catch (e: any) {
-                          setSaveStatus(`Error: ${e.message || 'Could not enable platform'}`);
-                        } finally {
-                          setSavingKey('');
-                        }
-                      }}
-                      disabled={savingKey === `enable:${r.platform}`}
-                      className="ml-3 px-3 py-1 font-terminal text-xs border border-purple-700 text-purple-300 hover:bg-purple-950/40 disabled:opacity-50 transition-colors"
+                      onClick={() => saveToWatchlist(r)}
+                      disabled={savingKey === `watchlist:${r.title}:${r.platform}`}
+                      className="px-3 py-2 font-terminal text-sm border border-yellow-700 text-yellow-300 hover:bg-yellow-950/30 disabled:opacity-50 transition-colors"
                     >
-                      {savingKey === `enable:${r.platform}` ? '...' : `Enable ${r.platform}`}
+                      {savingKey === `watchlist:${r.title}:${r.platform}` ? '...' : '⭐ Add to Watchlist'}
+                    </button>
+                    <button
+                      onClick={() => saveToWishlist(r)}
+                      disabled={savingKey === `wishlist:${r.title}:${r.platform}` || !!selectedWishlistItem}
+                      className="px-3 py-2 font-terminal text-sm border border-pink-700 text-pink-300 hover:bg-pink-950/30 disabled:opacity-50 transition-colors"
+                    >
+                      {savingKey === `wishlist:${r.title}:${r.platform}`
+                        ? '...'
+                        : selectedWishlistItem
+                          ? `🎁 On ${selectedWishlistItem.player?.name || 'selected'}'s Wishlist`
+                          : otherWishlistItems.length > 0
+                            ? `🎁 Add to ${(players.find((p) => p.id === wishlistPlayerId)?.name || 'selected')}'s Wishlist`
+                            : '🎁 Add to Wishlist'}
+                    </button>
+                    <button
+                      onClick={() => saveToInventory(r, {
+                        condition: fieldCondition,
+                        priceAcquired: askPrice || '0.00',
+                        quantity: Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1),
+                      })}
+                      disabled={savingKey === `purchase:${r.title}:${r.platform}`}
+                      className="px-3 py-2 font-terminal text-sm border border-emerald-700 text-emerald-300 hover:bg-emerald-950/30 disabled:opacity-50 transition-colors"
+                    >
+                      {savingKey === `purchase:${r.title}:${r.platform}` ? '...' : '🛒 Bought It'}
                     </button>
                   </div>
-                )}
 
-                {findInventoryMatch(inventory, r.title, r.platform) && (
-                  <div className="border border-blue-800 bg-blue-950/20 px-4 py-2 font-terminal text-sm text-blue-300">
-                    📦 You already have this game record. Saving here will update that entry, and Bought It will add a new copy to it.
-                  </div>
-                )}
-
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => doSearch(r.title, r.platform === 'Unknown' ? '' : r.platform)}
-                    disabled={searching}
-                    className="px-3 py-2 font-terminal text-sm border border-blue-700 text-blue-300 hover:bg-blue-950/30 disabled:opacity-50 transition-colors"
-                  >
-                    {searching ? '…' : '💰 Fetch Price'}
-                  </button>
-                  <button
-                    onClick={() => saveToInventory(r)}
-                    disabled={savingKey === `inventory:${r.title}:${r.platform}`}
-                    className="px-3 py-2 font-terminal text-sm border border-cyan-700 text-cyan-300 hover:bg-cyan-950/30 disabled:opacity-50 transition-colors"
-                  >
-                    {savingKey === `inventory:${r.title}:${r.platform}` ? '...' : '📦 Add to Vault'}
-                  </button>
-                  <button
-                    onClick={() => saveToWatchlist(r)}
-                    disabled={savingKey === `watchlist:${r.title}:${r.platform}`}
-                    className="px-3 py-2 font-terminal text-sm border border-yellow-700 text-yellow-300 hover:bg-yellow-950/30 disabled:opacity-50 transition-colors"
-                  >
-                    {savingKey === `watchlist:${r.title}:${r.platform}` ? '...' : '⭐ Add to Watchlist'}
-                  </button>
-                  <button
-                    onClick={() => saveToWishlist(r)}
-                    disabled={savingKey === `wishlist:${r.title}:${r.platform}`}
-                    className="px-3 py-2 font-terminal text-sm border border-pink-700 text-pink-300 hover:bg-pink-950/30 disabled:opacity-50 transition-colors"
-                  >
-                    {savingKey === `wishlist:${r.title}:${r.platform}` ? '...' : '🎁 Add to Wishlist'}
-                  </button>
-                  <button
-                    onClick={() => saveToInventory(r, {
-                      condition: fieldCondition,
-                      priceAcquired: askPrice || '0.00',
-                      quantity: Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1),
-                    })}
-                    disabled={savingKey === `purchase:${r.title}:${r.platform}`}
-                    className="px-3 py-2 font-terminal text-sm border border-emerald-700 text-emerald-300 hover:bg-emerald-950/30 disabled:opacity-50 transition-colors"
-                  >
-                    {savingKey === `purchase:${r.title}:${r.platform}` ? '...' : `🛒 Bought ${Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1)}${Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1) > 1 ? ' Copies' : ' It'}`}
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap items-end gap-3">
-                  <label className="font-terminal text-xs text-zinc-500 uppercase tracking-wider">
-                    Qty
-                    <input
-                      type="number"
-                      min="1"
-                      inputMode="numeric"
-                      value={purchaseQuantity}
-                      onChange={(e) => setPurchaseQuantity(e.target.value.replace(/[^0-9]/g, '') || '1')}
-                      className="mt-1 w-20 bg-black border border-zinc-700 px-2 py-2 text-sm text-green-300 focus:border-green-500 focus:outline-none"
-                    />
-                  </label>
-                  <div className="font-terminal text-xs text-zinc-600">
-                    Multi-copy buys will add one inventory copy and one acquisition log per unit.
-                  </div>
-                </div>
-
-                {r.wishlistNotes && (
-                  <div className="font-terminal text-xs text-zinc-500">
-                    🔎 {r.wishlistNotes}
-                  </div>
-                )}
-
-                {(() => {
-                  const presets = getWatchlistTargetPresets(askPrice, r.loose);
-                  return (
-                    <div className="flex flex-wrap gap-2">
-                      {presets.askPrice && (
-                        <button
-                          onClick={() => setAskPrice(presets.askPrice || '')}
-                          className="px-2 py-1 font-terminal text-xs border border-zinc-700 text-zinc-400 hover:text-green-300 hover:border-green-700 transition-colors"
-                        >
-                          Use Ask ${presets.askPrice}
-                        </button>
-                      )}
-                      {presets.belowAsk10 && (
-                        <button
-                          onClick={() => saveToWatchlist({ ...r, loose: presets.belowAsk10 })}
-                          disabled={savingKey === `watchlist:${r.title}:${r.platform}`}
-                          className="px-2 py-1 font-terminal text-xs border border-yellow-900 text-yellow-400 hover:bg-yellow-950/30 transition-colors"
-                        >
-                          Watch at 10% below ask (${presets.belowAsk10})
-                        </button>
-                      )}
-                      {presets.marketMinus20 && (
-                        <button
-                          onClick={() => saveToWatchlist({ ...r, loose: presets.marketMinus20 })}
-                          disabled={savingKey === `watchlist:${r.title}:${r.platform}`}
-                          className="px-2 py-1 font-terminal text-xs border border-yellow-900 text-yellow-400 hover:bg-yellow-950/30 transition-colors"
-                        >
-                          Watch at 20% below market (${presets.marketMinus20})
-                        </button>
-                      )}
+                  <div className="flex flex-wrap items-end gap-3">
+                    <label className="font-terminal text-xs text-zinc-500 uppercase tracking-wider">
+                      Qty
+                      <input
+                        type="number"
+                        min="1"
+                        inputMode="numeric"
+                        value={purchaseQuantity}
+                        onChange={(e) => setPurchaseQuantity(e.target.value.replace(/[^0-9]/g, '') || '1')}
+                        className="mt-1 w-20 bg-black border border-zinc-700 px-2 py-2 text-sm text-green-300 focus:border-green-500 focus:outline-none"
+                      />
+                    </label>
+                    <div className="font-terminal text-xs text-zinc-600">
+                      Multi-copy buys will add one inventory copy and one acquisition log per unit.
                     </div>
-                  );
-                })()}
-
-                {askPrice && (
-                  <div className="font-terminal text-xs text-zinc-500">
-                    Bought It will save <span className="text-yellow-400">{Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1)}</span> {Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1) === 1 ? 'copy' : 'copies'} at <span className="text-yellow-400">${parseFloat(askPrice || '0').toFixed(2)}</span> each with condition <span className="text-blue-400">{fieldCondition}</span>.
                   </div>
-                )}
+
+                  {r.wishlistNotes && (
+                    <div className="font-terminal text-xs text-zinc-500">
+                      🔎 {r.wishlistNotes}
+                    </div>
+                  )}
+
+                  {(() => {
+                    const presets = getWatchlistTargetPresets(askPrice, r.loose);
+                    return (
+                      <div className="flex flex-wrap gap-2">
+                        {presets.askPrice && (
+                          <button
+                            onClick={() => setAskPrice(presets.askPrice || '')}
+                            className="px-2 py-1 font-terminal text-xs border border-zinc-700 text-zinc-400 hover:text-green-300 hover:border-green-700 transition-colors"
+                          >
+                            Use Ask ${presets.askPrice}
+                          </button>
+                        )}
+                        {presets.belowAsk10 && (
+                          <button
+                            onClick={() => saveToWatchlist({ ...r, loose: presets.belowAsk10 })}
+                            disabled={savingKey === `watchlist:${r.title}:${r.platform}`}
+                            className="px-2 py-1 font-terminal text-xs border border-yellow-900 text-yellow-400 hover:bg-yellow-950/30 transition-colors"
+                          >
+                            Watch at 10% below ask (${presets.belowAsk10})
+                          </button>
+                        )}
+                        {presets.marketMinus20 && (
+                          <button
+                            onClick={() => saveToWatchlist({ ...r, loose: presets.marketMinus20 })}
+                            disabled={savingKey === `watchlist:${r.title}:${r.platform}`}
+                            className="px-2 py-1 font-terminal text-xs border border-yellow-900 text-yellow-400 hover:bg-yellow-950/30 transition-colors"
+                          >
+                            Watch at 20% below market (${presets.marketMinus20})
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {askPrice && (
+                    <div className="font-terminal text-xs text-zinc-500">
+                      Bought It will save <span className="text-yellow-400">{Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1)}</span> {Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1) === 1 ? 'copy' : 'copies'} at <span className="text-yellow-400">${parseFloat(askPrice || '0').toFixed(2)}</span> each with condition <span className="text-blue-400">{fieldCondition}</span>.
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {isRefreshingPrice && (
+              <div className="text-cyan-400 font-terminal text-xs">
+                Refreshing price in the background...
               </div>
             )}
 
@@ -1034,11 +1217,29 @@ export default function FieldPage() {
                 { label: "NEW", val: r.newPrice },
               ].map(({ label, val }) => (
                 <div key={label} className="bg-zinc-900 border border-zinc-800 p-3 text-center">
-                  <div className="text-zinc-600 font-terminal text-xs mb-1">{label}</div>
+                  <div className="text-zinc-600 font-terminal text-xs mb-1">{label}{r.hasVariants ? ' *' : ''}</div>
                   <div className="text-green-300 font-terminal text-xl">{val ? `$${parseFloat(val).toFixed(2)}` : "—"}</div>
                 </div>
               ))}
             </div>
+
+            {r.hasVariants && (
+              <div className="border border-amber-700 bg-amber-950/20 px-4 py-2 font-terminal text-sm text-amber-300">
+                <p className="text-xs text-amber-500 mb-2">* Variants affect price. Check the detailed edition rows below if the box/manual/art looks different.</p>
+                {r.variantMatches && r.variantMatches.length > 0 && (
+                  <div className="space-y-1 mt-1">
+                    {r.variantMatches.map((v, vi) => (
+                      <div key={vi} className="text-xs text-amber-400 font-terminal border border-amber-900 px-2 py-1">
+                        <span className="font-bold">{v.title}</span>
+                        {v.loose && ` · Loose $${v.loose}`}
+                        {v.cib && ` · CIB $${v.cib}`}
+                        {v.new && ` · New $${v.new}`}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Decision */}
             {decision && (

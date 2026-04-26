@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   loadConventionSessions,
-  saveConventionSessions,
+  mutateConventionSessions,
   type ConventionSession as Session,
   type ConventionPurchase as Purchase,
 } from "@/lib/conventionSession";
@@ -50,8 +50,8 @@ export default function ConventionPage() {
       id: Date.now().toString(), name: newName, budget: parseFloat(newBudget) || 0,
       purchases: [], createdAt: new Date().toISOString(), isActive: true, endedAt: null,
     };
-    const updated = [...sessions.map((existing) => ({ ...existing, isActive: false })), session];
-    setSessions(updated); saveConventionSessions(updated);
+    const updated = mutateConventionSessions((current) => [...current.map((existing) => ({ ...existing, isActive: false })), session]);
+    setSessions(updated);
     setActiveId(session.id); setShowNew(false); setNewName(""); setNewBudget("");
   };
 
@@ -62,31 +62,31 @@ export default function ConventionPage() {
       price: parseFloat(pForm.price), condition: pForm.condition,
       notes: pForm.notes, at: pForm.at, timestamp: new Date().toISOString(),
     };
-    const updated = sessions.map(s =>
+    const updated = mutateConventionSessions((current) => current.map(s =>
       s.id === active.id ? { ...s, purchases: [...s.purchases, purchase] } : s
-    );
-    setSessions(updated); saveConventionSessions(updated);
+    ));
+    setSessions(updated);
     setShowPurchase(false); setPForm({ title: "", platform: "", price: "", condition: "Loose", notes: "", at: "" });
   };
 
   const removePurchase = (purchaseId: string) => {
     if (!active) return;
-    const updated = sessions.map(s =>
+    const updated = mutateConventionSessions((current) => current.map(s =>
       s.id === active.id ? { ...s, purchases: s.purchases.filter(p => p.id !== purchaseId) } : s
-    );
-    setSessions(updated); saveConventionSessions(updated);
+    ));
+    setSessions(updated);
   };
 
   const deleteSession = (id: string) => {
-    const updated = sessions.filter(s => s.id !== id);
-    setSessions(updated); saveConventionSessions(updated);
+    const updated = mutateConventionSessions((current) => current.filter(s => s.id !== id));
+    setSessions(updated);
     setActiveId(updated.length > 0 ? updated[updated.length - 1].id : null);
   };
 
   const pctColor = pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-yellow-500" : "bg-green-500";
 
   const setSessionActiveState = (id: string, isActive: boolean) => {
-    const updated = sessions.map((session) => {
+    const updated = mutateConventionSessions((current) => current.map((session) => {
       if (session.id === id) {
         return {
           ...session,
@@ -95,9 +95,8 @@ export default function ConventionPage() {
         };
       }
       return isActive ? { ...session, isActive: false } : session;
-    });
+    }));
     setSessions(updated);
-    saveConventionSessions(updated);
   };
 
   return (

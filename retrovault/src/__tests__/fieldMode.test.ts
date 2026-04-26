@@ -40,13 +40,14 @@ describe('Field Mode helpers', () => {
     });
 
     expect(entry).toMatchObject({
-      title: 'Wii Sports',
+      gameId: null,
+      gameTitle: 'Wii Sports',
       platform: 'Wii',
       source: 'Field Mode',
       cost: '8.00',
       notes: 'Logged from Field Mode',
     });
-    expect(entry.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(entry.purchaseDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
   it('builds watchlist presets from ask and market prices', () => {

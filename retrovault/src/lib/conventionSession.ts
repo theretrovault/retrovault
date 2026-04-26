@@ -35,6 +35,16 @@ export function loadConventionSessions(): ConventionSession[] {
 export function saveConventionSessions(sessions: ConventionSession[]) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(CONVENTION_STORAGE_KEY, JSON.stringify(sessions));
+  window.dispatchEvent(new CustomEvent('retrovault:convention-sessions-updated'));
+}
+
+export function mutateConventionSessions(
+  updater: (sessions: ConventionSession[]) => ConventionSession[]
+): ConventionSession[] {
+  const current = loadConventionSessions();
+  const updated = updater(current);
+  saveConventionSessions(updated);
+  return updated;
 }
 
 export function getActiveConventionSession(sessions = loadConventionSessions()): ConventionSession | null {
@@ -53,13 +63,10 @@ export function addPurchaseToActiveConventionSession(purchase: Omit<ConventionPu
     timestamp: new Date().toISOString(),
   };
 
-  const updated = sessions.map((session) =>
+  mutateConventionSessions((currentSessions) => currentSessions.map((session) =>
     session.id === active.id
       ? { ...session, purchases: [...(session.purchases || []), nextPurchase] }
       : { ...session, isActive: false }
-  );
-
-  saveConventionSessions(updated);
-  window.dispatchEvent(new CustomEvent('retrovault:convention-sessions-updated'));
+  ));
   return true;
 }

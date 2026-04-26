@@ -39,13 +39,15 @@ export function buildAcquisitionEntry(input: {
   priceAcquired: string;
   notes?: string;
   source?: string;
+  gameId?: string;
 }) {
   return {
-    title: input.title,
+    gameId: input.gameId || null,
+    gameTitle: input.title,
     platform: input.platform,
     source: input.source || 'Field Mode',
     cost: input.priceAcquired || '0.00',
-    date: new Date().toISOString().split('T')[0],
+    purchaseDate: new Date().toISOString().split('T')[0],
     notes: input.notes || 'Logged from Field Mode',
   };
 }
