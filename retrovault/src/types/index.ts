@@ -176,6 +176,7 @@ export type AppConfig = {
   plex: { url: string; token: string };
   fetchScheduleHour: number;
   priceDataSource: string;
+  autoSatisfyWishlistOnVaultAdd?: boolean;
   githubRepo: string;
   scrapers: { craigslistCity: string };
   features: Features;

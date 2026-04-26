@@ -105,6 +105,7 @@ export default function InventoryPage() {
   const [filterAction, setFilterAction] = useState<string>("owned");
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+  const [vaultWishlistUndo, setVaultWishlistUndo] = useState<Record<string, any>>({});
 
   // Modal state
   const [priceDetailItem, setPriceDetailItem] = useState<GameItem | null>(null);
@@ -567,6 +568,25 @@ export default function InventoryPage() {
     fetchInventory();
   };
 
+  const handleUndoVaultWishlist = async (gameId: string) => {
+    const entry = vaultWishlistUndo[gameId];
+    if (!entry) return;
+    try {
+      await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry),
+      });
+      setVaultWishlistUndo((prev) => {
+        const next = { ...prev };
+        delete next[gameId];
+        return next;
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleAddAsset = async (data: AssetFormData) => {
     const newItem = {
       id: Math.random().toString(36).slice(2, 10),
@@ -592,6 +612,34 @@ export default function InventoryPage() {
       body: JSON.stringify(newItem),
     }).then((r) => r.json());
 
+    let removedWishlistEntry: any = null;
+    const config = await fetch("/api/config").then((r) => r.json()).catch(() => ({}));
+    const autoSatisfyWishlistOnVaultAdd = config?.autoSatisfyWishlistOnVaultAdd !== false;
+    if (autoSatisfyWishlistOnVaultAdd) {
+      const wishlistPayload = await fetch('/api/wishlist').then((r) => r.json()).catch(() => ({}));
+      const match = Array.isArray(wishlistPayload?.items)
+        ? wishlistPayload.items.find((item: any) =>
+            String(item?.title || '').trim().toLowerCase() === data.title.trim().toLowerCase() &&
+            String(item?.platform || '').trim().toLowerCase() === data.platform.trim().toLowerCase()
+          )
+        : null;
+      if (match?.id) {
+        removedWishlistEntry = {
+          title: match.title,
+          platform: match.platform,
+          playerId: match.playerId || null,
+          priority: match.priority ?? 2,
+          notes: match.notes ?? null,
+          marketLoose: match.marketLoose ?? null,
+          marketCib: match.marketCib ?? null,
+          marketNew: match.marketNew ?? null,
+          marketGraded: match.marketGraded ?? null,
+          lastFetched: match.lastFetched ?? null,
+        };
+        await fetch(`/api/wishlist/${match.id}`, { method: 'DELETE' }).catch(() => {});
+      }
+    }
+
     addPurchaseToActiveConventionSession({
       title: data.title,
       platform: data.platform,
@@ -604,7 +652,6 @@ export default function InventoryPage() {
 
     // Auto-enable platform if it's not currently enabled in config.
     if (data.platform) {
-      const config = await fetch("/api/config").then((r) => r.json()).catch(() => ({}));
       const enabledPlatforms = Array.isArray(config?.platforms) ? config.platforms : [];
       if (!enabledPlatforms.includes(data.platform)) {
         const syncRes = await fetch("/api/platforms/sync", {
@@ -624,6 +671,9 @@ export default function InventoryPage() {
     }
 
     mergeItemIntoInventory(created);
+    if (removedWishlistEntry?.title) {
+      setVaultWishlistUndo((prev) => ({ ...prev, [created.id]: removedWishlistEntry }));
+    }
     setSearch("");
     setPlatformFilter(data.platform || "all");
     setFilterAction("owned");
@@ -812,6 +862,14 @@ export default function InventoryPage() {
                       {item.hasVariants && (
                         <span className="inline-block ml-1 text-xs font-terminal border border-amber-700 bg-amber-950/40 text-amber-300 px-1.5 py-0.5">⚠</span>
                       )}
+                      {vaultWishlistUndo[item.id] && (
+                        <button
+                          onClick={() => handleUndoVaultWishlist(item.id)}
+                          className="mt-1 block text-xs font-terminal text-pink-300 border border-pink-800 px-2 py-1 hover:bg-pink-950/30"
+                        >
+                          ↩ PUT BACK ON WISHLIST
+                        </button>
+                      )}
                     </td>
                     <td className="p-3 text-center">
                       {qty === 0 ? <span className="text-zinc-600">-</span> : (
@@ -987,6 +1045,14 @@ export default function InventoryPage() {
             return (
               <div key={item.id} className="bg-black border-2 border-green-800 rounded-sm p-4 flex flex-col shadow-[0_0_10px_rgba(34,197,94,0.2)]">
                 <button onClick={() => setPriceDetailItem(item)} className="text-xl text-green-300 font-bold mb-1 truncate hover:text-green-100 hover:underline text-left w-full" title={item.title}>{item.title}</button>
+                {vaultWishlistUndo[item.id] && (
+                  <button
+                    onClick={() => handleUndoVaultWishlist(item.id)}
+                    className="mb-2 text-xs font-terminal text-pink-300 border border-pink-800 px-2 py-1 hover:bg-pink-950/30 self-start"
+                  >
+                    ↩ PUT BACK ON WISHLIST
+                  </button>
+                )}
                 <p className="text-green-500 text-sm mb-4">{item.platform}</p>
                 <div className="flex justify-between font-terminal text-lg mb-2">
                   <span className="text-zinc-400">QTY:</span>

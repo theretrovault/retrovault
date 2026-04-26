@@ -22,7 +22,8 @@ const DEFAULTS = {
   auth: { enabled: false, passwordHash: "" },
   plex: { url: "https://YYY.YYY.YYY.YYY:PPPPP", token: "" },
   fetchScheduleHour: 0,
-  priceDataSource: "pricecharting"
+  priceDataSource: "pricecharting",
+  autoSatisfyWishlistOnVaultAdd: true
 };
 
 function getConfig() {
@@ -52,6 +53,7 @@ export async function GET() {
     standaloneMode: config.standaloneMode,
     fetchScheduleHour: config.fetchScheduleHour,
     priceDataSource: config.priceDataSource,
+    autoSatisfyWishlistOnVaultAdd: config.autoSatisfyWishlistOnVaultAdd !== false,
     features: config.features,
     platforms: config.platforms,
     region: config.region,

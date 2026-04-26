@@ -19,11 +19,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { CONSOLES } from "@/data/consoles";
 
-const SORTED_PLATFORMS = [...CONSOLES]
-  .map(c => ({ name: c.shortName, year: c.releaseYear }))
-  .sort((a, b) => a.name.localeCompare(b.name));
+const STATIC_PLATFORM_NAMES = [...CONSOLES]
+  .map(c => c.shortName)
+  .sort((a, b) => a.localeCompare(b));
 
 const RECENT_KEY = "recentPlatforms";
+
+function normalizePlatformName(value: string) {
+  return value.trim();
+}
 
 function getRecentPlatforms(): string[] {
   if (typeof window === "undefined") return [];
@@ -86,6 +90,7 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const inventoryRef = useRef<{ title: string; platform: string }[]>([]);
+  const availablePlatformsRef = useRef<string[]>(STATIC_PLATFORM_NAMES);
   const recentRef = useRef<string[]>(getRecentPlatforms());
   const titleInputRef = useRef<HTMLInputElement>(null);
   const titleDropdownRef = useRef<HTMLDivElement>(null);
@@ -103,6 +108,21 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
       .then((d: any[]) => {
         inventoryRef.current = d.map(i => ({ title: i.title, platform: i.platform }));
       });
+
+    fetch('/api/config')
+      .then(r => r.json())
+      .then((cfg) => {
+        const enabled = ((Array.isArray(cfg?.platforms) ? cfg.platforms : []) as string[])
+          .map(normalizePlatformName)
+          .filter((name: string) => name && name.toLowerCase() !== 'all');
+        const staticNames = STATIC_PLATFORM_NAMES.map(normalizePlatformName);
+        const uniqueEnabled = [...new Set(enabled)];
+        const uniqueStatic = [...new Set(staticNames)].filter((name: string) => !uniqueEnabled.includes(name));
+        availablePlatformsRef.current = [...uniqueEnabled, ...uniqueStatic];
+      })
+      .catch(() => {
+        availablePlatformsRef.current = STATIC_PLATFORM_NAMES;
+      });
   }, []);
 
   const getTitleSuggestions = (query: string, plat: string): string[] => {
@@ -117,9 +137,9 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
 
   const getPlatformSuggestions = (query: string): string[] => {
     const normalized = query.trim().toLowerCase();
-    const alphabetical = SORTED_PLATFORMS.map((p) => p.name);
-    const recent = recentRef.current.filter((r) => alphabetical.includes(r));
-    const combined = [...recent, ...alphabetical.filter((name) => !recent.includes(name))];
+    const available = availablePlatformsRef.current;
+    const recent = recentRef.current.filter((r) => available.includes(r));
+    const combined = [...recent, ...available.filter((name) => !recent.includes(name))];
     if (!normalized) return combined.slice(0, 12);
     return combined.filter((name) => name.toLowerCase().includes(normalized)).slice(0, 12);
   };
@@ -272,7 +292,7 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
               </div>
               {recentRef.current.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {recentRef.current.filter(r => SORTED_PLATFORMS.some(p => p.name === r)).map(r => (
+                  {recentRef.current.filter(r => availablePlatformsRef.current.includes(r)).map(r => (
                     <button
                       key={r}
                       type="button"

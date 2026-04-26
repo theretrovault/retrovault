@@ -25,6 +25,7 @@ type Config = {
   currency: string; dateFormat: string; region: string; publicUrl: string; standaloneMode: boolean;
   auth: { enabled: boolean; passwordHash: string };
   fetchScheduleHour: number; priceDataSource: string;
+  autoSatisfyWishlistOnVaultAdd?: boolean;
   githubRepo: string;
   features: Features;
   contactEmail: string; contactPhone: string; shareContact: boolean;
@@ -603,6 +604,20 @@ export default function SettingsPage() {
             className="ml-4 shrink-0 px-3 py-1.5 font-terminal text-xs border border-green-800 text-green-600 hover:text-green-400 hover:border-green-600 transition-colors whitespace-nowrap"
           >
             ↺ Restart Setup Wizard
+          </button>
+        </div>
+        <div className="border-2 border-pink-800 bg-pink-950/10 p-4 mb-4">
+          <button
+            onClick={() => setConfig({ ...config, autoSatisfyWishlistOnVaultAdd: config.autoSatisfyWishlistOnVaultAdd === false ? true : false })}
+            className="w-full text-left"
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-terminal text-lg">💝 Auto-satisfy wishlist when adding to Vault</span>
+              <span className={`font-terminal text-xs px-2 py-0.5 border ${config.autoSatisfyWishlistOnVaultAdd === false ? 'text-zinc-600 border-zinc-700' : 'text-green-400 border-green-700'}`}>
+                {config.autoSatisfyWishlistOnVaultAdd === false ? 'OFF' : 'ON'}
+              </span>
+            </div>
+            <p className="text-zinc-400 font-terminal text-sm">When a Vault add matches a wishlist item, remove that wishlist entry automatically and show a session-only “put back on wishlist” undo button on the new row.</p>
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
