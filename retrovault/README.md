@@ -28,7 +28,7 @@ RetroVault is a self-hosted retro game collection manager built for people who t
 Every game you own, across every platform, with condition tracking, purchase history, and real market prices pulled automatically from PriceCharting. Your total collection value, updated daily. Duplicate alerts so you stop buying games you already have.
 
 **Hunt smarter.**  
-Field Mode is your in-the-wild price checker — open it at a garage sale, type a title, and instantly see the market value, whether it's on your want list, and whether you should buy it or walk away. Dupe alert included. No fumbling with browser tabs.
+Field Mode is your in-the-wild price checker — open it at a garage sale, type a title, and instantly see the market value, whether it's on your want list, and whether you should buy it or walk away. Dupe alert included. No fumbling with browser tabs. Field Mode now supports player-aware wishlist adds, async background price refresh, and an experimental Photo Lookup flow using Google Vision OCR.
 
 **Know when to sell.**  
 Hot List surfaces your best flip opportunities right now, ranked by ROI × market trend × copy count. Flip Calculator shows you exactly what you'll net after eBay's 13.25% cut and shipping. Because "selling for $80" and "making $80" are very different numbers.
@@ -45,9 +45,9 @@ RetroVault is self-hosted. Your collection data lives in plain files on your own
 
 | Category | What's included |
 |---|---|
-| 🕹️ **Collection** | Vault inventory · Showcase gallery · Platform completion tiers · Milestones · Achievement Codex (100+) · Decade timeline · Value history graph |
+| 🕹️ **Collection** | Vault inventory · Showcase gallery · Platform completion tiers · Milestones · Achievement Codex (100+) · Decade timeline · Value history graph · wishlist-aware Vault adds with session undo |
 | 💰 **Business** | P&L ledger · Hot List · Flip Calculator · Target Radar watchlist · Sourcing analytics · Platform market report · Seasonal buy/sell calendar · eBay listing checklist |
-| 🔦 **Field Tools** | Field Mode · Negotiation Helper · Lot Calculator · Convention Tracker · Condition Grader · Insurance valuation report |
+| 🔦 **Field Tools** | Field Mode · Photo Lookup (Google Vision OCR, experimental) · Negotiation Helper · Lot Calculator · Convention Tracker · Condition Grader · Insurance valuation report |
 | 🎮 **Personal** | Play Log · Holy Grail Tracker · Collection Randomizer · Duplicate Detector |
 | 👥 **Social** | Players & VIBE system · Tags & @mentions · Friends Mode |
 | 🌐 **Discovery** | Gaming Events calendar · Whatnot seller tracker · Local Deals (Craigslist + Reddit r/gameswap) · Field Guide |

@@ -8,6 +8,29 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.1.43",
+    date: "2026-04-26",
+    title: "Vault flow polish, OCR comeback attempt, and regression coverage",
+    type: "improvement",
+    changes: [
+      { category: "Vault & Wishlist", items: [
+        "Vault add flow now honors newly enabled platforms from Settings instead of hiding them behind the legacy static console list",
+        "Vault adds can auto-satisfy matching wishlist entries and show a session-only 'Put Back on Wishlist' undo button",
+        "Settings now expose an Auto-satisfy wishlist when adding to Vault toggle",
+      ]},
+      { category: "Field Mode", items: [
+        "Photo Lookup now has separate Take Photo and Choose Photo actions",
+        "Experimental Google Vision OCR path is wired into /api/field/identify with the same 70% auto-run confidence rule",
+        "Field Mode regression coverage now asserts the updated Photo Lookup affordances",
+      ]},
+      { category: "Testing & Docs", items: [
+        "Added addAssetModalPlatforms.test.ts for runtime platform picker coverage",
+        "Added vaultWishlistFlow.test.ts for auto-satisfy + undo coverage",
+        "Updated README, installation guide, and developer guide to reflect the new Vault and Photo Lookup behavior",
+      ]},
+    ],
+  },
+  {
     version: "2.1.4",
     date: "2026-04-13",
     title: "Tests, docs, and API docs updated",

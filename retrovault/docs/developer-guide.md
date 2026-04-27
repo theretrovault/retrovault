@@ -258,10 +258,11 @@ npm run test:watch
 npm run test:coverage
 ```
 
-All 137+ tests live in `src/__tests__/`. When adding a feature:
+RetroVault now has 140+ tests in `src/__tests__/` and the count keeps moving as focused regressions land. When adding a feature:
 1. Write tests in `src/__tests__/yourfeature.test.ts`
 2. Run `npm test` before committing
 3. CI will also run them — PRs don't merge without green tests
+4. If the change is user-visible or operational, update the relevant docs in the same workstream
 
 ### Test categories
 - `pricecharting.test.ts` — price scraper regression tests (PAL filtering, slug generation, etc.)
@@ -270,6 +271,9 @@ All 137+ tests live in `src/__tests__/`. When adding a feature:
 - `csvImport.test.ts` — CSV parser and platform normalization
 - `apiAuth.test.ts` — API key validation, rate limiting
 - `navTooltip.test.ts` — tooltip behavior invariants
+- `addAssetModalPlatforms.test.ts` — Vault add-flow platform sourcing honors enabled runtime platforms
+- `vaultWishlistFlow.test.ts` — Vault add can auto-satisfy wishlist entries, expose session undo, and respect the settings toggle
+- `fieldPage.test.ts` — Field Mode UI regressions including Photo Lookup affordances, low-confidence flow, and mobile search behavior
 
 ---
 

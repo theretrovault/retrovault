@@ -33,6 +33,8 @@ describe('Field page actions', () => {
     expect(source).toContain("On ${selectedWishlistItem.player?.name || 'selected'}'s Wishlist");
     expect(source).toContain("/api/field/identify");
     expect(source).toContain('📸 Photo Lookup');
+    expect(source).toContain("📷 Take Photo");
+    expect(source).toContain("🖼️ Choose Photo");
     expect(source).toContain('capture="environment"');
     expect(source).toContain('data?.autoRun && data?.match?.title');
     expect(source).toContain("contentType.includes('application/json')");

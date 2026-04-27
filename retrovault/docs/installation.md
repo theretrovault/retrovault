@@ -33,7 +33,7 @@ To back up your data:
 docker run --rm -v retrovault_retrovault-data:/data -v $(pwd):/backup alpine tar czf /backup/retrovault-backup.tar.gz /data
 ```
 
-API keys are optional — RetroVault works without them. To enable YouTube videos and in-app bug reporting:
+API keys are optional — RetroVault works without them. To enable YouTube videos, in-app bug reporting, or experimental Photo Lookup OCR:
 
 ```bash
 cp .env.example .env.local
@@ -446,3 +446,22 @@ The public view is protected by **token-based security** — the URL itself is t
 - [GitHub Discussions](https://github.com/theretrovault/retrovault/discussions) — setup help and questions
 - [Open an issue](https://github.com/theretrovault/retrovault/issues) — bug reports
 - In-app: Settings → Bug Reporting → Report an Issue
+
+---
+
+## 📸 Photo Lookup (experimental)
+
+Field Mode includes an experimental Photo Lookup flow that can OCR a game cover and drop the result into the normal search pipeline.
+
+Current behavior:
+- **📷 Take Photo** opens the camera flow on supported phones
+- **🖼️ Choose Photo** lets you pick an existing image
+- **70%+ confidence** auto-runs the Field Mode search
+- **Below 70%** shows candidate buttons and waits for confirmation
+
+Current setup notes:
+- The production route reads a Google Vision API key from `/home/apesch/google_vision.txt`
+- Google Cloud Vision billing must be enabled on the project behind that key
+- Reverse proxies in front of RetroVault may need upload-friendly settings for mobile image posts, including `client_max_body_size`, `proxy_request_buffering off`, and longer proxy timeouts
+
+If Photo Lookup fails, Field Mode still works normally with manual title search.
