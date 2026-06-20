@@ -5,7 +5,10 @@ FROM node:22-slim AS deps
 WORKDIR /app
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
+# Defer the app-level postinstall (prisma generate) until the source tree is
+# available in the builder stage, but explicitly rebuild native dependencies so
+# the runtime image includes better-sqlite3's compiled binding.
+RUN npm ci --ignore-scripts && npm rebuild better-sqlite3
 
 FROM node:22-slim AS builder
 WORKDIR /app
@@ -52,6 +55,7 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/next.config.ts ./next.config.ts
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/data/sample ./data/sample
 COPY --from=builder /app/prisma ./prisma
@@ -59,10 +63,11 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
-# Only chown the directories nextjs needs to write to, not all of /app
-# (chown -R on node_modules is extremely slow due to tens of thousands of files)
+# Only chown the directories nextjs needs to write to. Prisma also writes into
+# @prisma/engines during migrate deploy, so make that narrow path writable
+# without recursively chowning all of node_modules.
 RUN mkdir -p data logs && \
-    chown -R nextjs:nodejs /app/data /app/logs /app/public && \
+    chown -R nextjs:nodejs /app/data /app/logs /app/public /app/node_modules/@prisma/engines && \
     chmod +x /app/scripts/docker-entrypoint.sh
 
 USER nextjs
