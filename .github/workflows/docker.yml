@@ -2,12 +2,25 @@ name: Docker Build
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ dev, main ]
     paths:
-      - 'retrovault/Dockerfile'
-      - 'retrovault/docker-compose.yml'
-      - 'retrovault/next.config.ts'
-      - 'retrovault/package*.json'
+      - retrovault/Dockerfile
+      - retrovault/docker-compose.yml
+      - retrovault/next.config.ts
+      - retrovault/package*.json
+      - retrovault/prisma/**
+      - retrovault/scripts/docker-entrypoint.sh
+      - .github/workflows/docker.yml
+  pull_request:
+    branches: [ dev, main ]
+    paths:
+      - retrovault/Dockerfile
+      - retrovault/docker-compose.yml
+      - retrovault/next.config.ts
+      - retrovault/package*.json
+      - retrovault/prisma/**
+      - retrovault/scripts/docker-entrypoint.sh
+      - .github/workflows/docker.yml
   workflow_dispatch:
 
 jobs:
@@ -23,45 +36,44 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./retrovault
           push: false
-          # load=true makes the image available to the local docker daemon
           load: true
           tags: retrovault:test
-          build-args: |
-            DOCKER_BUILD=1
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Create minimal data directory
         run: |
-          mkdir -p retrovault-data
-          echo '{"appName":"RetroVault","tagline":"Your Retro Gaming Collection Engine","ownerName":"","themeColor":"green","currency":"$","dateFormat":"US","region":"NTSC","publicUrl":"","standaloneMode":true,"auth":{"enabled":false,"passwordHash":""},"plex":{"url":"","token":""},"fetchScheduleHour":0,"priceDataSource":"pricecharting","githubRepo":"theretrovault/retrovault","scrapers":{"craigslistCity":"portland"},"features":{"business":true,"fieldTools":true,"social":true,"personal":true},"platforms":["NES","SNES"]}' > retrovault-data/app.config.json
+          mkdir -p retrovault-data retrovault-backups
+          cp retrovault/data/prod/app.config.json retrovault-data/app.config.json
+          cp retrovault/data/prod/scrapers.json retrovault-data/scrapers.json
 
       - name: Test container starts and responds
         run: |
           docker run -d \
             --name rv-test \
             -p 3000:3000 \
+            -e RETROVAULT_ENV=ci \
+            -e RETROVAULT_SCHEDULER_ENABLED=false \
+            -e DATABASE_URL=file:/app/data/retrovault.db \
             -v ${{ github.workspace }}/retrovault-data:/app/data \
+            -v ${{ github.workspace }}/retrovault-backups:/app/backups/db \
             retrovault:test
-          
-          # Wait for container to be healthy (up to 30s)
-          for i in $(seq 1 10); do
+
+          for i in $(seq 1 20); do
             sleep 3
             if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
               echo "✅ Container healthy after $((i*3))s"
-              break
+              exit 0
             fi
-            echo "Waiting... ($i/10)"
-            if [ $i -eq 10 ]; then
-              echo "❌ Container failed to start"
-              docker logs rv-test
-              exit 1
-            fi
+            echo "Waiting... ($i/20)"
           done
+          echo "❌ Container failed to start"
+          docker logs rv-test
+          exit 1
 
       - name: Stop container
         if: always()

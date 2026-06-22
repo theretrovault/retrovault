@@ -23,6 +23,7 @@ jobs:
       RETROVAULT_CONFIG_PATH: ${{ github.workspace }}/retrovault/data/prod/app.config.json
       RETROVAULT_SCRAPERS_PATH: ${{ github.workspace }}/retrovault/data/prod/scrapers.json
       DATABASE_URL: file:${{ github.workspace }}/retrovault/data/prod/retrovault.db
+      RETROVAULT_SCHEDULER_ENABLED: false
 
     steps:
       - name: Checkout
@@ -106,6 +107,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2

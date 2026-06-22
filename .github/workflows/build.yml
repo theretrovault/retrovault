@@ -2,15 +2,24 @@ name: RetroVault Build Check
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ dev, main ]
   pull_request:
-    branches: [ master, main ]
-  workflow_dispatch:  # Allow manual trigger from GitHub Actions UI
+    branches: [ dev, main ]
+  workflow_dispatch:
 
 jobs:
   build:
     name: TypeScript & Build
     runs-on: ubuntu-latest
+
+    env:
+      RETROVAULT_ENV: ci
+      RETROVAULT_DATA_DIR: ${{ github.workspace }}/retrovault/data/prod
+      RETROVAULT_DB_PATH: ${{ github.workspace }}/retrovault/data/prod/retrovault.db
+      RETROVAULT_CONFIG_PATH: ${{ github.workspace }}/retrovault/data/prod/app.config.json
+      RETROVAULT_SCRAPERS_PATH: ${{ github.workspace }}/retrovault/data/prod/scrapers.json
+      RETROVAULT_SCHEDULER_ENABLED: false
+      DATABASE_URL: file:${{ github.workspace }}/retrovault/data/prod/retrovault.db
 
     steps:
       - name: Checkout code
@@ -19,40 +28,22 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: 22
+          cache: npm
           cache-dependency-path: retrovault/package-lock.json
 
       - name: Install dependencies
         working-directory: retrovault
         run: npm ci
 
-      - name: Create minimal data files for build
+      - name: Setup env data
         working-directory: retrovault
-        run: |
-          mkdir -p data
-          echo '[]' > data/inventory.json
-          echo '{}' > data/app.config.json
-          echo '[]' > data/favorites.json
-          echo '{"sales":[],"acquisitions":[]}' > data/sales.json
-          echo '[]' > data/watchlist.json
-          echo '[]' > data/goals.json
-          echo '[]' > data/grails.json
-          echo '[]' > data/playlog.json
-          echo '{}' > data/tags.json
-          echo '[]' > data/events.json
-          echo '{}' > data/whatnot.json
-          echo '[]' > data/value-history.json
-          echo '[]' > data/achievements-unlocked.json
-          echo '[]' > data/scrapers.json
-          echo '[]' > data/bug-reports.json
-          echo '{}' > data/youtube-cache.json
+        run: node scripts/setup-env-data.mjs
 
       - name: Build production bundle
         working-directory: retrovault
         run: npm run build
 
-      - name: Check for TypeScript errors
+      - name: Check TypeScript
         working-directory: retrovault
         run: npx tsc --noEmit
-        continue-on-error: true  # TypeScript errors shown as warnings, build is the real gate

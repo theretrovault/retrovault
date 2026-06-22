@@ -20,8 +20,8 @@ function makeContext(overrides: Partial<AchievementContext> = {}): AchievementCo
     scraperRuns: 0, dealsDismissed: 0, whatnotSellers: 0, streamsWatched: 0,
     apiKeysCreated: 0, bugReportsFiled: 0, collectionExported: false, csvImported: false,
     valueHistoryDays: 0, uptimeDays: 0,
-    setupWizardMode: null, setupWizardDone: false,
-    wishlistCount: 0, wishlistFound: 0,
+    setupWizardMode: null, setupWizardDone: false, authConfigured: false, themeCustomized: false,
+    wishlistCount: 0, wishlistFound: 0, wishlistShared: false, wishlistMustHaveCount: 0,
     ...overrides
   };
 }

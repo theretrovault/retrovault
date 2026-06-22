@@ -52,7 +52,7 @@ describe('collection share route', () => {
         label: 'Alex Collection',
         expiresAt: '2026-05-01T00:00:00.000Z',
       }),
-    }));
+    }) as any);
     const body = await response.json();
 
     expect(response.status).toBe(200);

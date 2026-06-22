@@ -2,15 +2,24 @@ name: RetroVault CI
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ dev, main ]
   pull_request:
-    branches: [ master, main ]
-  workflow_dispatch:  # Allow manual trigger from GitHub Actions UI
+    branches: [ dev, main ]
+  workflow_dispatch:
 
 jobs:
   test:
-    name: Run Test Suite
+    name: Test, typecheck, and build
     runs-on: ubuntu-latest
+
+    env:
+      RETROVAULT_ENV: ci
+      RETROVAULT_DATA_DIR: ${{ github.workspace }}/retrovault/data/prod
+      RETROVAULT_DB_PATH: ${{ github.workspace }}/retrovault/data/prod/retrovault.db
+      RETROVAULT_CONFIG_PATH: ${{ github.workspace }}/retrovault/data/prod/app.config.json
+      RETROVAULT_SCRAPERS_PATH: ${{ github.workspace }}/retrovault/data/prod/scrapers.json
+      RETROVAULT_SCHEDULER_ENABLED: false
+      DATABASE_URL: file:${{ github.workspace }}/retrovault/data/prod/retrovault.db
 
     steps:
       - name: Checkout code
@@ -19,23 +28,38 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: 22
+          cache: npm
           cache-dependency-path: retrovault/package-lock.json
 
       - name: Install dependencies
         working-directory: retrovault
         run: npm ci
 
+      - name: Setup env data
+        working-directory: retrovault
+        run: node scripts/setup-env-data.mjs
+
+      - name: Apply Prisma migrations
+        working-directory: retrovault
+        run: npx prisma migrate deploy
+
+      - name: Generate Prisma client
+        working-directory: retrovault
+        run: npm run prisma:generate
+
       - name: Run tests
         working-directory: retrovault
         run: npm test
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: retrovault/coverage/
-          retention-days: 14
-          if-no-files-found: ignore
+      - name: Typecheck
+        working-directory: retrovault
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: retrovault
+        run: npm run build
+
+      - name: Smoke test build artifacts
+        working-directory: retrovault
+        run: npm run smoke:release

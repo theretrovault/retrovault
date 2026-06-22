@@ -5,8 +5,8 @@ const apiResponseMock = vi.fn((payload: unknown) => payload);
 const fetchMock = vi.fn();
 
 vi.mock('@/lib/apiAuth', () => ({
-  requireApiAuth: (...args: any[]) => requireApiAuthMock(...args),
-  apiResponse: (...args: any[]) => apiResponseMock(...args),
+  requireApiAuth: (req: any, requireWrite?: boolean) => requireApiAuthMock(req, requireWrite),
+  apiResponse: (payload: unknown) => apiResponseMock(payload),
 }));
 
 vi.mock('@/data/achievements', async () => {
@@ -36,10 +36,11 @@ describe('/api/v1/achievements', () => {
     const response = await GET({
       nextUrl: { origin: 'https://retrovault.peschpit.com' },
     } as any);
+    const body = response as any;
 
-    expect(response.summary.unlocked).toBe(3);
-    expect(response.summary.total).toBeGreaterThan(3);
-    expect(response.summary.completionPercent).toBeGreaterThanOrEqual(0);
-    expect(response.summary.completionPercent).toBeLessThanOrEqual(100);
+    expect(body.summary.unlocked).toBe(3);
+    expect(body.summary.total).toBeGreaterThan(3);
+    expect(body.summary.completionPercent).toBeGreaterThanOrEqual(0);
+    expect(body.summary.completionPercent).toBeLessThanOrEqual(100);
   });
 });
