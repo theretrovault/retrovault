@@ -474,4 +474,15 @@ export const CHANGELOG: ChangelogEntry[] = [
       ]},
     ],
   },
+  {
+    version: "2.1.44",
+    date: "2026-06-22",
+    title: "Pipeline smoke test",
+    type: "improvement",
+    changes: [
+      { category: "Release Pipeline", items: [
+        "Discord pipeline smoke test validates MC thread creation, webhook handoffs, and dev deploy verification",
+      ]},
+    ],
+  },
 ];
