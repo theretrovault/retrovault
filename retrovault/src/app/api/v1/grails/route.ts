@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
       hunting: huntingCount,
       found:   foundCount,
     })
-  } catch (e: any) {
-    return apiError(e.message || 'Failed to load grails', 500)
+  } catch (e: unknown) {
+    return apiError(e instanceof Error ? e.message : 'Failed to load grails', 500)
   }
 }

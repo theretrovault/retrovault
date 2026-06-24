@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
       },
       platforms,
     })
-  } catch (e: any) {
-    return apiError(e.message || 'Failed to compute collection stats', 500)
+  } catch (e: unknown) {
+    return apiError(e instanceof Error ? e.message : 'Failed to compute collection stats', 500)
   }
 }

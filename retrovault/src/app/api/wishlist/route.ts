@@ -14,8 +14,8 @@ export async function GET() {
       orderBy: [{ priority: 'asc' }, { addedAt: 'desc' }],
     })
     return NextResponse.json({ items })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+  } catch (e: unknown) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Unexpected error' }, { status: 500 })
   }
 }
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       },
     })
     return NextResponse.json({ item }, { status: 201 })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+  } catch (e: unknown) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Unexpected error' }, { status: 500 })
   }
 }

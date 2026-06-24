@@ -31,7 +31,7 @@ function getConfig() {
   return { ...DEFAULTS, ...JSON.parse(fs.readFileSync(filePath, 'utf8')) };
 }
 
-function saveConfig(data: any) {
+function saveConfig(data: unknown) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 

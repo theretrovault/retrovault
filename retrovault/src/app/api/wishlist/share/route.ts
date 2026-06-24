@@ -10,8 +10,8 @@ export async function GET() {
       share = await prisma.wishlistShare.create({ data: { label: 'My Wishlist' } })
     }
     return NextResponse.json({ token: share.token, label: share.label })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+  } catch (e: unknown) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Unexpected error' }, { status: 500 })
   }
 }
 
@@ -21,7 +21,7 @@ export async function DELETE() {
     await prisma.wishlistShare.deleteMany()
     const fresh = await prisma.wishlistShare.create({ data: { label: 'My Wishlist' } })
     return NextResponse.json({ token: fresh.token })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+  } catch (e: unknown) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Unexpected error' }, { status: 500 })
   }
 }

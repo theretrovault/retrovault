@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Full collection export as JSON bundle
-  const bundle: Record<string, any> = {
+  const bundle: Record<string, unknown> = {
     _meta: {
       exportedAt: new Date().toISOString(),
       version: '2.0.0',

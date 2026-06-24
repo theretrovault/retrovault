@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
         profit:            Math.round((revenue - spent) * 100) / 100,
       },
     })
-  } catch (e: any) {
-    return apiError(e.message || 'Failed to load sales', 500)
+  } catch (e: unknown) {
+    return apiError(e instanceof Error ? e.message : 'Failed to load sales', 500)
   }
 }

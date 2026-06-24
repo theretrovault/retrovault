@@ -19,8 +19,8 @@ export async function GET() {
       label: share.label,
       expiresAt: share.expiresAt?.toISOString() ?? null,
     });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Unexpected error' }, { status: 500 });
   }
 }
 
@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
       label: share.label,
       expiresAt: share.expiresAt?.toISOString() ?? null,
     });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Unexpected error' }, { status: 500 });
   }
 }
 
@@ -58,7 +58,7 @@ export async function DELETE() {
       label: fresh.label,
       expiresAt: fresh.expiresAt?.toISOString() ?? null,
     });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Unexpected error' }, { status: 500 });
   }
 }

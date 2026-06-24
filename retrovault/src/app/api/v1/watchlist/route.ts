@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 
     const alerts = enriched.filter(i => i.alertTriggered)
     return apiResponse(enriched, { total: enriched.length, alertsTriggered: alerts.length })
-  } catch (e: any) {
-    return apiError(e.message || 'Failed to load watchlist', 500)
+  } catch (e: unknown) {
+    return apiError(e instanceof Error ? e.message : 'Failed to load watchlist', 500)
   }
 }

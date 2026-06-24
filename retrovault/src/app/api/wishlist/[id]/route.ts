@@ -29,8 +29,8 @@ export async function PATCH(
       },
     })
     return NextResponse.json({ item })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+  } catch (e: unknown) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Unexpected error' }, { status: 500 })
   }
 }
 
@@ -42,7 +42,7 @@ export async function DELETE(
     const { id } = await params
     await prisma.wishlistItem.delete({ where: { id } })
     return NextResponse.json({ ok: true })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+  } catch (e: unknown) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Unexpected error' }, { status: 500 })
   }
 }
