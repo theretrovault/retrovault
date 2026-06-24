@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ACHIEVEMENTS, evaluateAchievements, getTotalPoints, getCompletionPercent, type AchievementContext } from '@/data/achievements';
+import { ACHIEVEMENTS, evaluateAchievements, getTotalPoints, getCompletionPercent, type AchievementCategory, type AchievementContext } from '@/data/achievements';
 
 function makeContext(overrides: Partial<AchievementContext> = {}): AchievementContext {
   return {
@@ -173,10 +173,10 @@ describe('Achievement data integrity', () => {
 
   it('has achievements for all 9 categories', () => {
     const categories = new Set(ACHIEVEMENTS.map(a => a.category));
-    const expected = ['business', 'hunting', 'platform', 'social', 'personal', 'grind', 'secret', 'milestone'];
+    const expected: AchievementCategory[] = ['business', 'hunting', 'platform', 'social', 'personal', 'grind', 'secret', 'milestone'];
     // Note: 'collection' category maps to 'milestone' in the data
     for (const cat of expected) {
-      expect(categories.has(cat as any), `Missing category: ${cat}`).toBe(true);
+      expect(categories.has(cat), `Missing category: ${cat}`).toBe(true);
     }
   });
 });
@@ -190,42 +190,42 @@ describe('System & Power User achievements', () => {
       { id: 'sys_uptime365', days: 365 },
     ];
     for (const { id, days } of cases) {
-      const ctx = makeContext({ uptimeDays: days } as any);
+      const ctx = makeContext({ uptimeDays: days });
       const unlocked = evaluateAchievements(ctx);
       expect(unlocked.has(id), `${id} should unlock at ${days} days`).toBe(true);
     }
   });
 
   it('does NOT unlock uptime achievement before threshold', () => {
-    const ctx = makeContext({ uptimeDays: 6 } as any);
+    const ctx = makeContext({ uptimeDays: 6 });
     const unlocked = evaluateAchievements(ctx);
     expect(unlocked.has('sys_uptime7')).toBe(false);
   });
 
   it('unlocks value history achievement at 7 days', () => {
-    const ctx = makeContext({ valueHistoryDays: 7 } as any);
+    const ctx = makeContext({ valueHistoryDays: 7 });
     const unlocked = evaluateAchievements(ctx);
     expect(unlocked.has('sys_snapshot7')).toBe(true);
   });
 
   it('unlocks API key achievement', () => {
-    const ctx = makeContext({ apiKeysCreated: 1 } as any);
+    const ctx = makeContext({ apiKeysCreated: 1 });
     const unlocked = evaluateAchievements(ctx);
     expect(unlocked.has('sys_api_key')).toBe(true);
     expect(unlocked.has('sys_api_3')).toBe(false);
   });
 
   it('unlocks integrator at 3 API keys', () => {
-    const ctx = makeContext({ apiKeysCreated: 3 } as any);
+    const ctx = makeContext({ apiKeysCreated: 3 });
     const unlocked = evaluateAchievements(ctx);
     expect(unlocked.has('sys_api_3')).toBe(true);
   });
 
   it('unlocks bug reporter achievements', () => {
-    const ctx1 = makeContext({ bugReportsFiled: 1 } as any);
+    const ctx1 = makeContext({ bugReportsFiled: 1 });
     expect(evaluateAchievements(ctx1).has('sys_bug')).toBe(true);
 
-    const ctx3 = makeContext({ bugReportsFiled: 3 } as any);
+    const ctx3 = makeContext({ bugReportsFiled: 3 });
     expect(evaluateAchievements(ctx3).has('sys_bug3')).toBe(true);
   });
 
@@ -239,7 +239,7 @@ describe('System & Power User achievements', () => {
   });
 
   it('BUG REGRESSION: uptime 0 does not unlock any uptime achievement', () => {
-    const ctx = makeContext({ uptimeDays: 0 } as any);
+    const ctx = makeContext({ uptimeDays: 0 });
     const unlocked = evaluateAchievements(ctx);
     expect(unlocked.has('sys_uptime7')).toBe(false);
     expect(unlocked.has('sys_uptime30')).toBe(false);

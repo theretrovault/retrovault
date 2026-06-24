@@ -142,7 +142,7 @@ describe('validateApiKey', () => {
 describe('requireApiAuth', () => {
   it('rejects request with no key', () => {
     const req = new Request('http://localhost/api/v1/test');
-    const { error, key } = requireApiAuth(req as any);
+    const { error, key } = requireApiAuth(req as never);
     expect(error).not.toBeNull();
     expect(key).toBeNull();
   });
@@ -152,7 +152,7 @@ describe('requireApiAuth', () => {
     const req = new Request('http://localhost/api/v1/test', {
       headers: { Authorization: `Bearer ${rawKey}` },
     });
-    const { error, key } = requireApiAuth(req as any);
+    const { error, key } = requireApiAuth(req as never);
     expect(error).toBeNull();
     expect(key?.name).toBe('Bearer Test');
   });
@@ -162,7 +162,7 @@ describe('requireApiAuth', () => {
     const req = new Request('http://localhost/api/v1/test', {
       headers: { 'X-RetroVault-Key': rawKey },
     });
-    const { error, key } = requireApiAuth(req as any);
+    const { error, key } = requireApiAuth(req as never);
     expect(error).toBeNull();
     expect(key?.name).toBe('Header Test');
   });
@@ -172,7 +172,7 @@ describe('requireApiAuth', () => {
     const req = new Request('http://localhost/api/v1/keys', {
       headers: { 'X-RetroVault-Key': rawKey },
     });
-    expect(requireApiAuth(req as any, true).error).not.toBeNull();
+    expect(requireApiAuth(req as never, true).error).not.toBeNull();
   });
 
   it('accepts write key for write-required endpoints', () => {
@@ -180,7 +180,7 @@ describe('requireApiAuth', () => {
     const req = new Request('http://localhost/api/v1/keys', {
       headers: { 'X-RetroVault-Key': rawKey },
     });
-    const { error, key } = requireApiAuth(req as any, true);
+    const { error, key } = requireApiAuth(req as never, true);
     expect(error).toBeNull();
     expect(key?.permissions).toBe('write');
   });
@@ -189,7 +189,7 @@ describe('requireApiAuth', () => {
     const req = new Request('http://localhost/api/v1/test', {
       headers: { 'X-RetroVault-Key': 'rvk_fakekeyvalue' },
     });
-    const { error } = requireApiAuth(req as any);
+    const { error } = requireApiAuth(req as never);
     expect(error).not.toBeNull();
     const body = await error!.json();
     expect(body.error).toBeTruthy();

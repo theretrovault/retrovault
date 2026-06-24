@@ -12,11 +12,11 @@ const prismaMock = {
 };
 
 vi.mock('@/lib/data', () => ({
-  readDataFile: (...args: any[]) => readDataFileMock(...args),
+  readDataFile: (...args: Parameters<typeof readDataFileMock>) => readDataFileMock(...args),
 }));
 
 vi.mock('@/data/achievements', () => ({
-  evaluateAchievements: (...args: any[]) => evaluateAchievementsMock(...args),
+  evaluateAchievements: (...args: Parameters<typeof evaluateAchievementsMock>) => evaluateAchievementsMock(...args),
 }));
 
 vi.mock('@/lib/prisma', () => ({

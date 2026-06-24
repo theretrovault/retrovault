@@ -204,7 +204,7 @@ describe('getPriceTrend', () => {
   });
 
   it('returns null with only one data point', () => {
-    const game = makeGame({ priceHistory: { '2026-01-01': { loose: '20' } as any } });
+    const game = makeGame({ priceHistory: { '2026-01-01': { loose: '20' } } });
     expect(getPriceTrend(game)).toBeNull();
   });
 
@@ -213,8 +213,8 @@ describe('getPriceTrend', () => {
     const past  = new Date(Date.now() - 40 * 86400000).toISOString().split('T')[0];
     const game  = makeGame({
       priceHistory: {
-        [past]:  { loose: '10' } as any,
-        [today]: { loose: '15' } as any,
+        [past]:  { loose: '10' },
+        [today]: { loose: '15' },
       }
     });
     const trend = getPriceTrend(game, 30);
@@ -226,8 +226,8 @@ describe('getPriceTrend', () => {
     const past  = new Date(Date.now() - 40 * 86400000).toISOString().split('T')[0];
     const game  = makeGame({
       priceHistory: {
-        [past]:  { loose: '20' } as any,
-        [today]: { loose: '10' } as any,
+        [past]:  { loose: '20' },
+        [today]: { loose: '10' },
       }
     });
     const trend = getPriceTrend(game, 30);
