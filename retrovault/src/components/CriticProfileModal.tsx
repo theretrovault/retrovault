@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 type Person = { id: string; name: string };
-type GameItem = { id: string; title: string; platform: string; copies?: any[] };
+type GameItem = { id: string; title: string; platform: string; copies?: unknown[] };
 
 type MentionEntry = {
   id: string; entityId: string; entityType: string; entityName: string;

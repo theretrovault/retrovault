@@ -61,8 +61,10 @@ export function GlobalSearch({ open, onClose }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    setQuery("");
-    setSelected(0);
+    queueMicrotask(() => {
+      setQuery("");
+      setSelected(0);
+    });
     setTimeout(() => inputRef.current?.focus(), 50);
   }, [open]);
 
@@ -125,7 +127,7 @@ export function GlobalSearch({ open, onClose }: Props) {
     return () => document.removeEventListener("keydown", handler);
   }, [open, results, selected, navigate, onClose]);
 
-  useEffect(() => { setSelected(0); }, [query]);
+  useEffect(() => { queueMicrotask(() => setSelected(0)); }, [query]);
 
   if (!open) return null;
 

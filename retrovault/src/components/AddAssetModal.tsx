@@ -101,11 +101,13 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
   const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
   const [platformSuggestions, setPlatformSuggestions] = useState<string[]>([]);
   const [showPlatformSuggestions, setShowPlatformSuggestions] = useState(false);
+  const [recentPlatforms, setRecentPlatforms] = useState<string[]>(() => getRecentPlatforms());
+  const [availablePlatforms, setAvailablePlatforms] = useState<string[]>(STATIC_PLATFORM_NAMES);
 
   useEffect(() => {
     fetch("/api/inventory")
       .then(r => r.json())
-      .then((d: any[]) => {
+      .then((d: { title: string; platform: string }[]) => {
         inventoryRef.current = d.map(i => ({ title: i.title, platform: i.platform }));
       });
 
@@ -118,10 +120,13 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
         const staticNames = STATIC_PLATFORM_NAMES.map(normalizePlatformName);
         const uniqueEnabled = [...new Set(enabled)];
         const uniqueStatic = [...new Set(staticNames)].filter((name: string) => !uniqueEnabled.includes(name));
-        availablePlatformsRef.current = [...uniqueEnabled, ...uniqueStatic];
+        const nextPlatforms = [...uniqueEnabled, ...uniqueStatic];
+        availablePlatformsRef.current = nextPlatforms;
+        setAvailablePlatforms(nextPlatforms);
       })
       .catch(() => {
         availablePlatformsRef.current = STATIC_PLATFORM_NAMES;
+        setAvailablePlatforms(STATIC_PLATFORM_NAMES);
       });
   }, []);
 
@@ -225,6 +230,9 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
     if (!validate()) return;
     setSaving(true);
     saveRecentPlatform(platform);
+    const nextRecentPlatforms = getRecentPlatforms();
+    recentRef.current = nextRecentPlatforms;
+    setRecentPlatforms(nextRecentPlatforms);
     await onSave({
       title: titleInput.trim(),
       platform,
@@ -290,9 +298,9 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
                   </div>
                 )}
               </div>
-              {recentRef.current.length > 0 && (
+              {recentPlatforms.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {recentRef.current.filter(r => availablePlatformsRef.current.includes(r)).map(r => (
+                  {recentPlatforms.filter(r => availablePlatforms.includes(r)).map(r => (
                     <button
                       key={r}
                       type="button"

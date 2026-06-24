@@ -90,7 +90,7 @@ export default function ValueHistoryPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                   <XAxis dataKey="date" stroke="#4b5563" tick={{ fontFamily: "monospace", fontSize: 10 }} interval="preserveStartEnd" />
                   <YAxis stroke="#4b5563" tick={{ fontFamily: "monospace", fontSize: 10 }} tickFormatter={v => `$${v >= 1000 ? (v/1000).toFixed(0)+"k" : v}`} />
-                  <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #166534", fontFamily: "monospace" }} formatter={(v: any) => `$${Number(v).toFixed(0)}`} />
+                  <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #166534", fontFamily: "monospace" }} formatter={(v) => `$${Number(v ?? 0).toFixed(0)}`} />
                   <Legend />
                   <Line type="monotone" dataKey="Loose Value" stroke="#3b82f6" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="Total Paid" stroke="#ef4444" strokeWidth={1} dot={false} strokeDasharray="4 2" />

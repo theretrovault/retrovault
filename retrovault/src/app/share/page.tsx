@@ -9,6 +9,15 @@ const EXPIRY_OPTIONS = [
   { label: "Never",    days: 0 },
 ];
 
+type ShareConfig = {
+  ownerName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  shareContact?: boolean;
+  publicUrl?: string;
+  publicTokenExpiresAt?: string | null;
+};
+
 function expiryLabel(iso: string | undefined): string {
   if (!iso) return "No expiry set";
   const d = new Date(iso);
@@ -22,7 +31,7 @@ function expiryLabel(iso: string | undefined): string {
 }
 
 export default function SharePage() {
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<ShareConfig | null>(null);
   const [token, setToken] = useState("");
   const [qrSvg, setQrSvg] = useState("");
   const [copied, setCopied] = useState(false);
@@ -65,6 +74,7 @@ export default function SharePage() {
   };
 
   const save = async () => {
+    if (!config) return;
     setSaving(true);
     const expiresAt = expiryDays > 0
       ? new Date(Date.now() + expiryDays * 86400000).toISOString()
@@ -87,7 +97,7 @@ export default function SharePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, label: `${config?.ownerName || 'My'} Collection`, expiresAt })
     });
-    setConfig((prev: any) => ({ ...prev, publicTokenExpiresAt: expiresAt }));
+    setConfig((prev) => ({ ...(prev || {}), publicTokenExpiresAt: expiresAt }));
     setSaving(false);
     await generateQr();
   };

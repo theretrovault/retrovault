@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 type ApiKey = { id: string; name: string; prefix: string; permissions: string; createdAt: string; lastUsed: string | null };
 type Endpoint = { path: string; method: string; summary: string; params?: string[] };
@@ -35,13 +35,16 @@ export default function ApiDocsPage() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const loadKeys = async () => {
+  const loadKeys = useCallback(async () => {
     if (!masterKey) return;
     const res = await fetch('/api/v1/keys', { headers: { 'X-RetroVault-Key': masterKey } });
     if (res.ok) { const d = await res.json(); setKeys(d.data || []); }
-  };
+  }, [masterKey]);
 
-  useEffect(() => { if (masterKey) loadKeys(); }, [masterKey]);
+  useEffect(() => {
+    if (!masterKey) return;
+    void (async () => { await loadKeys(); })();
+  }, [masterKey, loadKeys]);
 
   const createKey = async () => {
     if (!newKeyName.trim() || !masterKey) return;
@@ -165,7 +168,7 @@ export default function ApiDocsPage() {
                   placeholder="Key name (e.g. Home Assistant)"
                   className="w-full bg-black border-2 border-zinc-700 text-zinc-300 font-terminal text-base p-2 focus:outline-none focus:border-green-600" />
                 <div className="flex gap-2 items-center">
-                  <select value={newKeyPerms} onChange={e => setNewKeyPerms(e.target.value as any)}
+                  <select value={newKeyPerms} onChange={e => setNewKeyPerms(e.target.value as 'read' | 'write')}
                     className="bg-black border-2 border-zinc-700 text-zinc-300 font-terminal text-sm p-2 focus:outline-none cursor-pointer">
                     <option value="read">Read Only</option>
                     <option value="write">Read + Write</option>

@@ -5,6 +5,8 @@ import { getConfigPath } from "@/lib/runtimeDataPaths";
 import { getCopyDisplayLabel } from "@/lib/copyCondition";
 import { readInventoryCompat } from "@/lib/storageCompat";
 
+type PublicInventoryItem = { id: string; title: string; platform: string; copies?: { condition?: string; priceAcquired?: string | number; hasBox: boolean; hasManual: boolean }[]; isDigital?: boolean };
+
 export const dynamic = 'force-dynamic';
 
 type Props = { params: Promise<{ token: string }> };
@@ -32,9 +34,9 @@ export default async function PublicCollectionPage({ params }: Props) {
   }
 
   const inventory = await readInventoryCompat();
-  const owned = inventory.filter((i: any) => (i.copies || []).length > 0 && !i.isDigital);
+  const owned = (inventory as PublicInventoryItem[]).filter((i) => (i.copies || []).length > 0 && !i.isDigital);
 
-  const platforms = [...new Set(owned.map((i: any) => i.platform))] as string[];
+  const platforms = [...new Set(owned.map((i) => i.platform))] as string[];
   const platformCounts: Record<string, number> = {};
   for (const item of owned) {
     platformCounts[item.platform] = (platformCounts[item.platform] || 0) + 1;
@@ -88,12 +90,12 @@ export default async function PublicCollectionPage({ params }: Props) {
 
         {/* Games by platform */}
         {platforms.sort().map(plat => {
-          const games = owned.filter((i: any) => i.platform === plat);
+          const games = owned.filter((i) => i.platform === plat);
           return (
             <div key={plat} className="mb-6">
               <h2 className="text-green-600 uppercase text-lg border-b border-green-900 pb-1 mb-3">{plat} ({games.length})</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                {games.sort((a: any, b: any) => a.title.localeCompare(b.title)).map((game: any) => {
+                {games.sort((a, b) => a.title.localeCompare(b.title)).map((game) => {
                   const copy = game.copies?.[0];
                   return (
                     <div key={game.id} className="border border-zinc-800 p-2 hover:border-zinc-600 transition-colors">

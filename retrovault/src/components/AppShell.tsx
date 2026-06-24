@@ -36,11 +36,8 @@ function LogoutButton({ logout }: { logout: () => void }) {
 
 function NavGroup({ group, collapsed }: { group: NavGroup; collapsed: boolean }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(true);
   const hasActive = group.items.some(i => pathname === i.href);
-
-  // Auto-open if a child is active
-  useEffect(() => { if (hasActive) setOpen(true); }, [hasActive]);
+  const [open, setOpen] = useState<boolean>(hasActive || true);
 
   if (collapsed) {
     // Icon-only: show first item's icon as group representative

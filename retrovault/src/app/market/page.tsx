@@ -75,7 +75,7 @@ export default function MarketPage() {
         </div>
         <div className="flex gap-2">
           {[["trend","🔥 By Trend"],["value","💰 By Value"],["era","📅 By Era"]].map(([v, l]) => (
-            <button key={v} onClick={() => setSortBy(v as any)}
+            <button key={v} onClick={() => setSortBy(v as 'trend' | 'value' | 'era')}
               className={`px-3 py-1.5 font-terminal text-xs border-2 transition-colors ${sortBy === v ? "bg-green-700 text-black border-green-500" : "text-zinc-500 border-zinc-700 hover:border-zinc-500"}`}>
               {l}
             </button>

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { getConsoleData } from "@/data/consoles";
 import { PlatformButton, ConsoleModal } from "@/components/ConsoleModal";
 
-type GameItem = { id: string; title: string; platform: string; copies: any[]; isDigital?: boolean; };
+type GameItem = { id: string; title: string; platform: string; copies: { id?: string; condition?: string; priceAcquired?: string | number }[]; isDigital?: boolean; };
 type Priority = 1 | 2 | 3 | null;
 const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
   1: { label: "HIGH", color: "text-red-400 border-red-600" },

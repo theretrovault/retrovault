@@ -32,7 +32,6 @@ const SHIPPING = DEFAULT_SHIPPING;
 
 export default function HotListPage() {
   const [items, setItems] = useState<GameItem[]>([]);
-  const [opps, setOpps] = useState<FlipOpp[]>([]);
   const [loading, setLoading] = useState(true);
   const [minRoi, setMinRoi] = useState(20);
   const [platformFilter, setPlatformFilter] = useState("all");
@@ -45,41 +44,36 @@ export default function HotListPage() {
     });
   }, []);
 
-  useEffect(() => {
-    const results: FlipOpp[] = [];
+  const opps: FlipOpp[] = [];
+  for (const item of items) {
+    if (item.isDigital) continue;
+    const copies = item.copies || [];
+    if (copies.length < minCopies) continue;
+    if (platformFilter !== "all" && item.platform !== platformFilter) continue;
 
-    for (const item of items) {
-      if (item.isDigital) continue;
-      const copies = item.copies || [];
-      if (copies.length < minCopies) continue;
-      if (platformFilter !== "all" && item.platform !== platformFilter) continue;
+    const market = parseFloat(item.marketLoose || "0");
+    if (!market) continue;
 
-      const market = parseFloat(item.marketLoose || "0");
-      if (!market) continue;
+    const totalPaid = getTotalPaid(copies);
+    const avgPaid = totalPaid / copies.length;
+    if (!avgPaid) continue;
 
-      const totalPaid = getTotalPaid(copies);
-      const avgPaid = totalPaid / copies.length;
-      if (!avgPaid) continue;
+    const { profit, roi, margin } = calcFlipMetrics(avgPaid, market, EBAY_FEE, SHIPPING);
+    if (roi < minRoi) continue;
 
-      const { profit, roi, margin } = calcFlipMetrics(avgPaid, market, EBAY_FEE, SHIPPING);
-      if (roi < minRoi) continue;
+    const trend = getPriceTrend(item, 30, 'loose');
+    const trendBonus = trend ? Math.min(trend * 1.5, 30) : 0;
+    const copyBonus = Math.min((copies.length - 1) * 5, 20);
+    const score = Math.min(Math.max((roi / 2) * 0.5 + trendBonus + copyBonus, 0), 100);
 
-      const trend = getPriceTrend(item, 30, 'loose');
-      // Score: ROI (50%) + trend bonus (30%) + multi-copy bonus (20%)
-      const trendBonus = trend ? Math.min(trend * 1.5, 30) : 0;
-      const copyBonus = Math.min((copies.length - 1) * 5, 20);
-      const score = Math.min(Math.max((roi / 2) * 0.5 + trendBonus + copyBonus, 0), 100);
-
-      results.push({
-        id: item.id, title: item.title, platform: item.platform,
-        avgPaid, marketLoose: market, profit, roi, margin,
-        trend, score, copies: copies.length,
-      });
-    }
-
-    results.sort((a, b) => b.score - a.score);
-    setOpps(results.slice(0, 50));
-  }, [items, minRoi, platformFilter, minCopies]);
+    opps.push({
+      id: item.id, title: item.title, platform: item.platform,
+      avgPaid, marketLoose: market, profit, roi, margin,
+      trend, score, copies: copies.length,
+    });
+  }
+  opps.sort((a, b) => b.score - a.score);
+  opps.splice(50);
 
   const platforms = Array.from(new Set(items.map(i => i.platform))).sort();
   const fmt = (n: number) => n >= 0 ? `$${n.toFixed(2)}` : `-$${Math.abs(n).toFixed(2)}`;

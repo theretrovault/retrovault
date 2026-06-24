@@ -106,7 +106,7 @@ export default function ShowcasePage() {
             <option value="all">ALL STATUS</option>
             {["Never Played","Started","Beaten","100%"].map(s => <option key={s} value={s}>{COMPLETION_ICONS[s]} {s}</option>)}
           </select>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="bg-zinc-950 border-2 border-zinc-700 text-zinc-400 p-2 font-terminal text-lg uppercase focus:outline-none cursor-pointer">
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as 'platform' | 'title' | 'rating' | 'value')} className="bg-zinc-950 border-2 border-zinc-700 text-zinc-400 p-2 font-terminal text-lg uppercase focus:outline-none cursor-pointer">
             <option value="platform">SORT: PLATFORM</option>
             <option value="title">SORT: TITLE</option>
             <option value="rating">SORT: MY RATING</option>

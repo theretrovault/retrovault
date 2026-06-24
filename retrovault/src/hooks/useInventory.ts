@@ -16,7 +16,7 @@ export function useInventory() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { fetchInventory(); }, [fetchInventory]);
+  useEffect(() => { queueMicrotask(fetchInventory); }, [fetchInventory]);
 
   return { items, loading, error, refetch: fetchInventory };
 }

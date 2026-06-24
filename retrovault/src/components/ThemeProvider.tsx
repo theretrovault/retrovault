@@ -32,6 +32,16 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const useTheme = () => useContext(ThemeContext);
 
+function getInitialTheme(): ThemeState {
+  if (typeof window === "undefined") return DEFAULT_THEME;
+  try {
+    const saved = JSON.parse(localStorage.getItem(THEME_KEY) || "null") as ThemeState | null;
+    return saved ? { ...saved, mode: (saved.mode ?? 'dark') as ThemeMode } : DEFAULT_THEME;
+  } catch {
+    return DEFAULT_THEME;
+  }
+}
+
 function applyTheme(colorId: string, styleId: string, mode: ThemeMode) {
   const html = document.documentElement;
 
@@ -65,23 +75,11 @@ function applyTheme(colorId: string, styleId: string, mode: ThemeMode) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeState>(DEFAULT_THEME);
+  const [theme, setThemeState] = useState<ThemeState>(() => getInitialTheme());
 
   useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(THEME_KEY) || "null") as ThemeState | null;
-      if (saved) {
-        // Backfill mode for users who saved before mode was added
-        const hydrated = { ...saved, mode: (saved.mode ?? 'dark') as ThemeMode };
-        setThemeState(hydrated);
-        applyTheme(hydrated.colorId, hydrated.styleId, hydrated.mode);
-      } else {
-        applyTheme(DEFAULT_THEME.colorId, DEFAULT_THEME.styleId, DEFAULT_THEME.mode);
-      }
-    } catch {
-      applyTheme(DEFAULT_THEME.colorId, DEFAULT_THEME.styleId, DEFAULT_THEME.mode);
-    }
-  }, []);
+    applyTheme(theme.colorId, theme.styleId, theme.mode);
+  }, [theme]);
 
   const setTheme = (t: ThemeState) => {
     setThemeState(t);

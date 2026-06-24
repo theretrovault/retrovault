@@ -34,7 +34,7 @@ export async function PUT(request: Request) {
   try {
     const updatedItem = await request.json();
     const inventory = await readInventoryCompat();
-    const existing = inventory.find((item: any) => item.id === updatedItem.id);
+    const existing = inventory.find((item) => item.id === updatedItem.id);
     if (!existing) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }

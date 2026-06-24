@@ -15,7 +15,7 @@ export default function WatchlistPage() {
   const [entries, setEntries] = useState<WatchlistEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
-  const [inventory, setInventory] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<{ id: string; title: string; platform: string; copies?: unknown[]; marketLoose?: string }[]>([]);
 
   const fetch_ = () => {
     fetch('/api/sales?type=watchlist').then(r => r.json()).then(setEntries);

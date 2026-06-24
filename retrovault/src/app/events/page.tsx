@@ -126,7 +126,7 @@ export default function EventsPage() {
           { id: 'interested', label: `👀 Interested`, count: interestedCount },
           { id: 'all', label: `📋 All`, count: events.length },
         ].map(f => (
-          <button key={f.id} onClick={() => setFilter(f.id as any)}
+          <button key={f.id} onClick={() => setFilter(f.id as 'upcoming' | 'interested' | 'all')}
             className={`px-3 py-1.5 font-terminal text-sm border-2 transition-colors ${filter === f.id ? 'bg-green-700 text-black border-green-500' : 'text-zinc-500 border-zinc-700 hover:border-zinc-500'}`}>
             {f.label} ({f.count})
           </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 
 const TOOLTIP_KEY = "tooltipsEnabled";
 
@@ -14,11 +14,7 @@ const TooltipContext = createContext<TooltipContextType>({ enabled: false, toggl
 export const useTooltips = () => useContext(TooltipContext);
 
 export function TooltipProvider({ children }: { children: React.ReactNode }) {
-  const [enabled, setEnabled] = useState(false);
-
-  useEffect(() => {
-    setEnabled(localStorage.getItem(TOOLTIP_KEY) === "true");
-  }, []);
+  const [enabled, setEnabled] = useState(() => (typeof window !== "undefined" ? localStorage.getItem(TOOLTIP_KEY) === "true" : false));
 
   const toggle = () => {
     setEnabled(v => {

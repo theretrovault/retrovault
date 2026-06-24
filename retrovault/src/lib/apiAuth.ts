@@ -18,6 +18,11 @@ import { getConfigPath } from './runtimeDataPaths';
 
 const CONFIG_FILE = getConfigPath();
 
+type ApiConfig = {
+  apiKeys?: ApiKey[];
+  [key: string]: unknown;
+};
+
 export type ApiKey = {
   id: string;
   name: string;
@@ -33,7 +38,7 @@ function loadConfig() {
   return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
 }
 
-function saveConfig(cfg: any) {
+function saveConfig(cfg: ApiConfig) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
 }
 
@@ -144,7 +149,7 @@ export function requireApiAuth(req: NextRequest, requireWrite = false): { error:
   return { error: null, key: keyRecord };
 }
 
-export function apiResponse<T>(data: T, meta?: Record<string, any>) {
+export function apiResponse<T>(data: T, meta?: Record<string, unknown>) {
   return NextResponse.json({
     data,
     meta: {

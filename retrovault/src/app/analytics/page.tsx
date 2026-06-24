@@ -49,6 +49,21 @@ const getManufacturer = (platform: string) => {
   if (p.includes("neo geo") || p.includes("snk")) return "SNK";
   return "Other";
 };
+type KpiProps = { label: string; value: string; color: string };
+
+function Kpi({ label, value, color }: KpiProps) {
+  return (
+    <div className="bg-zinc-950 border-2 border-green-800 p-6 rounded-sm text-center shadow-inner overflow-hidden flex flex-col items-center">
+      <h3 className="text-green-600 font-terminal text-lg mb-3">{label}</h3>
+      <p
+        className={`font-bold w-full text-center overflow-hidden ${color} drop-shadow-[0_0_8px_rgba(34,197,94,0.4)]`}
+        style={{ fontSize: 'clamp(1.2rem, 4vw, 3rem)', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
 
 export default function AnalyticsPage() {
   const [items, setItems] = useState<GameItem[]>([]);
@@ -229,18 +244,6 @@ export default function AnalyticsPage() {
     }
   }
 
-  const Kpi = ({ label, value, color }: { label: string; value: string; color: string }) => (
-    <div className="bg-zinc-950 border-2 border-green-800 p-6 rounded-sm text-center shadow-inner overflow-hidden flex flex-col items-center">
-      <h3 className="text-green-600 font-terminal text-lg mb-3">{label}</h3>
-      <p
-        className={`font-bold w-full text-center overflow-hidden ${color} drop-shadow-[0_0_8px_rgba(34,197,94,0.4)]`}
-        style={{ fontSize: 'clamp(1.2rem, 4vw, 3rem)', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
-      >
-        {value}
-      </p>
-    </div>
-  );
-
   return (
     <>
     <div className="w-full bg-black border-4 border-green-500 rounded p-6 shadow-[0_0_15px_rgba(34,197,94,0.3)] flex flex-col space-y-8">
@@ -321,7 +324,7 @@ export default function AnalyticsPage() {
                 <tr key={i} className="border-b border-green-900/20 hover:bg-green-900/10">
                   <td className="p-3 text-zinc-600">{i + 1}</td>
                   <td className="p-3 text-green-300 font-bold">
-                    <button onClick={() => setDetailItem(owned.find(o => o.id === (item as any).id) || null)} className="hover:text-green-100 hover:underline text-left">{item.title}</button>
+                    <button onClick={() => setDetailItem(owned.find(o => o.id === item.id) || null)} className="hover:text-green-100 hover:underline text-left">{item.title}</button>
                   </td>
                   <td className="p-3 text-sm"><PlatformButton platform={item.platform} onClick={setConsolePlatform} className="text-green-500 hover:text-green-300" /></td>
                   <td className="p-3 text-yellow-400 font-bold text-right">${item.value.toFixed(2)}</td>
@@ -358,7 +361,7 @@ export default function AnalyticsPage() {
                 <tr key={i} className="border-b border-green-900/20 hover:bg-green-900/10">
                   <td className="p-3 text-zinc-600">{i + 1}</td>
                   <td className="p-3 text-green-300 font-bold">
-                    <button onClick={() => setDetailItem(owned.find(o => o.id === (item as any).id) || null)} className="hover:text-green-100 hover:underline text-left">{item.title}</button>
+                    <button onClick={() => setDetailItem(owned.find(o => o.id === item.id) || null)} className="hover:text-green-100 hover:underline text-left">{item.title}</button>
                   </td>
                   <td className="p-3 text-sm"><PlatformButton platform={item.platform} onClick={setConsolePlatform} className="text-green-500 hover:text-green-300" /></td>
                   <td className="p-3 text-zinc-400 text-right">${item.paid.toFixed(2)}</td>

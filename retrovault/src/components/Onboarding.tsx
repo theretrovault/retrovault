@@ -197,7 +197,7 @@ export function Onboarding({ forceShow = false, onDone }: OnboardingProps) {
         fetch("/api/inventory").then(r => r.json()).catch(() => []),
         fetch("/api/config").then(r => r.json()).catch(() => ({})),
       ]).then(([inv, cfg]) => {
-        const owned = Array.isArray(inv) ? inv.filter((i: any) => (i.copies||[]).length > 0).length : 0;
+        const owned = Array.isArray(inv) ? inv.filter((i: { copies?: unknown[] }) => (i.copies||[]).length > 0).length : 0;
         const wizardRan = !!cfg.setupWizardVersion;
         // Show if fresh install (no games) OR wizard has never been completed
         if (owned === 0 || !wizardRan) setShow(true);

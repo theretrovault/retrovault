@@ -42,7 +42,7 @@ describe('/api/inventory route', () => {
 
     expect(response.status).toBe(200);
     expect(body).toHaveLength(2);
-    expect(body.find((item: any) => item.id === 'owned-row')).toMatchObject({
+    expect(body.find((item: { id: string }) => item.id === 'owned-row')).toMatchObject({
       title: 'Wonder Boy in Monster World',
       status: 'Yes',
       purchaseDate: '2026-03-27',

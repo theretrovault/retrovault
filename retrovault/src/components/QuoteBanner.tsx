@@ -1,17 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { QUOTES, type Quote } from "@/data/quotes";
 
+const pickRandom = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];
+
 export function QuoteBanner() {
-  const [quote, setQuote] = useState<Quote | null>(null);
+  const [quote, setQuote] = useState<Quote | null>(() => pickRandom());
   const [fading, setFading] = useState(false);
 
-  const pickRandom = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];
-
-  useEffect(() => {
-    setQuote(pickRandom());
-  }, []);
 
   const cycle = () => {
     setFading(true);

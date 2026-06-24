@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 type Person = { id: string; name: string };
 
@@ -38,7 +38,7 @@ export function TagsPanel({ entityId, entityType, entityName, people }: TagsPane
 
   const entityStore = entityType === "platform" ? "platformTags" : "gameTags";
 
-  const loadData = () => {
+  const loadData = useCallback(() => {
     fetch("/api/tags")
       .then(r => r.json())
       .then(d => {
@@ -53,9 +53,9 @@ export function TagsPanel({ entityId, entityType, entityName, people }: TagsPane
         all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setMentions(all);
       });
-  };
+  }, [entityStore, entityId]);
 
-  useEffect(() => { loadData(); }, [entityId]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   const addTag = async (tag: string) => {
     const cleaned = tag.trim().toLowerCase().replace(/\s+/g, " ");

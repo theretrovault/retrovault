@@ -17,13 +17,14 @@ const SEVERITY_STYLES: Record<string, string> = {
 
 export function AlertsBanner() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    const stored = sessionStorage.getItem("rv-dismissed-alerts");
+    return stored ? new Set(JSON.parse(stored) as string[]) : new Set();
+  });
 
   useEffect(() => {
     fetch("/api/alerts").then(r => r.json()).then(d => setAlerts(d)).catch(() => {});
-    // Load dismissed from sessionStorage
-    const stored = sessionStorage.getItem("rv-dismissed-alerts");
-    if (stored) setDismissed(new Set(JSON.parse(stored)));
   }, []);
 
   const dismiss = (id: string) => {

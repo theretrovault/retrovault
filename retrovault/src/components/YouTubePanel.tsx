@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect } from "react";
 
 type Video = {
@@ -11,13 +12,15 @@ type Video = {
   publishedAt: string;
 };
 
+type VideoType = "playthrough" | "walkthrough" | "review" | "trailer" | "longplay";
+
 type Props = {
   game: string;
   platform: string;
-  type?: "playthrough" | "walkthrough" | "review" | "trailer" | "longplay";
+  type?: VideoType;
 };
 
-const TYPE_OPTIONS = [
+const TYPE_OPTIONS: { id: VideoType; label: string }[] = [
   { id: "playthrough", label: "▶ Playthrough" },
   { id: "walkthrough", label: "📖 Walkthrough" },
   { id: "review",      label: "⭐ Review" },
@@ -41,7 +44,7 @@ export function YouTubePanel({ game, platform, type: initialType = "playthrough"
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchVideos = async (t: string) => {
+  const fetchVideos = async (t: VideoType = type) => {
     if (configured === false) return; // Don't try if not configured
     setLoading(true);
     setError(null);
@@ -74,10 +77,10 @@ export function YouTubePanel({ game, platform, type: initialType = "playthrough"
         setLoading(false);
       })
       .catch(() => { setError('Failed to load.'); setLoading(false); });
-  }, [game, platform]);
+  }, [game, platform, type]);
 
-  const switchType = (t: string) => {
-    setType(t as any);
+  const switchType = (t: VideoType) => {
+    setType(t);
     fetchVideos(t);
   };
 
@@ -157,7 +160,7 @@ export function YouTubePanel({ game, platform, type: initialType = "playthrough"
               <div className="flex gap-3 p-2">
                 {/* Thumbnail */}
                 <div className="relative shrink-0 w-24 h-14 bg-zinc-900 overflow-hidden">
-                  <img src={v.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  <Image src={v.thumbnail} alt="" fill sizes="96px" className="object-cover" />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/20 transition-colors">
                     <span className="text-white text-xl">▶</span>
                   </div>

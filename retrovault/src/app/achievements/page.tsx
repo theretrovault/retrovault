@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ACHIEVEMENTS, RARITIES, CATEGORY_LABELS, getTotalPoints, type AchievementCategory } from "@/data/achievements";
+import { ACHIEVEMENTS, RARITIES, CATEGORY_LABELS, getTotalPoints, type AchievementCategory, type AchievementContext } from "@/data/achievements";
 import { AchievementCard } from "@/components/AchievementCard";
 
-type AchievementData = { unlockedIds: string[]; context: any; autoCount: number };
+type AchievementData = { unlockedIds: string[]; context: AchievementContext; autoCount: number };
 
+type CategoryFilter = AchievementCategory | "all";
 const RARITY_ORDER: string[] = ["legendary","epic","rare","uncommon","common"];
 
 export default function AchievementsPage() {
@@ -89,7 +90,7 @@ export default function AchievementsPage() {
           placeholder="Search achievements..."
           className="bg-zinc-950 border-2 border-zinc-800 text-zinc-300 font-terminal text-sm p-2 focus:outline-none focus:border-green-600 w-48" />
 
-        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as any)}
+        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as CategoryFilter)}
           className="bg-zinc-950 border-2 border-zinc-800 text-zinc-300 font-terminal text-sm p-2 focus:outline-none cursor-pointer">
           <option value="all">All Categories</option>
           {Object.entries(CATEGORY_LABELS).map(([k, v]) => (

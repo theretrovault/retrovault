@@ -4,7 +4,7 @@ import { PriceDetailModal } from "@/components/PriceDetailModal";
 
 type GameItem = {
   id: string; title: string; platform: string;
-  copies: { id: string; condition: string; hasBox: boolean; hasManual: boolean }[];
+  copies: { id: string; condition: string; hasBox: boolean; hasManual: boolean; priceAcquired: string }[];
   marketLoose?: string; isDigital?: boolean;
 };
 
@@ -23,7 +23,7 @@ export default function RandomizerPage() {
 
   useEffect(() => {
     fetch("/api/inventory").then(r => r.json()).then((d: GameItem[]) => setInventory(d.filter(i => (i.copies||[]).length > 0 && !i.isDigital)));
-    fetch("/api/playlog").then(r => r.json()).then((pl: any[]) => {
+    fetch("/api/playlog").then(r => r.json()).then((pl: { id: string; status: string }[]) => {
       const map: PlayStatus = {};
       pl.forEach(p => { map[p.id] = p.status; });
       setPlaylog(map);
@@ -165,7 +165,7 @@ export default function RandomizerPage() {
 
       {detailItem && (
         <PriceDetailModal
-          item={detailItem as any}
+          item={detailItem}
           onClose={() => setDetailItem(null)}
           allPeople={[]}
         />

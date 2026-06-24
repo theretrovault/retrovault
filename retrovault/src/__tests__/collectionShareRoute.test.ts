@@ -8,8 +8,8 @@ vi.mock('@/lib/prisma', () => ({
   default: {
     collectionShare: {
       findFirst: vi.fn(async () => store.share),
-      findUnique: vi.fn(async ({ where }: any) => (store.share?.token === where.token ? store.share : null)),
-      create: vi.fn(async ({ data }: any) => {
+      findUnique: vi.fn(async ({ where }: { where: { token: string } }) => (store.share?.token === where.token ? store.share : null)),
+      create: vi.fn(async ({ data }: { data: { token?: string; label?: string; expiresAt?: string } }) => {
         store.share = {
           token: data.token || 'generated-collection-token',
           label: data.label || 'My Collection',
@@ -52,7 +52,7 @@ describe('collection share route', () => {
         label: 'Alex Collection',
         expiresAt: '2026-05-01T00:00:00.000Z',
       }),
-    }) as any);
+    }) as unknown as Request);
     const body = await response.json();
 
     expect(response.status).toBe(200);

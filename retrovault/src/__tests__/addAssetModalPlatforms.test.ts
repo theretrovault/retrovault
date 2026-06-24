@@ -10,7 +10,9 @@ describe('AddAssetModal platform sourcing', () => {
     expect(source).toContain("const enabled = ((Array.isArray(cfg?.platforms) ? cfg.platforms : []) as string[])");
     expect(source).toContain(".filter((name: string) => name && name.toLowerCase() !== 'all')");
     expect(source).toContain('const uniqueEnabled = [...new Set(enabled)];');
-    expect(source).toContain('availablePlatformsRef.current = [...uniqueEnabled, ...uniqueStatic];');
+    expect(source).toContain('const nextPlatforms = [...uniqueEnabled, ...uniqueStatic];');
+    expect(source).toContain('availablePlatformsRef.current = nextPlatforms;');
+    expect(source).toContain('setAvailablePlatforms(nextPlatforms);');
   });
 
   it('keeps suggestions driven by the merged runtime platform list', () => {

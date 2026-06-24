@@ -231,48 +231,42 @@ export function buildDemoSteps(features?: {
   });
 }
 
+type DemoInitialState = { isActive: boolean; currentStep: number; activeSteps: DemoStep[] };
+
+function getInitialDemoState(): DemoInitialState {
+  if (typeof window === "undefined") return { isActive: false, currentStep: 0, activeSteps: ALL_DEMO_STEPS };
+  try {
+    const raw = localStorage.getItem(DEMO_AUTOSTART_KEY);
+    if (raw) {
+      localStorage.removeItem(DEMO_AUTOSTART_KEY);
+      const { features } = JSON.parse(raw) as { features?: Record<string, boolean> };
+      const filtered = buildDemoSteps(features ?? {});
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ active: true, stepIndex: 0, steps: filtered }));
+      return { isActive: true, currentStep: 0, activeSteps: filtered };
+    }
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const { active, stepIndex, steps } = JSON.parse(saved) as { active?: boolean; stepIndex?: number; steps?: DemoStep[] };
+      const restoredSteps = steps ?? ALL_DEMO_STEPS;
+      if (active && typeof stepIndex === "number" && stepIndex < restoredSteps.length) {
+        return { isActive: true, currentStep: stepIndex, activeSteps: restoredSteps };
+      }
+    }
+  } catch { /* ignore */ }
+  return { isActive: false, currentStep: 0, activeSteps: ALL_DEMO_STEPS };
+}
+
 export function DemoProvider({ children }: { children: React.ReactNode }) {
-  const [isActive,     setIsActive]     = useState(false);
-  const [currentStep,  setCurrentStep]  = useState(0);
-  const [activeSteps,  setActiveSteps]  = useState<DemoStep[]>(ALL_DEMO_STEPS);
+  const [initialDemoState] = useState(getInitialDemoState);
+  const [isActive,     setIsActive]     = useState(initialDemoState.isActive);
+  const [currentStep,  setCurrentStep]  = useState(initialDemoState.currentStep);
+  const [activeSteps,  setActiveSteps]  = useState<DemoStep[]>(initialDemoState.activeSteps);
   const router      = useRouter();
   const pathname    = usePathname();
   const navigating  = useRef(false);
 
   const step = isActive && currentStep < activeSteps.length ? activeSteps[currentStep] : null;
 
-  // Restore demo state from sessionStorage on mount
-  useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const { active, stepIndex, steps } = JSON.parse(saved);
-        if (active) {
-          const restoredSteps = steps ?? ALL_DEMO_STEPS;
-          if (stepIndex < restoredSteps.length) {
-            setActiveSteps(restoredSteps);
-            setIsActive(true);
-            setCurrentStep(stepIndex);
-          }
-        }
-      }
-    } catch { /* ignore */ }
-  }, []);
-
-  // Check for post-wizard autostart flag on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(DEMO_AUTOSTART_KEY);
-      if (!raw) return;
-      localStorage.removeItem(DEMO_AUTOSTART_KEY);
-      const { features } = JSON.parse(raw) as { features?: Record<string, boolean> };
-      const filtered = buildDemoSteps(features as Parameters<typeof buildDemoSteps>[0]);
-      setActiveSteps(filtered);
-      setCurrentStep(0);
-      setIsActive(true);
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ active: true, stepIndex: 0, steps: filtered }));
-    } catch { /* ignore */ }
-  }, []);
 
   // Persist demo state whenever it changes
   useEffect(() => {

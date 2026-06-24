@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { RARITIES, type Achievement } from "@/data/achievements";
+import { RARITIES, type Achievement, type AchievementContext } from "@/data/achievements";
 import { AchievementModal } from "@/components/AchievementModal";
 
 type Props = {
   achievement: Achievement;
   unlocked: boolean;
-  context?: any;
+  context?: AchievementContext;
   compact?: boolean; // smaller layout for dashboard widgets
 };
 

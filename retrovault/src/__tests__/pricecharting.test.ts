@@ -13,6 +13,7 @@
 
 import { describe, it, expect } from 'vitest';
 import * as cheerio from 'cheerio';
+import type { AnyNode } from 'domhandler';
 
 // ─── Helpers extracted from the API route for unit testing ───────────────────
 
@@ -29,7 +30,7 @@ function cleanText(value: string | null | undefined): string {
   return (value || '').replace(/\s+/g, ' ').trim();
 }
 
-function extractRowTitle(rowEl: cheerio.Cheerio<any>): string {
+function extractRowTitle(rowEl: cheerio.Cheerio<AnyNode>): string {
   return cleanText(
     rowEl.find('td.title > a').first().text()
     || rowEl.find('td.title a').first().text()

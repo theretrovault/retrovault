@@ -65,6 +65,10 @@ type VariantMatch = {
   graded: string | null;
 };
 
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 type PriceLookup = {
   title: string;
   platform: string;
@@ -175,7 +179,7 @@ export default function WishlistPage() {
     fetch("/api/favorites")
       .then(r => r.json())
       .then((d) => {
-        const nextPlayers = Array.isArray(d?.people) ? d.people.filter((person: any) => person?.id && person?.name) : [];
+        const nextPlayers = Array.isArray(d?.people) ? d.people.filter((person: PlayerOption) => person?.id && person?.name) : [];
         setPlayers(nextPlayers);
         const storedPlayerId = typeof window !== "undefined" ? localStorage.getItem(WISHLIST_PLAYER_STORAGE_KEY) || "" : "";
         const preferredPlayerId = nextPlayers.some((player: PlayerOption) => player.id === storedPlayerId)
@@ -352,9 +356,9 @@ export default function WishlistPage() {
         )));
       }
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       setPriceLookup(null);
-      setPriceError(error?.message || "Price lookup failed");
+      setPriceError(errorMessage(error, "Price lookup failed"));
       return false;
     } finally {
       if (wishlistId) {
@@ -522,11 +526,11 @@ export default function WishlistPage() {
       closeFoundPrompt();
       setSaveStatus(`✅ ${item.title} added to your collection.`);
       await Promise.all([load(), fetch("/api/inventory").then(r => r.json()).then((d: InventoryItem[]) => setInventory(Array.isArray(d) ? d : [])).catch(() => {})]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setFoundPrompt((current) => ({
         ...current,
         saving: false,
-        error: error?.message || "Failed to add this wishlist item to your collection.",
+        error: errorMessage(error, "Failed to add this wishlist item to your collection."),
       }));
     }
   };
@@ -612,10 +616,10 @@ export default function WishlistPage() {
       } catch {
         setCopyMsg("Copy the link above");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       setShareUrl(null);
       setShareQrSvg("");
-      setCopyMsg(error?.message || "Share link failed");
+      setCopyMsg(errorMessage(error, "Share link failed"));
     }
   };
 

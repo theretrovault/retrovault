@@ -158,7 +158,7 @@ export default function WhatnotPage() {
           { id: 'schedule', label: `📅 Stream Schedule (${upcomingStreams.length})` },
           { id: 'sellers', label: `👤 Sellers (${data.sellers.length})` },
         ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id as any)}
+          <button key={t.id} onClick={() => setTab(t.id as 'schedule' | 'sellers')}
             className={`px-4 py-2 font-terminal text-sm border-2 transition-colors ${tab === t.id ? "bg-green-700 text-black border-green-500" : "text-zinc-500 border-zinc-700 hover:border-zinc-500"}`}>
             {t.label}
           </button>

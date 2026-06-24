@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { CHANGELOG } from "@/data/changelog";
 import Link from "next/link";
 
@@ -11,12 +11,7 @@ export function shouldShowWhatsNew(seenVersion: string | null, currentVersion: s
 }
 
 export function WhatsNew() {
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    const seen = localStorage.getItem(SEEN_KEY);
-    if (shouldShowWhatsNew(seen, CURRENT_VERSION)) setShow(true);
-  }, []);
+  const [show, setShow] = useState(() => (typeof window !== "undefined" ? shouldShowWhatsNew(localStorage.getItem(SEEN_KEY), CURRENT_VERSION) : false));
 
   const dismiss = () => {
     localStorage.setItem(SEEN_KEY, CURRENT_VERSION);

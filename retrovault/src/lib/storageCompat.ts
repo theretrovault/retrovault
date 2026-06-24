@@ -560,6 +560,8 @@ export async function deleteWatchlistCompat(id: string): Promise<boolean> {
   return true;
 }
 
+type FavoritePersonWithColor = { id: string; name: string; color?: string | null };
+
 export async function readFavoritesCompat(): Promise<LegacyFavoritesData> {
   const people = await prisma.person.findMany({
     include: {
@@ -572,7 +574,7 @@ export async function readFavoritesCompat(): Promise<LegacyFavoritesData> {
   const legacy = readDataFile<LegacyFavoritesData>('favorites.json', { people: [], favorites: {}, regrets: {} });
   const mergedPeople = new Map<string, { id: string; name: string; color?: string | null }>();
   for (const person of legacy.people || []) mergedPeople.set(person.id, person);
-  for (const person of people) mergedPeople.set(person.id, { id: person.id, name: person.name, color: (person as any).color ?? null });
+  for (const person of people) mergedPeople.set(person.id, { id: person.id, name: person.name, color: (person as FavoritePersonWithColor).color ?? null });
 
   const favorites: Record<string, string[]> = { ...(legacy.favorites || {}) };
   const regrets: Record<string, string[]> = { ...(legacy.regrets || {}) };

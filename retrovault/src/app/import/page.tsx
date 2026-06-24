@@ -101,8 +101,8 @@ export default function ImportPage() {
         const parsed = parseCSV(text);
         if (parsed.length === 0) { setError("No valid rows found. Check your CSV format."); return; }
         setRows(parsed);
-      } catch (err: any) {
-        setError(`Parse error: ${err.message}`);
+      } catch (err: unknown) {
+        setError(`Parse error: ${err instanceof Error ? err.message : 'Unknown parse error'}`);
       }
     };
     reader.readAsText(file);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ACHIEVEMENTS, getTotalPoints } from "@/data/achievements";
+import { ACHIEVEMENTS, getTotalPoints, type AchievementContext } from "@/data/achievements";
 import { AchievementCard } from "@/components/AchievementCard";
 import { AlertsBanner } from "@/components/AlertsBanner";
 import { calcFlipMetrics, DEFAULT_EBAY_FEE, DEFAULT_SHIPPING } from "@/lib/flipMath";
@@ -15,7 +15,7 @@ type GameItem = {
   priceHistory?: Record<string, { loose?: string | null }>;
 };
 
-type SalesData = { sales: { salePrice: string; gameTitle: string }[]; acquisitions: any[] };
+type SalesData = { sales: { salePrice: string; gameTitle: string }[]; acquisitions: unknown[] };
 type WatchlistItem = { id: string; title: string; platform: string; alertPrice: string; marketLoose?: string };
 type GrailEntry = { id: string; title: string; platform: string; acquiredAt?: string };
 type EventItem = { id: string; title: string; date?: string; location: string; attending: boolean };
@@ -43,7 +43,7 @@ export function Dashboard() {
   const [grails, setGrails] = useState<GrailEntry[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [playlog, setPlaylog] = useState<PlayLogEntry[]>([]);
-  const [achievements, setAchievements] = useState<{ unlockedIds: string[]; context?: any } | null>(null);
+  const [achievements, setAchievements] = useState<{ unlockedIds: string[]; context?: AchievementContext } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

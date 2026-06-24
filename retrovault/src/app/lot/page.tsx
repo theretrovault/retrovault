@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-type InventoryItem = { id: string; title: string; platform: string; copies: any[]; marketLoose?: string; marketCib?: string; };
+type InventoryItem = { id: string; title: string; platform: string; copies: { id?: string; priceAcquired?: string | number }[]; marketLoose?: string; marketCib?: string; };
 type LotItem = { id: string; title: string; platform: string; marketValue: number; allocatedCost: number; };
 
 export default function LotPage() {

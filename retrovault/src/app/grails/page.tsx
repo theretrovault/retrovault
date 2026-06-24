@@ -78,7 +78,7 @@ export default function GrailsPage() {
           { id: 'found', label: `✅ Found (${found})` },
           { id: 'all', label: `📋 All (${grails.length})` },
         ].map(f => (
-          <button key={f.id} onClick={() => setFilter(f.id as any)}
+          <button key={f.id} onClick={() => setFilter(f.id as 'active' | 'found' | 'all')}
             className={`px-4 py-2 font-terminal text-sm uppercase border-2 transition-colors ${filter === f.id ? 'bg-green-700 text-black border-green-500' : 'text-zinc-500 border-zinc-700 hover:border-zinc-500'}`}>
             {f.label}
           </button>

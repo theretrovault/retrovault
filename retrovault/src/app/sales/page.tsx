@@ -72,7 +72,7 @@ export default function SalesPage() {
     });
     // 2. Also add to main inventory
     const existing = await fetch('/api/inventory').then(r => r.json());
-    const found = existing.find((i: any) =>
+    const found = existing.find((i: { title: string; platform: string }) =>
       i.title.toLowerCase() === data.title.toLowerCase() &&
       i.platform.toLowerCase() === data.platform.toLowerCase()
     );
