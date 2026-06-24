@@ -6,6 +6,80 @@ import { resolveDataPath } from '@/lib/runtimeDataPaths';
 
 const read = <T,>(file: string, fallback: T): T => readDataFile(file, fallback);
 
+type InventoryCopy = {
+  priceAcquired?: string | number | null;
+};
+
+type InventoryItem = {
+  platform?: string;
+  source?: string | null;
+  isDigital?: boolean;
+  marketLoose?: string | number | null;
+  priceHistory?: Record<string, unknown>;
+  copies?: InventoryCopy[];
+};
+
+type SaleEntry = {
+  gameId?: string;
+  salePrice?: string | number | null;
+};
+
+type AcquisitionEntry = {
+  gameId?: string;
+  cost?: string | number | null;
+};
+
+type FavoritesData = {
+  people: unknown[];
+  favorites: Record<string, string[]>;
+  regrets: Record<string, string[]>;
+};
+
+type PlaylogEntry = {
+  status?: string;
+  rating?: number;
+};
+
+type GrailEntry = {
+  acquiredAt?: string | null;
+};
+
+type TagsData = {
+  gameTags: Record<string, string[]>;
+  platformTags: Record<string, string[]>;
+  mentions: Record<string, unknown[]>;
+};
+
+type EventEntry = {
+  attending?: boolean;
+};
+
+type WhatnotData = {
+  sellers: unknown[];
+  streams: Array<{ attending?: boolean }>;
+};
+
+type ScraperEntry = {
+  lastRun?: string | null;
+};
+
+type DealEntry = {
+  dismissed?: boolean;
+};
+
+type ValueHistoryEntry = {
+  date?: string;
+  fetchedAt?: string;
+};
+
+type AppConfig = {
+  apiKeys?: unknown[];
+  setupWizardMode?: 'collector' | 'dealer' | 'empire' | null;
+  setupWizardVersion?: string | number | null;
+  auth?: { enabled?: boolean; passwordHash?: string | null };
+  themeColor?: string | null;
+};
+
 export function getAchievementsUnlockedPath() {
   return resolveDataPath('achievements-unlocked.json');
 }
@@ -41,43 +115,45 @@ async function readWishlistShared(): Promise<boolean> {
 }
 
 export async function buildAchievementContext(): Promise<AchievementContext> {
-  const inventory = read<any[]>('inventory.json', []);
-  const sales = read<{ sales: any[]; acquisitions: any[] }>('sales.json', { sales: [], acquisitions: [] });
-  const favorites = read<{ people: any[]; favorites: Record<string, string[]>; regrets: Record<string, string[]> }>('favorites.json', { people: [], favorites: {}, regrets: {} });
-  const playlog = read<any[]>('playlog.json', []);
-  const grails = read<any[]>('grails.json', []);
-  const watchlist = read<any[]>('watchlist.json', []);
-  const tags = read<{ gameTags: Record<string, string[]>; platformTags: Record<string, string[]>; mentions: Record<string, any[]> }>('tags.json', { gameTags: {}, platformTags: {}, mentions: {} });
-  const events = read<any[]>('events.json', []);
-  const whatnot = read<{ sellers: any[]; streams: any[] }>('whatnot.json', { sellers: [], streams: [] });
-  const scrapers = read<any[]>('scrapers.json', []);
-  const clDeals = read<any[]>('craigslist-deals.json', []);
-  const valueHistory = read<any[]>('value-history.json', []);
-  const bugReports = read<any[]>('bug-reports.json', []);
-  const cfg = read<Record<string, any>>('app.config.json', {});
+  const inventory = read<InventoryItem[]>('inventory.json', []);
+  const sales = read<{ sales: SaleEntry[]; acquisitions: AcquisitionEntry[] }>('sales.json', { sales: [], acquisitions: [] });
+  const favorites = read<FavoritesData>('favorites.json', { people: [], favorites: {}, regrets: {} });
+  const playlog = read<PlaylogEntry[]>('playlog.json', []);
+  const grails = read<GrailEntry[]>('grails.json', []);
+  const watchlist = read<unknown[]>('watchlist.json', []);
+  const tags = read<TagsData>('tags.json', { gameTags: {}, platformTags: {}, mentions: {} });
+  const events = read<EventEntry[]>('events.json', []);
+  const whatnot = read<WhatnotData>('whatnot.json', { sellers: [], streams: [] });
+  const scrapers = read<ScraperEntry[]>('scrapers.json', []);
+  const clDeals = read<DealEntry[]>('craigslist-deals.json', []);
+  const valueHistory = read<ValueHistoryEntry[]>('value-history.json', []);
+  const bugReports = read<unknown[]>('bug-reports.json', []);
+  const cfg = read<AppConfig>('app.config.json', {});
 
-  const owned = inventory.filter((i: any) => (i.copies || []).length > 0 && !i.isDigital);
-  const platforms = [...new Set(owned.map((i: any) => i.platform))] as string[];
+  const owned = inventory.filter((i) => (i.copies || []).length > 0 && !i.isDigital);
+  const platforms = [...new Set(owned.map((i) => i.platform).filter((platform): platform is string => Boolean(platform)))];
 
   const platformCounts: Record<string, number> = {};
   for (const i of owned) {
+    if (!i.platform) continue;
     platformCounts[i.platform] = (platformCounts[i.platform] || 0) + 1;
   }
 
   const saleList = sales.sales || [];
-  const totalRevenue = saleList.reduce((s: number, sale: any) => s + (parseFloat(sale.salePrice) || 0), 0);
-  const totalSpent = owned.reduce((s: number, i: any) =>
-    s + (i.copies || []).reduce((cs: number, c: any) => cs + (parseFloat(c.priceAcquired) || 0), 0), 0);
+  const totalRevenue = saleList.reduce((s, sale) => s + (parseFloat(String(sale.salePrice ?? '')) || 0), 0);
+  const totalSpent = owned.reduce((s, i) =>
+    s + (i.copies || []).reduce((cs, c) => cs + (parseFloat(String(c.priceAcquired ?? '')) || 0), 0), 0);
 
   const acqMap: Record<string, number> = {};
   for (const acq of (sales.acquisitions || [])) {
-    acqMap[acq.gameId] = (acqMap[acq.gameId] || 0) + (parseFloat(acq.cost) || 0);
+    if (!acq.gameId) continue;
+    acqMap[acq.gameId] = (acqMap[acq.gameId] || 0) + (parseFloat(String(acq.cost ?? '')) || 0);
   }
   let bestFlipRoi = 0;
   for (const sale of saleList) {
-    const cost = acqMap[sale.gameId] || 0;
+    const cost = sale.gameId ? acqMap[sale.gameId] || 0 : 0;
     if (cost > 0) {
-      const roi = ((parseFloat(sale.salePrice) - cost) / cost) * 100;
+      const roi = ((parseFloat(String(sale.salePrice ?? '')) - cost) / cost) * 100;
       if (roi > bestFlipRoi) bestFlipRoi = roi;
     }
   }
@@ -95,24 +171,24 @@ export async function buildAchievementContext(): Promise<AchievementContext> {
     }
   }
 
-  const sources: string[] = [...new Set(owned.map((i: any) => i.source).filter(Boolean))] as string[];
+  const sources = [...new Set(owned.map((i) => i.source).filter((source): source is string => Boolean(source)))];
   const allGameTags = Object.values(tags.gameTags || {}) as string[][];
   const totalTags = allGameTags.reduce((s, arr) => s + arr.length, 0);
-  const allMentions = Object.values(tags.mentions || {}) as any[][];
+  const allMentions = Object.values(tags.mentions || {});
   const totalMentions = allMentions.reduce((s, arr) => s + arr.length, 0);
   const allFavs = Object.values(favorites.favorites || {}) as string[][];
   const totalFavorites = allFavs.reduce((s, arr) => s + arr.length, 0);
   const allRegs = Object.values(favorites.regrets || {}) as string[][];
   const totalRegrets = allRegs.reduce((s, arr) => s + arr.length, 0);
 
-  const beaten = playlog.filter((p: any) => p.status === 'beat').length;
-  const gaveUp = playlog.filter((p: any) => p.status === 'gave_up').length;
-  const playing = playlog.filter((p: any) => p.status === 'playing').length;
-  const backlog = playlog.filter((p: any) => p.status === 'backlog').length;
-  const ratings5 = playlog.filter((p: any) => p.rating === 5).length;
-  const ratings1 = playlog.filter((p: any) => p.rating === 1).length;
-  const conventionSessions = events.filter((e: any) => e.attending).length;
-  const scraperRuns = scrapers.filter((s: any) => s.lastRun !== null).length;
+  const beaten = playlog.filter((p) => p.status === 'beat').length;
+  const gaveUp = playlog.filter((p) => p.status === 'gave_up').length;
+  const playing = playlog.filter((p) => p.status === 'playing').length;
+  const backlog = playlog.filter((p) => p.status === 'backlog').length;
+  const ratings5 = playlog.filter((p) => p.rating === 5).length;
+  const ratings1 = playlog.filter((p) => p.rating === 1).length;
+  const conventionSessions = events.filter((e) => e.attending).length;
+  const scraperRuns = scrapers.filter((s) => s.lastRun !== null).length;
 
   let uptimeDays = 0;
   if (valueHistory.length > 0) {
@@ -121,7 +197,7 @@ export async function buildAchievementContext(): Promise<AchievementContext> {
   }
 
   const apiKeysCreated = (cfg.apiKeys || []).length;
-  const setupWizardMode = (cfg.setupWizardMode as 'collector' | 'dealer' | 'empire' | null) ?? null;
+  const setupWizardMode = cfg.setupWizardMode ?? null;
   const setupWizardDone = !!cfg.setupWizardVersion;
   const authConfigured = !!cfg.auth?.enabled && !!cfg.auth?.passwordHash;
   const themeCustomized = !!cfg.themeColor && cfg.themeColor !== 'green';
@@ -129,7 +205,7 @@ export async function buildAchievementContext(): Promise<AchievementContext> {
   const wishlistShared = await readWishlistShared();
   const wishlistMustHaveCount = await prisma.wishlistItem.count({ where: { priority: 1 } }).catch(() => 0);
   const collectionExported = valueHistory.length > 0;
-  const csvImported = owned.some((i: any) => i.source && i.source.toLowerCase().includes('import'));
+  const csvImported = owned.some((i) => i.source && i.source.toLowerCase().includes('import'));
 
   return {
     totalOwned: owned.length,
@@ -141,11 +217,11 @@ export async function buildAchievementContext(): Promise<AchievementContext> {
     totalSales: saleList.length,
     totalProfit: totalRevenue - totalSpent,
     bestFlipRoi,
-    hasMarketData: inventory.some((i: any) => i.marketLoose),
+    hasMarketData: inventory.some((i) => i.marketLoose),
     priceHistoryDays: maxHistoryDays,
     watchlistCount: watchlist.length,
     grailCount: grails.length,
-    grailsFound: grails.filter((g: any) => g.acquiredAt).length,
+    grailsFound: grails.filter((g) => g.acquiredAt).length,
     playlogCount: playlog.length,
     gamesBeaten: beaten,
     gamesGivenUp: gaveUp,
@@ -158,7 +234,7 @@ export async function buildAchievementContext(): Promise<AchievementContext> {
     totalRegrets,
     totalTags,
     totalMentions,
-    eventsAttending: events.filter((e: any) => e.attending).length,
+    eventsAttending: events.filter((e) => e.attending).length,
     conventionSessions,
     conventionSpent: 0,
     sources,
@@ -178,9 +254,9 @@ export async function buildAchievementContext(): Promise<AchievementContext> {
     xbox360Owned: platformCounts['Xbox 360'] || 0,
     segaCdOwned: platformCounts['Sega CD'] || 0,
     scraperRuns,
-    dealsDismissed: clDeals.filter((d: any) => d.dismissed).length,
+    dealsDismissed: clDeals.filter((d) => d.dismissed).length,
     whatnotSellers: (whatnot.sellers || []).length,
-    streamsWatched: (whatnot.streams || []).filter((s: any) => s.attending).length,
+    streamsWatched: (whatnot.streams || []).filter((s) => s.attending).length,
     apiKeysCreated,
     bugReportsFiled: bugReports.length,
     collectionExported,
