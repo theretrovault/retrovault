@@ -12,7 +12,7 @@ Current state:
 - GitHub is already the public source of truth
 - release / CI / deploy workflows exist
 - GHCR is referenced in docs and templates
-- Docker Hub is planned but not yet represented as a live publish path
+- Docker Hub is represented as a live stable publish path for tagged releases
 - community/support surfaces are partially documented but not yet fully formalized as a product-availability lane
 
 ---
@@ -27,7 +27,7 @@ Current state:
 
 ### Current gaps
 - Product Availability links were previously not surfaced clearly from the README/docs index until this new pass
-- public distribution surfaces (GHCR primary, Docker Hub planned mirror) need clearer explicit messaging
+- public distribution surfaces (GHCR primary, Docker Hub stable mirror) need to stay aligned with proven install-path evidence
 - screenshots/media are still implied rather than formalized as a public-surface asset set
 - GitHub About/social-preview/discussion settings still need manual platform confirmation
 
@@ -46,7 +46,7 @@ Status: **Mostly ready, pending final public-surface polish + Alex platform sett
 ### Current gaps
 - no explicit GHCR publish workflow was confirmed in the current Phase 1 audit pass
 - package visibility may still require GitHub UI action
-- tag strategy is documented in planning docs but not yet fully verified in workflow implementation here
+- stable tag strategy is verified for `v2.1.44` / `latest`; nightly still needs manifest proof
 - multi-arch expectations were not confirmed in current workflows
 
 ### Assessment
@@ -67,7 +67,7 @@ Status: **Conceptually ready, operationally needs workflow verification and like
 - no Docker Hub token/secrets can be assumed yet
 
 ### Assessment
-Status: **Planned but not yet operational**
+Status: **Operational for stable tags; nightly still unproven**
 
 ---
 
@@ -136,3 +136,8 @@ It already has enough structure that Product Availability Phase 1 is mostly an e
 - wiring container distribution cleanly
 - confirming a few platform/account decisions
 - making GitHub/docs/community feel intentional instead of incidental
+
+
+## Stable registry proof — 2026-06-24
+
+A no-new-release proof verified GHCR and Docker Hub stable tags, matching digest parity, and a disposable Docker Hub container `/api/health` response. The remaining registry gap is `ghcr.io/theretrovault/retrovault:nightly`, which returned `MANIFEST_UNKNOWN`.

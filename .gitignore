@@ -15,3 +15,18 @@ second-brain/
 # OS artifacts
 .DS_Store
 Thumbs.db
+# TypeScript incremental build artifacts
+*.tsbuildinfo
+# SQLite runtime sidecar files
+*.db-shm
+*.sqlite-shm
+*.sqlite3-shm
+# One-off local backup/snapshot artifacts
+*.bak
+*.backup
+*.before
+*.bak-*
+*.before-*
+backups/
+.fuse_hidden*
+**/.fuse_hidden*

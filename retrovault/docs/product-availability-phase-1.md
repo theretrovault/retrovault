@@ -35,7 +35,7 @@ Phase 2 surfaces are intentionally deferred until Phase 1 is cleaner:
 - Audit current GitHub Actions/container workflows for GHCR publishing quality
 - Document the desired GHCR tagging model (`latest`, `nightly`, semver tags)
 - Prepare workflow updates or checklist items for multi-arch/container metadata if missing
-- Document exact verification steps for package visibility and pull instructions
+- Document exact verification steps for package visibility and pull instructions; stable install proof completed 2026-06-24
 
 ### Docker Hub readiness
 - Prepare Docker Hub publishing checklist and tag strategy
@@ -64,7 +64,7 @@ Phase 2 surfaces are intentionally deferred until Phase 1 is cleaner:
 
 ## Phase 1 decisions now locked in
 
-- Docker Hub namespace/repo target: `theretrovault/retrovault`
+- Docker Hub namespace/repo target: `retrovault/retrovault`
 - GHCR is the primary public registry
 - Docker Hub is a convenience mirror, not the primary registry authority
 - community remains GitHub-first for Phase 1

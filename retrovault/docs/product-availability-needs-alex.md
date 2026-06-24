@@ -9,7 +9,7 @@ The goal is to keep asks small, concrete, and easy to knock out once the self-se
 ## 1. Docker Hub ownership
 
 Confirmed direction:
-- official target repo path should be `theretrovault/retrovault`
+- official target repo path is `retrovault/retrovault`
 
 Still needed later when the mirror is activated:
 - a Docker Hub access token/credentials for GitHub Actions secrets
@@ -23,7 +23,7 @@ Please confirm or perform:
 
 Why this matters:
 - docs already position GHCR as a primary distribution surface
-- public pull/install trust depends on package visibility matching the docs
+- public pull/install trust now has stable proof for `v2.1.44` / `latest`; remaining trust work is GitHub/About/support polish and nightly verification
 
 ---
 

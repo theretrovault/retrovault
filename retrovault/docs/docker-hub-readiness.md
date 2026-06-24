@@ -45,10 +45,10 @@ Rule of thumb:
 ## Readiness checklist
 
 ### Public surface
-- [ ] official Docker Hub repo exists
-- [ ] description clearly explains what RetroVault is
+- [x] official Docker Hub repo exists (`retrovault/retrovault`)
+- [x] description clearly explains what RetroVault is
 - [x] long description mirrors or adapts the README well
-- [ ] tags are predictable and documented
+- [x] tags are predictable and documented
 - [x] install example is visible in Docker Hub description
 
 ### Automation
@@ -58,10 +58,10 @@ Rule of thumb:
 - [x] no manual-only publish process unless intentionally temporary
 
 ### Trust / operator experience
-- [ ] docs explain persistence volumes and environment expectations
+- [x] docs explain persistence volumes and environment expectations
 - [ ] docs explain upgrade expectations
 - [ ] backup/restore guidance is linked nearby
-- [ ] image naming matches docs exactly
+- [x] image naming matches docs exactly (`retrovault/retrovault`)
 
 ---
 
@@ -213,3 +213,8 @@ retrovault/retrovault
 
 RetroVault is open source under the MIT license.
 ```
+
+
+## Stable proof — 2026-06-24
+
+Docker Hub is no longer only planned: `retrovault/retrovault` is public and active. Verified tags include `latest`, `v2.1.44`, `2.1.44`, `v2.1.43`, `2.1.43`, `v2.1.42`, `2.1.42`, `v2.1.41`, and `2.1.41`. The stable `v2.1.44` / `latest` digest matches GHCR at `sha256:e8fe85f352c91070d66570cb4c288d13cf5d53d16269ffaee5d4e55426cdc366`, and a disposable `retrovault/retrovault:v2.1.44` container returned `/api/health` with `status: ok`.
