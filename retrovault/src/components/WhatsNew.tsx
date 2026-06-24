@@ -39,7 +39,7 @@ export function WhatsNew() {
           <div className="flex items-center gap-3">
             <span className="text-3xl">🎉</span>
             <div>
-              <h2 className="text-green-400 font-terminal text-xl uppercase">What's New in v{CURRENT_VERSION}</h2>
+              <h2 className="text-green-400 font-terminal text-xl uppercase">What&apos;s New in v{CURRENT_VERSION}</h2>
               <p className="text-zinc-600 font-terminal text-xs">{latest.title}</p>
             </div>
           </div>

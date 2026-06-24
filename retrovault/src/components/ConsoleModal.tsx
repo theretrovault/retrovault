@@ -122,7 +122,7 @@ export function ConsoleModal({
         {/* Daily Rotating Facts */}
         <div className="mb-6">
           <h3 className={`font-terminal text-xl uppercase mb-3 ${accentColor}`}>
-            📡 Today's Did You Know?
+            📡 Today&apos;s Did You Know?
             <span className="text-zinc-600 text-sm ml-2 font-normal">(rotates daily)</span>
           </h3>
           <div className="space-y-3">

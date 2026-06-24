@@ -191,7 +191,7 @@ export default function InsurancePage() {
 
           {!generatedAt && (
             <div className="text-center py-10 border-2 border-dashed border-zinc-800">
-              <p className="text-zinc-600 font-terminal text-lg mb-3">Set your name above, then click "Generate Report"</p>
+              <p className="text-zinc-600 font-terminal text-lg mb-3">Set your name above, then click &quot;Generate Report&quot;</p>
               <p className="text-zinc-700 font-terminal text-sm">The report will show your full collection value breakdown, platform summary, and top items for insurance documentation.</p>
             </div>
           )}

@@ -91,7 +91,7 @@ export function BugReportModal({ onClose, initialContext }: Props) {
           <div className="p-8 text-center">
             <div className="text-5xl mb-4">✅</div>
             <p className="text-emerald-400 font-terminal text-2xl mb-2">Issue #{result.issueNumber} Filed!</p>
-            <p className="text-zinc-400 font-terminal text-sm mb-4">Thanks for the report. We'll look into it.</p>
+            <p className="text-zinc-400 font-terminal text-sm mb-4">Thanks for the report. We&apos;ll look into it.</p>
             <a href={result.issueUrl} target="_blank" rel="noopener noreferrer"
               className="px-6 py-2 font-terminal text-sm text-blue-400 border border-blue-800 hover:bg-blue-900/20 transition-colors inline-block">
               View on GitHub ↗
@@ -186,7 +186,7 @@ export function BugReportModal({ onClose, initialContext }: Props) {
               <div className="border-2 border-yellow-700 bg-yellow-950/20 p-4">
                 <p className="text-yellow-400 font-terminal text-base mb-2">⚠️ Possible Duplicate Found</p>
                 <p className="text-zinc-400 font-terminal text-sm mb-2">A similar issue already exists:</p>
-                <p className="text-zinc-300 font-terminal text-sm italic mb-3">"{result.existingTitle}"</p>
+                <p className="text-zinc-300 font-terminal text-sm italic mb-3">&quot;{result.existingTitle}&quot;</p>
                 <div className="flex gap-3">
                   <a href={result.existingUrl} target="_blank" rel="noopener noreferrer"
                     className="px-4 py-2 font-terminal text-sm text-blue-400 border border-blue-800 hover:bg-blue-900/20 transition-colors">

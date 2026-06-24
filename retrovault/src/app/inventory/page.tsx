@@ -789,13 +789,13 @@ export default function InventoryPage() {
             {people.length > 0 && <option disabled>── FAVORITES ──</option>}
             {[...people].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
               <option key={p.id} value={`fav_${p.id}`}>
-                ⭐ {p.name.toUpperCase()}'S FAVORITES
+                ⭐ {p.name.toUpperCase()}&apos;S FAVORITES
               </option>
             ))}
             {people.length > 0 && <option disabled>── REGRETS ──</option>}
             {[...people].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
               <option key={p.id} value={`reg_${p.id}`}>
-                👎 {p.name.toUpperCase()}'S REGRETS
+                👎 {p.name.toUpperCase()}&apos;S REGRETS
               </option>
             ))}
           </select>
@@ -1115,7 +1115,7 @@ export default function InventoryPage() {
                 className={`px-4 py-2 font-terminal text-lg uppercase transition-colors ${
                   codexTab === 'player' ? 'bg-green-600 text-black' : 'text-zinc-400 hover:text-white'
                 }`}>
-                🕹️ Player's Guide
+                🕹️ Player&apos;s Guide
               </button>
               <button onClick={() => setCodexTab('tech')}
                 className={`px-4 py-2 font-terminal text-lg uppercase transition-colors ${
@@ -1132,7 +1132,7 @@ export default function InventoryPage() {
                   content: [
                     "The Vault shows your entire game catalog (owned + unowned). Defaults to OWNED view.",
                     "FILTER: OWNED — only games in your collection.",
-                    "FILTER: TARGETS (UNOWNED) — games in the catalog you don't have yet.",
+                    "FILTER: TARGETS (UNOWNED) — games in the catalog you don&apos;t have yet.",
                     "FILTER: ALL — the full 26,000+ title database.",
                     "ACTION: SELL (DUPS) — games where you own multiple copies 🔥.",
                     "FAVORITES / REGRETS — filter by a specific person's picks.",
@@ -1303,7 +1303,7 @@ export default function InventoryPage() {
                     "A Node.js script (scripts/bg-fetch.mjs) runs automatically every night at midnight via cron.",
                     "Skips items already fetched today — safe to run multiple times per day.",
                     "Throttled to 2.5 seconds per request to avoid rate limiting PriceCharting.",
-                    "Saves progress to disk every 25 fetches so interruptions don't lose work.",
+                    "Saves progress to disk every 25 fetches so interruptions don&apos;t lose work.",
                     "Respects the UI fetch lock: if FETCH FILTERED is running, the cron pauses and waits.",
                     "Full run across 26,000 items takes ~18 hours (overnight run is ideal).",
                     "Logs to logs/bg-fetch.log for auditing.",

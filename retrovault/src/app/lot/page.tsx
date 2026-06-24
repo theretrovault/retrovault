@@ -80,7 +80,7 @@ export default function LotPage() {
           <h2 className="text-2xl sm:text-3xl text-green-400 tracking-widest uppercase">Lot Calculator</h2>
         </div>
         <p className="text-zinc-500 font-terminal text-sm mt-2">
-          Bought a bulk lot? Enter what you paid, add the games, and we'll allocate cost per title based on market value.
+          Bought a bulk lot? Enter what you paid, add the games, and we&apos;ll allocate cost per title based on market value.
         </p>
       </header>
 

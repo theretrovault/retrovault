@@ -113,7 +113,7 @@ export default function GuidePage() {
           <span className="text-4xl">📖</span>
           <div>
             <h2 className="text-2xl sm:text-3xl text-green-400 tracking-widest uppercase font-terminal">
-              The Hunter's Field Guide
+              The Hunter&apos;s Field Guide
             </h2>
             <p className="text-zinc-500 font-terminal text-sm mt-1">
               {GUIDE_SECTIONS.length} chapters · {totalTips} principles · Built from the collective wisdom of the retro hunting community
@@ -146,7 +146,7 @@ export default function GuidePage() {
 
       {search && (
         <p className="text-zinc-600 font-terminal text-sm mb-4">
-          {filteredSections.reduce((s, g) => s + g.tips.length, 0)} results for "{search}"
+          {filteredSections.reduce((s, g) => s + g.tips.length, 0)} results for &quot;{search}&quot;
         </p>
       )}
 

@@ -123,7 +123,7 @@ export default function ChangelogPage() {
           />
         ))}
         {filtered.length === 0 && (
-          <div className="text-center py-12 text-zinc-700 font-terminal text-xl">No results for "{search}"</div>
+          <div className="text-center py-12 text-zinc-700 font-terminal text-xl">No results for &quot;{search}&quot;</div>
         )}
       </div>
     </div>

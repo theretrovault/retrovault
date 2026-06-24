@@ -96,9 +96,9 @@ export default function ApiDocsPage() {
             <h3 className="text-zinc-300 font-terminal text-xl uppercase mb-4">Response Format</h3>
             <div className="bg-zinc-900 border border-zinc-700 p-4 font-mono text-xs text-zinc-400">
               <p>{`{`}</p>
-              <p className="ml-4"><span className="text-blue-300">"data"</span>: <span className="text-yellow-300">[ ... ]</span>,</p>
-              <p className="ml-4"><span className="text-blue-300">"meta"</span>: {"{"} <span className="text-yellow-300">"total"</span>: 254, <span className="text-yellow-300">"offset"</span>: 0, ... {"}"},</p>
-              <p className="ml-4"><span className="text-blue-300">"error"</span>: <span className="text-zinc-600">null</span></p>
+              <p className="ml-4"><span className="text-blue-300">&quot;data&quot;</span>: <span className="text-yellow-300">[ ... ]</span>,</p>
+              <p className="ml-4"><span className="text-blue-300">&quot;meta&quot;</span>: {"{"} <span className="text-yellow-300">&quot;total&quot;</span>: 254, <span className="text-yellow-300">&quot;offset&quot;</span>: 0, ... {"}"},</p>
+              <p className="ml-4"><span className="text-blue-300">&quot;error&quot;</span>: <span className="text-zinc-600">null</span></p>
               <p>{`}`}</p>
             </div>
           </div>
@@ -130,10 +130,10 @@ export default function ApiDocsPage() {
             <div className="bg-zinc-900 border border-zinc-700 p-4 font-mono text-xs text-zinc-400 space-y-2">
               <p className="text-zinc-500"># Get your collection stats</p>
               <p className="text-green-300">curl http://localhost:3000/api/v1/collection \</p>
-              <p className="text-green-300 ml-4">-H "X-RetroVault-Key: rvk_your_key"</p>
+              <p className="text-green-300 ml-4">-H &quot;X-RetroVault-Key: rvk_your_key&quot;</p>
               <p className="text-zinc-500 mt-3"># Find owned NES games</p>
-              <p className="text-green-300">curl "http://localhost:3000/api/v1/inventory?platform=NES&owned=true" \</p>
-              <p className="text-green-300 ml-4">-H "X-RetroVault-Key: rvk_your_key"</p>
+              <p className="text-green-300">curl &quot;http://localhost:3000/api/v1/inventory?platform=NES&amp;owned=true&quot; \</p>
+              <p className="text-green-300 ml-4">-H &quot;X-RetroVault-Key: rvk_your_key&quot;</p>
             </div>
           </div>
         </div>
@@ -181,7 +181,7 @@ export default function ApiDocsPage() {
             {/* New key display */}
             {createdKey && (
               <div className="border-2 border-yellow-600 bg-yellow-950/20 p-4 mb-4">
-                <p className="text-yellow-400 font-terminal text-sm mb-2">⚠️ Copy now — won't be shown again!</p>
+                <p className="text-yellow-400 font-terminal text-sm mb-2">⚠️ Copy now — won&apos;t be shown again!</p>
                 <div className="flex items-center gap-2">
                   <code className="text-yellow-200 font-mono text-xs flex-1 break-all">{createdKey}</code>
                   <button onClick={() => copy(createdKey)}

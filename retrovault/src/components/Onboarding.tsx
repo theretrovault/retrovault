@@ -305,10 +305,10 @@ function StepWelcome({ onNext, onSkip }: { onNext: () => void; onSkip: () => voi
         Welcome to RetroVault
       </h2>
       <p className="text-zinc-300 font-terminal text-base leading-relaxed mb-2">
-        You've got a spreadsheet. You hate your spreadsheet.
+        You&apos;ve got a spreadsheet. You hate your spreadsheet.
       </p>
       <p className="text-zinc-400 font-terminal text-sm leading-relaxed mb-8">
-        RetroVault is what that spreadsheet could never be. Let's spend 60 seconds
+        RetroVault is what that spreadsheet could never be. Let&apos;s spend 60 seconds
         setting it up the way <em>you</em> want to use it — no bloat, no clutter.
       </p>
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -316,7 +316,7 @@ function StepWelcome({ onNext, onSkip }: { onNext: () => void; onSkip: () => voi
           onClick={onNext}
           className="px-8 py-3 bg-green-700 hover:bg-green-600 text-black font-terminal text-lg font-bold border-2 border-green-500 transition-colors"
         >
-          LET'S GO ▶
+          LET&apos;S GO ▶
         </button>
         <button
           onClick={onSkip}
@@ -467,7 +467,7 @@ function StepOnlineSelling({
         Do you sell online?
       </h2>
       <p className="text-zinc-500 font-terminal text-sm text-center mb-8">
-        We'll configure the right selling tools for your workflow.
+        We&apos;ll configure the right selling tools for your workflow.
       </p>
 
       <div className="space-y-3 mb-8">
@@ -524,7 +524,7 @@ function StepInstanceType({
   return (
     <div>
       <h2 className="text-green-400 font-terminal text-2xl uppercase tracking-widest mb-2 text-center">
-        Who's using this instance?
+        Who&apos;s using this instance?
       </h2>
       <p className="text-zinc-500 font-terminal text-sm text-center mb-8">
         Helps us recommend the right security settings.

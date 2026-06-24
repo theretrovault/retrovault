@@ -144,7 +144,7 @@ export function GlobalSearch({ open, onClose }: Props) {
         {/* Results */}
         <div className="max-h-[50vh] overflow-y-auto">
           {results.length === 0 ? (
-            <div className="p-6 text-center text-zinc-700 font-terminal">No results for "{query}"</div>
+            <div className="p-6 text-center text-zinc-700 font-terminal">No results for &quot;{query}&quot;</div>
           ) : (
             results.map((r, i) => (
               <button key={r.id} onClick={() => navigate(r.href)}

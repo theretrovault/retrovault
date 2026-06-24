@@ -67,7 +67,7 @@ function YouTubeSettings() {
         )}
         <p className="text-zinc-600 font-terminal text-xs mt-2">
           Free API key from <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-400">console.cloud.google.com</a>.
-          Enable "YouTube Data API v3". Free quota: 10,000 units/day (100+ video lookups/day). Videos are cached after first load.
+          Enable &quot;YouTube Data API v3&quot;. Free quota: 10,000 units/day (100+ video lookups/day). Videos are cached after first load.
         </p>
       </div>
     </div>
@@ -265,7 +265,7 @@ export default function SettingsPage() {
 
   const handlePasswordSave = async () => {
     setPwError("");
-    if (newPassword !== confirmPassword) { setPwError("Passwords don't match."); return; }
+    if (newPassword !== confirmPassword) { setPwError("Passwords don&apos;t match."); return; }
     await save({ newPassword });
     setNewPassword(""); setConfirmPassword("");
     fetch('/api/config').then(r => r.json()).then(setConfig);
@@ -471,7 +471,7 @@ export default function SettingsPage() {
               EMBEDDED (Mission Control)
             </button>
           </div>
-          <p className="text-zinc-600 font-terminal text-xs mt-1">Standalone shows the app's own navigation. Embedded uses Mission Control's sidebar.</p>
+          <p className="text-zinc-600 font-terminal text-xs mt-1">Standalone shows the app&apos;s own navigation. Embedded uses Mission Control&apos;s sidebar.</p>
         </div>
       </Section>
 

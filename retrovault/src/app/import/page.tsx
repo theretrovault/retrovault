@@ -211,8 +211,8 @@ export default function ImportPage() {
           </table>
         </div>
         <p className="text-zinc-700 font-terminal text-xs mt-3">
-          Platform names are normalized: "Super Nintendo" → "SNES", "Mega Drive" → "Sega Genesis", etc.
-          Use "yes"/"no" or "1"/"0" for box/manual. Rows with "CIB" in condition auto-set both.
+          Platform names are normalized: &quot;Super Nintendo&quot; → &quot;SNES&quot;, &quot;Mega Drive&quot; → &quot;Sega Genesis&quot;, etc.
+          Use &quot;yes&quot;/&quot;no&quot; or &quot;1&quot;/&quot;0&quot; for box/manual. Rows with &quot;CIB&quot; in condition auto-set both.
         </p>
       </div>
 
@@ -288,7 +288,7 @@ export default function ImportPage() {
                     New Platform{newlyEnabledPlatforms.length > 1 ? 's' : ''} Enabled!
                   </p>
                   <p className="text-zinc-300 font-terminal text-sm mb-3">
-                    Your import included games from platform{newlyEnabledPlatforms.length > 1 ? 's' : ''} that weren't previously active.
+                    Your import included games from platform{newlyEnabledPlatforms.length > 1 ? 's' : ''} that weren&apos;t previously active.
                     We automatically enabled {newlyEnabledPlatforms.length > 1 ? 'them' : 'it'} so your games appear in the Vault, then synced catalog entries for each platform when available.
                   </p>
                   <div className="flex flex-wrap gap-2 mb-3">

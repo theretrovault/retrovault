@@ -49,7 +49,7 @@ export default function FriendsPage() {
     <div className="w-full bg-black border-4 border-green-500 rounded p-6 shadow-[0_0_15px_rgba(34,197,94,0.3)] min-h-[80vh]">
       <div className="border-b-4 border-green-900 pb-6 mb-8">
         <h2 className="text-2xl sm:text-3xl text-green-400 tracking-widest uppercase font-terminal">👥 Friends Mode</h2>
-        <p className="text-zinc-500 font-terminal text-sm mt-1">Each player's personal view of your collection</p>
+        <p className="text-zinc-500 font-terminal text-sm mt-1">Each player&apos;s personal view of your collection</p>
       </div>
 
       {loading ? (
@@ -137,7 +137,7 @@ export default function FriendsPage() {
                   {/* Favorites */}
                   {profile.favItems.length > 0 && (
                     <div>
-                      <h4 className="text-yellow-400 font-terminal text-lg uppercase mb-3">⭐ {selectedPerson.name}'s Favorites ({profile.favItems.length})</h4>
+                      <h4 className="text-yellow-400 font-terminal text-lg uppercase mb-3">⭐ {selectedPerson.name}&apos;s Favorites ({profile.favItems.length})</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto">
                         {profile.favItems.map(i => (
                           <div key={i.id} className="border border-yellow-900/40 bg-yellow-950/10 p-3">
@@ -152,7 +152,7 @@ export default function FriendsPage() {
                   {/* Regrets */}
                   {profile.regItems.length > 0 && (
                     <div>
-                      <h4 className="text-red-400 font-terminal text-lg uppercase mb-3">👎 {selectedPerson.name}'s Regrets ({profile.regItems.length})</h4>
+                      <h4 className="text-red-400 font-terminal text-lg uppercase mb-3">👎 {selectedPerson.name}&apos;s Regrets ({profile.regItems.length})</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto">
                         {profile.regItems.map(i => (
                           <div key={i.id} className="border border-red-900/40 bg-red-950/10 p-3">
@@ -166,7 +166,7 @@ export default function FriendsPage() {
 
                   {profile.favItems.length === 0 && profile.regItems.length === 0 && profile.mentions.length === 0 && (
                     <div className="text-zinc-700 font-terminal text-xl text-center py-8 border-2 border-dashed border-zinc-800">
-                      {selectedPerson.name} hasn't rated anything yet.
+                      {selectedPerson.name} hasn&apos;t rated anything yet.
                     </div>
                   )}
                 </div>
