@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
+import type { AnyNode } from 'domhandler';
 import fs from 'fs';
 import { getConfigPath } from '@/lib/runtimeDataPaths';
 
@@ -168,7 +169,7 @@ function cleanText(value: string | null | undefined): string {
   return (value || '').replace(/\s+/g, ' ').trim();
 }
 
-function extractRowTitle(rowEl: cheerio.Cheerio<any>): string {
+function extractRowTitle(rowEl: cheerio.Cheerio<AnyNode>): string {
   return cleanText(
     rowEl.find('td.title > a').first().text()
     || rowEl.find('td.title a').first().text()
@@ -231,7 +232,7 @@ export async function GET(request: Request) {
         if (stripped !== gameTitle) slugVariants.push(titleToSlug(stripped));
 
         let directHtml = '';
-        let $d: any = null;
+        let $d: cheerio.CheerioAPI | null = null;
         let pageTitle = '';
 
         for (const gameSlug of slugVariants) {
@@ -279,6 +280,7 @@ export async function GET(request: Request) {
           // ── Priority 1: Read prices directly from the product page price table ──
           // These IDs are reliable on direct product pages
           const getDirectPrice = (id: string) => {
+            if (!$d) return null;
             const val = $d(`#${id} .js-price, #${id} .price`).first().text().replace(/[$,]/g,'').trim();
             if (val && !isNaN(parseFloat(val))) return val;
             return null;
@@ -305,7 +307,7 @@ export async function GET(request: Request) {
           const platAliases = [platName, platSlug.replace(/-/g, ' '), 'mega drive', 'mega-drive',
                                platName.replace('playstation 1','playstation').replace('snes','super nintendo')];
 
-          $d('table tr').each((_: any, row: any) => {
+          $d('table tr').each((_, row) => {
             const rowEl = $d(row);
             const rowText = rowEl.text().replace(/\s+/g, ' ').trim();
             const rowLower = rowText.toLowerCase();
@@ -317,7 +319,7 @@ export async function GET(request: Request) {
             const platformCell = rowEl.find('td').eq(1).text().trim();
             if (shouldSkipRegion(platformCell)) return;
 
-            const prices = rowEl.find('.js-price').map((_: any, el: any) => $d(el).text().replace('$','').replace(',','').trim()).get().filter((p: string) => p && p !== '?' && !isNaN(parseFloat(p)));
+            const prices = rowEl.find('.js-price').map((_, el) => $d(el).text().replace('$','').replace(',','').trim()).get().filter((p: string) => p && p !== '?' && !isNaN(parseFloat(p)));
             if (prices.length < 2) return;
 
             // Score this row: how well does the row title match our game title?
@@ -387,7 +389,7 @@ export async function GET(request: Request) {
 
     // Check if we landed on a direct product page
     // PriceCharting uses complete_price not cib_price
-    const extractPrice = ($el: any, id: string) => {
+    const extractPrice = ($el: cheerio.CheerioAPI, id: string) => {
       const val = $el(`#${id} .price`).first().text().replace(/[$,]/g,'').trim();
       if (val && !isNaN(parseFloat(val))) return val;
       const fallback = $el(`#${id}`).first().text().replace(/[$,]/g,'').trim().split('\n')[0];
@@ -404,7 +406,7 @@ export async function GET(request: Request) {
       // Search results page — find the best-matching row
       const rows = $('table#games_table tbody tr').toArray();
       let bestScore = 0;
-      let bestRow: any = null;
+      let bestRow: cheerio.Cheerio<AnyNode> | null = null;
       let bestTitle = '';
 
       for (const row of rows) {
@@ -473,8 +475,8 @@ export async function GET(request: Request) {
       variantMatches,
     });
 
-  } catch (error: any) {
-    const isTimeout = error?.name === 'AbortError' || error?.message?.includes('abort');
+  } catch (error: unknown) {
+    const isTimeout = error instanceof Error && (error.name === 'AbortError' || error.message.includes('abort'));
     if (isTimeout) {
       console.warn('[pricecharting] Request timed out after', FETCH_TIMEOUT_MS, 'ms for query:', q);
       return NextResponse.json({ error: 'timeout', message: 'Price lookup timed out' }, { status: 408 });
