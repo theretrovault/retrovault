@@ -30,7 +30,10 @@ type Config = {
   features: Features;
   contactEmail: string; contactPhone: string; shareContact: boolean;
   platforms?: string[];
+  scrapers?: { craigslistCity?: string };
 };
+
+type TextConfigKey = 'appName' | 'tagline' | 'ownerName' | 'contactEmail' | 'contactPhone' | 'publicUrl';
 
 const THEME_COLORS = ["green","blue","purple","orange","cyan","yellow","pink"];
 
@@ -74,7 +77,7 @@ function YouTubeSettings() {
   );
 }
 
-function BugReportingSettings({ config, setConfig }: { config: any; setConfig: (c: any) => void }) {
+function BugReportingSettings({ config, setConfig }: { config: Config; setConfig: React.Dispatch<React.SetStateAction<Config | null>> }) {
   const [bugStatus, setBugStatus] = useState<{ configured: boolean; issuesUrl: string } | null>(null);
   useEffect(() => {
     fetch('/api/bug-report').then(r => r.json()).then(setBugStatus).catch(() => {});
@@ -273,11 +276,11 @@ export default function SettingsPage() {
 
   if (!config) return <div className="text-green-500 font-terminal text-2xl animate-pulse p-6">LOADING CONFIG...</div>;
 
-  const input = (key: keyof Config, label: string, type = "text", placeholder = "") => (
+  const input = (key: TextConfigKey, label: string, type = "text", placeholder = "") => (
     <div>
       <label className="block text-zinc-400 font-terminal text-sm mb-1 uppercase">{label}</label>
       <input type={type} className="w-full bg-black border-2 border-green-800 text-green-300 p-2 font-terminal text-xl focus:outline-none focus:border-green-400"
-        placeholder={placeholder} value={(config as any)[key] || ""}
+        placeholder={placeholder} value={config[key] || ""}
         onChange={e => setConfig({ ...config, [key]: e.target.value })} />
     </div>
   );
@@ -442,9 +445,9 @@ export default function SettingsPage() {
               { id: "PAL",  label: "PAL (Europe/Australia)", desc: "European prices" },
               { id: "JP",   label: "JP (Japan)", desc: "Japanese prices" },
             ].map(r => (
-              <button key={r.id} onClick={() => setConfig({ ...config, region: r.id } as any)}
+              <button key={r.id} onClick={() => setConfig({ ...config, region: r.id })}
                 className={`px-4 py-2 font-terminal text-base border-2 transition-colors text-left ${
-                  (config as any).region === r.id || (!((config as any).region) && r.id === 'NTSC')
+                  config.region === r.id || (!(config.region) && r.id === 'NTSC')
                     ? "bg-green-600 text-black border-green-400"
                     : "text-zinc-400 border-zinc-700 hover:border-zinc-400"
                 }`}>
@@ -505,7 +508,7 @@ export default function SettingsPage() {
               { label: "None", platforms: [], color: "bg-zinc-800 border-zinc-600" },
             ].map(preset => (
               <button key={preset.label}
-                onClick={() => setConfig({ ...config, platforms: preset.platforms } as any)}
+                onClick={() => setConfig({ ...config, platforms: preset.platforms })}
                 className={`px-3 py-1.5 font-terminal text-xs border-2 text-white transition-colors ${preset.color} hover:opacity-80`}>
                 {preset.label}
               </button>
@@ -515,34 +518,34 @@ export default function SettingsPage() {
           {/* Platform groups */}
           <div className="space-y-5">
             {PLATFORM_GROUPS.map(group => {
-              const enabledInGroup = group.platforms.filter(p => ((config as any).platforms || RETRO_DEFAULTS).includes(p)).length;
+              const enabledInGroup = group.platforms.filter(p => (config.platforms || RETRO_DEFAULTS).includes(p)).length;
               return (
                 <div key={group.id}>
                   <div className="flex items-center gap-3 mb-2">
                     <span className="font-terminal text-sm text-zinc-400 uppercase">{group.icon} {group.label}</span>
                     <div className="flex gap-1">
                       <button onClick={() => {
-                        const current = new Set((config as any).platforms || RETRO_DEFAULTS);
+                        const current = new Set(config.platforms || RETRO_DEFAULTS);
                         group.platforms.forEach(p => current.add(p));
-                        setConfig({ ...config, platforms: [...current] } as any);
+                        setConfig({ ...config, platforms: [...current] });
                       }} className="font-terminal text-xs text-zinc-600 hover:text-green-400 transition-colors px-1">+all</button>
                       <button onClick={() => {
-                        const current = new Set((config as any).platforms || RETRO_DEFAULTS);
+                        const current = new Set(config.platforms || RETRO_DEFAULTS);
                         group.platforms.forEach(p => current.delete(p));
-                        setConfig({ ...config, platforms: [...current] } as any);
+                        setConfig({ ...config, platforms: [...current] });
                       }} className="font-terminal text-xs text-zinc-600 hover:text-red-400 transition-colors px-1">−all</button>
                     </div>
                     <span className="text-zinc-700 font-terminal text-xs ml-auto">{enabledInGroup}/{group.platforms.length}</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {group.platforms.map(platform => {
-                      const enabled = ((config as any).platforms || RETRO_DEFAULTS).includes(platform);
+                      const enabled = (config.platforms || RETRO_DEFAULTS).includes(platform);
                       return (
                         <button key={platform}
                           onClick={() => {
-                            const current = new Set((config as any).platforms || RETRO_DEFAULTS);
+                            const current = new Set(config.platforms || RETRO_DEFAULTS);
                             if (enabled) current.delete(platform); else current.add(platform);
-                            setConfig({ ...config, platforms: [...current] } as any);
+                            setConfig({ ...config, platforms: [...current] });
                           }}
                           className={`px-3 py-1.5 font-terminal text-sm border-2 transition-colors ${
                             enabled
@@ -559,7 +562,7 @@ export default function SettingsPage() {
             })}
           </div>
           <p className="text-zinc-600 font-terminal text-xs mt-4">
-            {((config as any).platforms || RETRO_DEFAULTS).length} platform{((config as any).platforms || RETRO_DEFAULTS).length !== 1 ? 's' : ''} enabled.
+            {(config.platforms || RETRO_DEFAULTS).length} platform{(config.platforms || RETRO_DEFAULTS).length !== 1 ? 's' : ''} enabled.
             Changes take effect immediately after saving.
           </p>
         </div>
@@ -572,11 +575,11 @@ export default function SettingsPage() {
             <input type="text"
               className="bg-black border-2 border-zinc-800 text-zinc-300 p-2 font-terminal text-xl w-48 focus:outline-none focus:border-green-600"
               placeholder="portland"
-              value={(config as any).scrapers?.craigslistCity || ''}
-              onChange={e => setConfig({ ...config, scrapers: { ...((config as any).scrapers || {}), craigslistCity: e.target.value } } as any)} />
+              value={config.scrapers?.craigslistCity || ''}
+              onChange={e => setConfig({ ...config, scrapers: { ...(config.scrapers || {}), craigslistCity: e.target.value } })} />
             <div className="flex flex-wrap gap-1">
               {['portland','seattle','chicago','boston','newyork','sfbay','denver','dallas','losangeles','atlanta','miami','detroit','minneapolis'].map(c => (
-                <button key={c} onClick={() => setConfig({ ...config, scrapers: { ...((config as any).scrapers || {}), craigslistCity: c } } as any)}
+                <button key={c} onClick={() => setConfig({ ...config, scrapers: { ...(config.scrapers || {}), craigslistCity: c } })}
                   className="px-2 py-1 font-terminal text-xs border border-zinc-800 text-zinc-600 hover:text-zinc-300 hover:border-zinc-600 transition-colors">
                   {c}
                 </button>
