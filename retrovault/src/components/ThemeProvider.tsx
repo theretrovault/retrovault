@@ -11,7 +11,7 @@
  */
 
 import { createContext, useContext, useState, useEffect } from "react";
-import { COLOR_PALETTES, STYLE_THEMES, DEFAULT_THEME } from "@/data/themes";
+import { STYLE_THEMES, DEFAULT_THEME } from "@/data/themes";
 
 const THEME_KEY = "rv-theme";
 

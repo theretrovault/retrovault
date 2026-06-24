@@ -233,7 +233,6 @@ export async function GET(request: Request) {
         let directHtml = '';
         let $d: any = null;
         let pageTitle = '';
-        let usedUrl = '';
 
         for (const gameSlug of slugVariants) {
           const directUrl = `https://www.pricecharting.com/game/${platSlug}/${gameSlug}`;
@@ -263,7 +262,6 @@ export async function GET(request: Request) {
           directHtml = await finalRes.text();
           $d = cheerio.load(directHtml);
           pageTitle = extractPageTitle($d);
-          usedUrl = fetchUrl;
 
           if (finalRes.url.includes('/search-products')) {
             $d = null;

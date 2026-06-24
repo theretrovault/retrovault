@@ -27,7 +27,7 @@ export async function POST(request: Request) {
           }
         : null,
     });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json({ error: 'Failed to resolve Steam target' }, { status: 500 });
   }
 }

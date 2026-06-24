@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getConsoleData } from "@/data/consoles";
 import { getCopyMarketValue } from "@/lib/copyCondition";
 
 type GameCopy = { hasBox: boolean; hasManual: boolean; priceAcquired: string; condition?: string; };

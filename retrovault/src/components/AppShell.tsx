@@ -10,7 +10,7 @@ import { StandaloneNav } from "@/components/StandaloneNav";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthGuard, useLogout } from "@/components/AuthGuard";
 import { QuoteBanner } from "@/components/QuoteBanner";
-import { NAV_GROUPS, SYSTEM_ITEMS, getEnabledGroups, type NavGroup } from "@/data/navConfig";
+import { SYSTEM_ITEMS, getEnabledGroups, type NavGroup } from "@/data/navConfig";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { BugReportModal } from "@/components/BugReportModal";

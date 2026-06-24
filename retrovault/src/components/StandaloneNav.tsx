@@ -13,7 +13,7 @@ import { QuoteBanner } from "@/components/QuoteBanner";
 import { Onboarding } from "@/components/Onboarding";
 import { useTheme } from "@/components/ThemeProvider";
 import { WhatsNew } from "@/components/WhatsNew";
-import { NAV_GROUPS, SYSTEM_ITEMS, getEnabledGroups } from "@/data/navConfig";
+import { SYSTEM_ITEMS, getEnabledGroups } from "@/data/navConfig";
 import { NavTooltip } from "@/components/NavTooltip";
 
 export function StandaloneNav({ children }: { children: React.ReactNode }) {
