@@ -89,6 +89,36 @@ type WishlistItem = {
   priority?: number | null;
 };
 
+
+type PlatformSyncPayload = {
+  config?: { platforms?: string[] };
+  sync?: {
+    populated?: { added?: number };
+    catalogFound?: boolean;
+  } | null;
+};
+
+type PlatformEnableResult = {
+  changed: boolean;
+  sync: PlatformSyncPayload['sync'];
+};
+
+const getErrorMessage = (error: unknown, fallback: string) => (
+  error instanceof Error && error.message ? error.message : fallback
+);
+
+
+const getPopulatedAdded = (sync: PlatformSyncPayload['sync']): number => sync?.populated?.added || 0;
+
+const getPlatformMessage = (syncResult: PlatformEnableResult, platformName: string, prefix: string): string => {
+  if (!syncResult.changed) return '';
+  const added = getPopulatedAdded(syncResult.sync);
+  if (added > 0) {
+    return `${prefix} enabled ${platformName}, ${prefix.trim() === 'and' ? 'adding' : 'and added'} ${added.toLocaleString()} catalog game${added === 1 ? '' : 's'}`;
+  }
+  return `${prefix}${prefix ? ' ' : ''}enabled ${platformName}${syncResult.sync?.catalogFound === false ? ' (catalog sync unavailable for this system yet)' : ''}`;
+};
+
 const MARGIN_THRESHOLD = 30; // % profit margin to recommend BUY
 
 function getDecision(askPrice: number, loosePrice: number | null, ownedCount: number, watchlisted: boolean): {
@@ -229,8 +259,8 @@ export default function FieldPage() {
       setCacheMeta(cache ? { cachedAt: cache.cachedAt, count } : null);
       setCacheProgress(`✓ ${count} games cached (${sizeKb}KB)`);
       if (cache) catalogRef.current = cache.games.map(g => ({ title: g.title, platform: g.platform }));
-    } catch (e: any) {
-      setCacheProgress(`Error: ${e.message}`);
+    } catch (e: unknown) {
+      setCacheProgress(`Error: ${getErrorMessage(e, 'Could not build field cache')}`);
     } finally {
       setCaching(false);
     }
@@ -390,9 +420,9 @@ export default function FieldPage() {
       } else {
         setLastSearchIssue({ isOffline: false, hadTimeout: false });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       // AbortError = client-side timeout — try field cache first, then inventory
-      if (e?.name === 'AbortError') {
+      if (e instanceof Error && e.name === 'AbortError') {
         if (fieldCache) {
           const cachedResults = searchFieldCache(fieldCache, titleQ, plat);
           if (cachedResults.length > 0) {
@@ -495,7 +525,7 @@ export default function FieldPage() {
       ? cfg.platforms
       : enabledPlatforms;
 
-    if (currentPlatforms.includes(platformName)) return { changed: false, sync: null as any };
+    if (currentPlatforms.includes(platformName)) return { changed: false, sync: null } satisfies PlatformEnableResult;
 
     const saveRes = await fetch('/api/platforms/sync', {
       method: 'POST',
@@ -503,9 +533,9 @@ export default function FieldPage() {
       body: JSON.stringify({ platform: platformName, enabled: true, autoPopulate: true })
     });
     if (!saveRes.ok) throw new Error(`Could not enable ${platformName}`);
-    const payload = await saveRes.json().catch(() => ({}));
+    const payload = await saveRes.json().catch(() => ({})) as PlatformSyncPayload;
     setEnabledPlatforms(payload?.config?.platforms || [...new Set([...currentPlatforms, platformName])]);
-    return { changed: true, sync: payload?.sync || null };
+    return { changed: true, sync: payload?.sync || null } satisfies PlatformEnableResult;
   };
 
   const saveToInventory = async (r: PriceResult, copyDetails?: { condition: CopyCondition; priceAcquired: string; quantity?: number }) => {
@@ -608,18 +638,14 @@ export default function FieldPage() {
         }
       }
 
-      const platformMessage = platformSync.changed
-        ? (platformSync.sync?.populated?.added > 0
-          ? ` and enabled ${r.platform}, adding ${platformSync.sync.populated.added.toLocaleString()} catalog game${platformSync.sync.populated.added === 1 ? '' : 's'}`
-          : ` and enabled ${r.platform}${platformSync.sync?.catalogFound === false ? ' (catalog sync unavailable for this system yet)' : ''}`)
-        : '';
+      const platformMessage = getPlatformMessage(platformSync, r.platform, 'and');
       setSaveStatus(
         `${copyDetails ? '🛒 Bought' : '📦 Added'} ${r.title} (${r.platform})${platformMessage}.${copyAwareMessage}`
       );
       setNeedsCacheRefresh(!!cacheMeta);
       await refreshFieldData();
-    } catch (e: any) {
-      setSaveStatus(`Error: ${e.message || 'Could not save to inventory'}`);
+    } catch (e: unknown) {
+      setSaveStatus(`Error: ${getErrorMessage(e, 'Could not save to inventory')}`);
     } finally {
       setSavingKey('');
     }
@@ -648,16 +674,12 @@ export default function FieldPage() {
         }),
       });
       if (!res.ok) throw new Error('Failed to add to watchlist');
-      const platformMessage = platformSync.changed
-        ? (platformSync.sync?.populated?.added > 0
-          ? `, enabled ${r.platform}, and added ${platformSync.sync.populated.added.toLocaleString()} catalog game${platformSync.sync.populated.added === 1 ? '' : 's'}`
-          : `, and enabled ${r.platform}${platformSync.sync?.catalogFound === false ? ' (catalog sync unavailable for this system yet)' : ''}`)
-        : '';
+      const platformMessage = getPlatformMessage(platformSync, r.platform, ', and');
       setSaveStatus(`⭐ Added ${r.title} (${r.platform}) to Target Radar${platformMessage}.`);
       setNeedsCacheRefresh(!!cacheMeta);
       await refreshFieldData();
-    } catch (e: any) {
-      setSaveStatus(`Error: ${e.message || 'Could not add to watchlist'}`);
+    } catch (e: unknown) {
+      setSaveStatus(`Error: ${getErrorMessage(e, 'Could not add to watchlist')}`);
     } finally {
       setSavingKey('');
     }
@@ -689,16 +711,12 @@ export default function FieldPage() {
         }),
       });
       if (!res.ok) throw new Error('Failed to add to wishlist');
-      const platformMessage = platformSync.changed
-        ? (platformSync.sync?.populated?.added > 0
-          ? `, enabled ${r.platform}, and added ${platformSync.sync.populated.added.toLocaleString()} catalog game${platformSync.sync.populated.added === 1 ? '' : 's'}`
-          : `, and enabled ${r.platform}${platformSync.sync?.catalogFound === false ? ' (catalog sync unavailable for this system yet)' : ''}`)
-        : '';
+      const platformMessage = getPlatformMessage(platformSync, r.platform, ', and');
       setSaveStatus(`🎁 Added ${r.title} (${r.platform}) to Wishlist${platformMessage}.`);
       setNeedsCacheRefresh(!!cacheMeta);
       await refreshFieldData();
-    } catch (e: any) {
-      setSaveStatus(`Error: ${e.message || 'Could not add to wishlist'}`);
+    } catch (e: unknown) {
+      setSaveStatus(`Error: ${getErrorMessage(e, 'Could not add to wishlist')}`);
     } finally {
       setSavingKey('');
     }
@@ -744,8 +762,8 @@ export default function FieldPage() {
       } else {
         setOcrStatus('📸 Could not confidently identify this one. Type the title manually.');
       }
-    } catch (e: any) {
-      setOcrStatus(`Error: ${e.message || 'Could not identify image'}`);
+    } catch (e: unknown) {
+      setOcrStatus(`Error: ${getErrorMessage(e, 'Could not identify image')}`);
     } finally {
       setOcrBusy(false);
     }
@@ -1090,8 +1108,8 @@ export default function FieldPage() {
                           try {
                             await ensurePlatformEnabled(r.platform);
                             setSaveStatus(`🕹️ Enabled ${r.platform} for RetroVault.`);
-                          } catch (e: any) {
-                            setSaveStatus(`Error: ${e.message || 'Could not enable platform'}`);
+                          } catch (e: unknown) {
+                            setSaveStatus(`Error: ${getErrorMessage(e, 'Could not enable platform')}`);
                           } finally {
                             setSavingKey('');
                           }
