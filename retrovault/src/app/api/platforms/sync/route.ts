@@ -30,7 +30,7 @@ function getConfig() {
   return { ...DEFAULTS, ...JSON.parse(fs.readFileSync(filePath, 'utf8')) }
 }
 
-function saveConfig(data: any) {
+function saveConfig(data: unknown) {
   fs.writeFileSync(getConfigPath(), JSON.stringify(data, null, 2))
 }
 
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
       nextPlatforms: updatedPlatforms,
       sync,
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Failed to sync platform' }, { status: 500 })
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to sync platform' }, { status: 500 })
   }
 }

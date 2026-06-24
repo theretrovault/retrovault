@@ -19,6 +19,12 @@ type CachedVideo = {
   publishedAt: string;
 };
 
+type YouTubeSearchItem = { id: { videoId: string }; snippet: { title: string; channelTitle: string; thumbnails?: { medium?: { url?: string }; default?: { url?: string } }; publishedAt: string } };
+type YouTubeStatsItem = { id: string; statistics?: { viewCount?: string } };
+type YouTubeErrorPayload = { error?: { message?: string } };
+type YouTubeSearchPayload = { items?: YouTubeSearchItem[] };
+type YouTubeStatsPayload = { items?: YouTubeStatsItem[] };
+
 type CacheEntry = {
   key: string;
   videos: CachedVideo[];
@@ -64,35 +70,35 @@ async function searchYouTube(query: string, maxResults = 3): Promise<CachedVideo
   try {
     const res = await fetch(searchUrl);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      console.error('YouTube API error:', res.status, err?.error?.message);
+      const err = await res.json().catch(() => ({})) as YouTubeErrorPayload;
+      console.error('YouTube API error:', res.status, err.error?.message);
       return [];
     }
-    const data = await res.json();
+    const data = await res.json() as YouTubeSearchPayload;
     const items = data.items || [];
 
     if (items.length === 0) return [];
 
     // Get video stats (view counts)
-    const videoIds = items.map((i: any) => i.id.videoId).join(',');
+    const videoIds = items.map((i) => i.id.videoId).join(',');
     const statsParams = new URLSearchParams({ part: 'statistics', id: videoIds, key: apiKey });
     const statsRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?${statsParams}`);
-    const statsData = statsRes.ok ? await statsRes.json() : { items: [] };
+    const statsData = (statsRes.ok ? await statsRes.json() : { items: [] }) as YouTubeStatsPayload;
     const statsMap: Record<string, string> = {};
     for (const sv of (statsData.items || [])) {
       statsMap[sv.id] = sv.statistics?.viewCount || '0';
     }
 
-    return items.map((item: any) => ({
+    return items.map((item) => ({
       videoId: item.id.videoId,
       title: item.snippet.title,
       channelTitle: item.snippet.channelTitle,
       thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || '',
-      viewCount: statsMap[item.id.videoId] || null,
+      viewCount: statsMap[item.id.videoId],
       publishedAt: item.snippet.publishedAt,
     }));
-  } catch (e: any) {
-    console.error('YouTube fetch error:', e.message);
+  } catch (e: unknown) {
+    console.error('YouTube fetch error:', e instanceof Error ? e.message : 'Unknown error');
     return [];
   }
 }

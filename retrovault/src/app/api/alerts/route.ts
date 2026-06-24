@@ -5,6 +5,29 @@ export const dynamic = 'force-dynamic';
 
 const read = <T,>(file: string, fallback: T): T => readDataFile(file, fallback);
 
+
+type InventoryCopy = { priceAcquired?: string | number | null };
+type InventoryItem = {
+  id?: string;
+  title?: string;
+  platform?: string;
+  isDigital?: boolean;
+  marketLoose?: string | number | null;
+  copies?: InventoryCopy[];
+};
+type WatchlistItem = {
+  id?: string;
+  title?: string;
+  platform?: string;
+  alertPrice?: string | number | null;
+};
+type GrailItem = {
+  id?: string;
+  title?: string;
+  acquiredAt?: string | null;
+};
+type HotFlip = InventoryItem & { net: number; roi: number; market: number };
+
 type Alert = {
   id: string;
   type: 'price_drop' | 'price_spike' | 'watchlist_hit' | 'hot_flip' | 'grail_found';
@@ -17,19 +40,19 @@ type Alert = {
 };
 
 export async function GET() {
-  const watchlist = read<any[]>('watchlist.json', []);
-  const inventory = read<any[]>('inventory.json', []);
-  const grails = read<any[]>('grails.json', []);
+  const watchlist = read<WatchlistItem[]>('watchlist.json', []);
+  const inventory = read<InventoryItem[]>('inventory.json', []);
+  const grails = read<GrailItem[]>('grails.json', []);
 
   const alerts: Alert[] = [];
   const now = new Date().toISOString();
 
   // ── Watchlist price alerts ─────────────────────────────────────────────────
   for (const item of watchlist) {
-    const invItem = inventory.find((i: any) => i.id === item.id);
+    const invItem = inventory.find((i) => i.id === item.id);
     if (!invItem) continue;
-    const market = parseFloat(invItem.marketLoose || '0');
-    const target = parseFloat(item.alertPrice || '999');
+    const market = parseFloat(String(invItem.marketLoose || '0'));
+    const target = parseFloat(String(item.alertPrice || '999'));
     if (market <= 0 || target <= 0) continue;
 
     if (market <= target) {
@@ -62,18 +85,18 @@ export async function GET() {
   const SHIP = 4.5;
   const MIN_ROI = 80;
 
-  const ownedItems = inventory.filter((i: any) => (i.copies || []).length > 0 && !i.isDigital);
+  const ownedItems = inventory.filter((i) => (i.copies || []).length > 0 && !i.isDigital);
   const hotFlips = ownedItems
-    .filter((i: any) => parseFloat(i.marketLoose || '0') > 0)
-    .map((i: any) => {
-      const avgPaid = (i.copies || []).reduce((s: number, c: any) => s + (parseFloat(c.priceAcquired) || 0), 0) / Math.max(i.copies.length, 1);
-      const market = parseFloat(i.marketLoose || '0');
+    .filter((i) => parseFloat(String(i.marketLoose || '0')) > 0)
+    .map((i): HotFlip => {
+      const avgPaid = (i.copies || []).reduce((s, c) => s + (parseFloat(String(c.priceAcquired ?? '')) || 0), 0) / Math.max(i.copies?.length || 0, 1);
+      const market = parseFloat(String(i.marketLoose || '0'));
       const net = market - (market * EBAY_FEE) - SHIP - avgPaid;
       const roi = avgPaid > 0 ? (net / avgPaid) * 100 : 0;
       return { ...i, net, roi, market };
     })
-    .filter((i: any) => i.roi >= MIN_ROI)
-    .sort((a: any, b: any) => b.roi - a.roi)
+    .filter((i) => i.roi >= MIN_ROI)
+    .sort((a, b) => b.roi - a.roi)
     .slice(0, 3);
 
   if (hotFlips.length > 0) {
@@ -91,7 +114,7 @@ export async function GET() {
   }
 
   // ── Grail recently found ──────────────────────────────────────────────────
-  const recentlyFound = grails.filter((g: any) => {
+  const recentlyFound = grails.filter((g) => {
     if (!g.acquiredAt) return false;
     const found = new Date(g.acquiredAt);
     const daysSince = (Date.now() - found.getTime()) / 86400000;
@@ -107,7 +130,7 @@ export async function GET() {
       href: '/grails',
       severity: 'success',
       icon: '🎉',
-      createdAt: grail.acquiredAt,
+      createdAt: grail.acquiredAt || now,
     });
   }
 

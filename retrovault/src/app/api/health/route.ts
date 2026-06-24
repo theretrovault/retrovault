@@ -5,6 +5,9 @@ import { resolveLogPath } from '@/lib/runtimePaths';
 
 export const dynamic = 'force-dynamic';
 
+type HealthInventoryItem = { copies?: unknown[]; marketLoose?: string | number | null; lastFetched?: string | null };
+type ScraperStatus = { id?: string; name?: string; enabled?: boolean; status?: string; lastRun?: string | null; lastRunStatus?: string | null };
+
 function fileSize(filePath: string): number {
   try { return fs.statSync(filePath).size; } catch { return 0; }
 }
@@ -29,15 +32,15 @@ function getScraperStatus() {
 
 function getInventoryStats() {
   try {
-    const inv = JSON.parse(fs.readFileSync(resolveDataPath('inventory.json'), 'utf8'));
-    const owned = inv.filter((i: any) => (i.copies || []).length > 0).length;
-    const withPrices = inv.filter((i: any) => i.marketLoose && parseFloat(i.marketLoose) > 0).length;
-    const stale30 = inv.filter((i: any) => {
+    const inv = JSON.parse(fs.readFileSync(resolveDataPath('inventory.json'), 'utf8')) as HealthInventoryItem[];
+    const owned = inv.filter((i) => (i.copies || []).length > 0).length;
+    const withPrices = inv.filter((i) => i.marketLoose && parseFloat(String(i.marketLoose)) > 0).length;
+    const stale30 = inv.filter((i) => {
       if (!i.lastFetched) return (i.copies || []).length > 0;
       const days = (Date.now() - new Date(i.lastFetched).getTime()) / 86400000;
       return days > 30 && (i.copies || []).length > 0;
     }).length;
-    const neverFetched = inv.filter((i: any) => !i.lastFetched && (i.copies || []).length > 0).length;
+    const neverFetched = inv.filter((i) => !i.lastFetched && (i.copies || []).length > 0).length;
     return { total: inv.length, owned, withPrices, stale30, neverFetched };
   } catch { return null; }
 }
@@ -69,7 +72,7 @@ function getUptime(): string {
 }
 
 export async function GET() {
-  const scrapers = getScraperStatus();
+  const scrapers = getScraperStatus() as ScraperStatus[];
   const inventory = getInventoryStats();
   const diskUsage = getDiskUsage();
 
@@ -81,7 +84,7 @@ export async function GET() {
     inventory,
     diskUsage: formatBytes(diskUsage),
     diskBytes: diskUsage,
-    scrapers: scrapers.map((s: any) => ({
+    scrapers: scrapers.map((s) => ({
       id: s.id,
       name: s.name,
       enabled: s.enabled,

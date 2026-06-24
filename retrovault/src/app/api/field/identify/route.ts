@@ -128,10 +128,10 @@ export async function POST(req: NextRequest) {
       confidence: confidencePercent,
       autoRun: !!match && match.confidence >= AUTO_RUN_THRESHOLD,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[field-identify] failed', error);
     return NextResponse.json(
-      { error: error?.message || 'Could not identify image.' },
+      { error: error instanceof Error ? error.message : 'Could not identify image.' },
       { status: 500 }
     );
   }
