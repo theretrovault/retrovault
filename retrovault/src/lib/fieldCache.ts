@@ -39,6 +39,34 @@ export type FieldCacheData = {
   version:  number; // increment to invalidate old caches
 };
 
+type InventoryCopy = {
+  priceAcquired?: string | number | null;
+  condition?: string | null;
+};
+
+type InventoryItem = {
+  id: string;
+  title: string;
+  platform: string;
+  copies?: InventoryCopy[];
+  marketLoose?: string | number | null;
+  marketCib?: string | number | null;
+  marketNew?: string | number | null;
+  lastFetched?: string | null;
+};
+
+type WatchlistItem = {
+  id: string;
+  alertPrice?: string | number | null;
+};
+
+type WishlistItem = {
+  title?: string | null;
+  platform?: string | null;
+  priority?: number | null;
+  notes?: string | null;
+};
+
 const CACHE_VERSION = 1;
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
@@ -113,19 +141,21 @@ export async function buildFieldCache(
 
   onProgress?.('Building cache...', 50);
 
-  const inventory: any[] = Array.isArray(invRaw) ? invRaw : [];
-  const watchlist: any[] = Array.isArray(watchRaw) ? watchRaw : [];
-  const wishItems: any[] = wishRaw?.items ?? (Array.isArray(wishRaw) ? wishRaw : []);
+  const inventory: InventoryItem[] = Array.isArray(invRaw) ? invRaw : [];
+  const watchlist: WatchlistItem[] = Array.isArray(watchRaw) ? watchRaw : [];
+  const wishItems: WishlistItem[] = Array.isArray(wishRaw?.items)
+    ? wishRaw.items
+    : (Array.isArray(wishRaw) ? wishRaw : []);
 
   // Build lookup maps
-  const watchMap = new Map(watchlist.map((w: any) => [w.id, w]));
-  const wishMap  = new Map(wishItems.map((wi: any) => [wi.title?.toLowerCase() + '|' + wi.platform?.toLowerCase(), wi]));
+  const watchMap = new Map(watchlist.map((w) => [w.id, w]));
+  const wishMap  = new Map(wishItems.map((wi) => [`${wi.title || ''}|${wi.platform || ''}`.toLowerCase(), wi]));
 
   // Filter to owned games only (plus anything on watchlist/wishlist)
-  const watchIds  = new Set(watchlist.map((w: any) => w.id));
-  const wishTitles = new Set(wishItems.map((wi: any) => (wi.title + '|' + wi.platform).toLowerCase()));
+  const watchIds  = new Set(watchlist.map((w) => w.id));
+  const wishTitles = new Set(wishItems.map((wi) => `${wi.title || ''}|${wi.platform || ''}`.toLowerCase()));
 
-  const relevant = inventory.filter((item: any) => {
+  const relevant = inventory.filter((item) => {
     const hasOwned = (item.copies || []).length > 0;
     const onWatch  = watchIds.has(item.id);
     const onWish   = wishTitles.has((item.title + '|' + item.platform).toLowerCase());
@@ -134,9 +164,9 @@ export async function buildFieldCache(
 
   onProgress?.(`Caching ${relevant.length} games...`, 70);
 
-  const games: CachedGame[] = relevant.map((item: any) => {
+  const games: CachedGame[] = relevant.map((item) => {
     const copies    = item.copies || [];
-    const paidEach  = copies.map((c: any) => parseFloat(String(c.priceAcquired || 0)) || 0);
+    const paidEach  = copies.map((c) => parseFloat(String(c.priceAcquired || 0)) || 0);
     const watchItem = watchMap.get(item.id);
     const wishKey   = (item.title + '|' + item.platform).toLowerCase();
     const wishItem  = wishMap.get(wishKey);
@@ -146,15 +176,15 @@ export async function buildFieldCache(
       title:        item.title,
       platform:     item.platform,
       owned:        copies.length,
-      conditions:   copies.map((c: any) => c.condition || 'Loose'),
+      conditions:   copies.map((c) => c.condition || 'Loose'),
       paidTotal:    paidEach.reduce((s: number, v: number) => s + v, 0),
       paidEach,
-      marketLoose:  item.marketLoose  ? parseFloat(item.marketLoose)  : null,
-      marketCib:    item.marketCib    ? parseFloat(item.marketCib)    : null,
-      marketNew:    item.marketNew    ? parseFloat(item.marketNew)    : null,
+      marketLoose:  item.marketLoose  ? parseFloat(String(item.marketLoose))  : null,
+      marketCib:    item.marketCib    ? parseFloat(String(item.marketCib))    : null,
+      marketNew:    item.marketNew    ? parseFloat(String(item.marketNew))    : null,
       lastFetched:  item.lastFetched  ?? null,
       onWatchlist:  !!watchItem,
-      watchlistPrice: watchItem ? parseFloat(watchItem.alertPrice || '0') || null : null,
+      watchlistPrice: watchItem ? parseFloat(String(watchItem.alertPrice || '0')) || null : null,
       onWishlist:   !!wishItem,
       wishlistPriority: wishItem?.priority ?? null,
       wishlistNotes:    wishItem?.notes    ?? null,
