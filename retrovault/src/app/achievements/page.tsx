@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ACHIEVEMENTS, RARITIES, CATEGORY_LABELS, getTotalPoints, type AchievementCategory, type Achievement } from "@/data/achievements";
+import { ACHIEVEMENTS, RARITIES, CATEGORY_LABELS, getTotalPoints, type AchievementCategory } from "@/data/achievements";
 import { AchievementCard } from "@/components/AchievementCard";
 
 type AchievementData = { unlockedIds: string[]; context: any; autoCount: number };

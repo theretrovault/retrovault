@@ -68,7 +68,7 @@ export default function ScrapersPage() {
   const [loadingLog, setLoadingLog] = useState(false);
   const [editCadence, setEditCadence] = useState<string | null>(null);
   const [cadenceForm, setCadenceForm] = useState({ type: "daily", hour: 0 });
-  const [runningIds, setRunningIds] = useState<Set<string>>(new Set());
+  const [, setRunningIds] = useState<Set<string>>(new Set());
   const [notifications, setNotifications] = useState<string[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);

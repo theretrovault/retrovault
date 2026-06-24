@@ -14,7 +14,7 @@ export async function GET() {
     return NextResponse.json(inventory, {
       headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
     });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json({ error: "Failed to load inventory" }, { status: 500 });
   }
 }
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     newItem.id = newItem.id || Math.random().toString(36).substring(2, 10);
     const created = await createInventoryCompat(newItem);
     return NextResponse.json(created, { status: 201 });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json({ error: "Failed to add item" }, { status: 500 });
   }
 }
@@ -54,7 +54,7 @@ export async function PUT(request: Request) {
 
     const updated = await updateInventoryCompat({ ...updatedItem, priceHistory: newHistory });
     return NextResponse.json(updated);
-  } catch (error: any) {
+  } catch {
     return NextResponse.json({ error: "Failed to update item" }, { status: 500 });
   }
 }
@@ -74,7 +74,7 @@ export async function DELETE(request: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json({ error: "Failed to delete item" }, { status: 500 });
   }
 }

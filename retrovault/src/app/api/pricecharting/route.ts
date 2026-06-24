@@ -149,7 +149,6 @@ function shouldSkipRegion(platformText: string): boolean {
   const lower = platformText.toLowerCase();
   const isPal = PAL_PREFIXES.some(p => lower.startsWith(p)) || lower.includes('pal ') || lower.includes(' pal');
   const isJp  = lower.startsWith('jp ') || lower.includes(' jp ') || lower.startsWith('jp-');
-  const isNtsc = !isPal && !isJp;
   if (region === 'NTSC') return isPal || isJp;  // skip non-NTSC
   if (region === 'PAL')  return !isPal;           // skip non-PAL
   if (region === 'JP')   return !isJp;            // skip non-JP
@@ -169,7 +168,7 @@ function cleanText(value: string | null | undefined): string {
   return (value || '').replace(/\s+/g, ' ').trim();
 }
 
-function extractRowTitle(rowEl: cheerio.Cheerio<any>, $root: cheerio.CheerioAPI): string {
+function extractRowTitle(rowEl: cheerio.Cheerio<any>): string {
   return cleanText(
     rowEl.find('td.title > a').first().text()
     || rowEl.find('td.title a').first().text()
@@ -269,7 +268,6 @@ export async function GET(request: Request) {
           if (finalRes.url.includes('/search-products')) {
             $d = null;
             pageTitle = '';
-            usedUrl = '';
             continue;
           }
 
@@ -325,7 +323,7 @@ export async function GET(request: Request) {
             if (prices.length < 2) return;
 
             // Score this row: how well does the row title match our game title?
-            const rowTitle = extractRowTitle(rowEl, $d) || rowText.slice(0, 50);
+            const rowTitle = extractRowTitle(rowEl) || rowText.slice(0, 50);
             const score = tokenScore(gameTitle, rowTitle) - (hasSuspiciousSuffix(gameTitle, rowTitle) ? 0.5 : 0);
 
             if (score > bestRowScore) {
@@ -413,7 +411,7 @@ export async function GET(request: Request) {
 
       for (const row of rows) {
         const rowEl = $(row);
-        const rowTitle = extractRowTitle(rowEl, $);
+        const rowTitle = extractRowTitle(rowEl);
         if (!rowTitle) continue;
 
         // Skip PAL/JP results — prefer NTSC prices

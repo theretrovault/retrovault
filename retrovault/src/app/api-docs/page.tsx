@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import Link from "next/link";
 
 type ApiKey = { id: string; name: string; prefix: string; permissions: string; createdAt: string; lastUsed: string | null };
 type Endpoint = { path: string; method: string; summary: string; params?: string[] };
