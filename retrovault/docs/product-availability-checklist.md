@@ -50,24 +50,24 @@ Primary Phase 1 surfaces:
   - [x] `nightly`
   - [x] version tags (`vX.Y.Z` and `X.Y.Z`)
 - [x] Document desired image metadata/labels
-- [ ] Document pull/run verification steps
-- [ ] Note any multi-arch gaps (`amd64`, `arm64`)
+- [x] Document pull/run verification steps
+- [x] Note any multi-arch gaps (`amd64`, `arm64`)
 
 ### A3. Docker Hub readiness
 - [x] Create Docker Hub readiness doc
 - [x] Create Docker Hub publish requirements handoff doc
-- [ ] Draft Docker Hub repo description
-- [ ] Draft Docker Hub long description / README copy
+- [x] Draft Docker Hub repo description
+- [x] Draft Docker Hub long description / README copy
 - [x] Define desired tag mapping vs GHCR
 - [x] Document CI push requirements and token/secrets needed
-- [ ] Document post-publish verification steps
+- [x] Document post-publish verification steps
 
 ### A4. Docs readiness
-- [ ] Ensure install docs are adequate for public discovery traffic
+- [x] Ensure install docs are adequate for public discovery traffic
 - [ ] Ensure upgrade path is documented
 - [ ] Ensure backup/restore docs are clearly linked
-- [ ] Ensure release-channel model is documented (`autopush`, `nightly`, `prod`)
-- [ ] Add product-availability docs to the discoverable docs set
+- [x] Ensure release-channel model is documented (`autopush`, `nightly`, `prod`)
+- [x] Add product-availability docs to the discoverable docs set
 
 ### A5. Messaging assets
 - [ ] Draft homepage hero copy
@@ -158,7 +158,23 @@ Current repository workflows show that container publishing is now implemented, 
 
 Still open before declaring Phase 1 complete:
 
-- verify GHCR package visibility and pull/run behavior from an actually published tag;
-- verify Docker Hub credentials and tag parity during the first stable mirror release;
+- verify GHCR package visibility and pull/run behavior from an actually published tag; **stable `v2.1.44` / `latest` verified 2026-06-24; `nightly` still open**;
+- verify Docker Hub credentials and tag parity during the first stable mirror release; **stable GHCR/Docker Hub digest parity verified for `v2.1.44` / `latest` 2026-06-24**;
 - keep README/install/release docs aligned with the registry truth;
 - complete GitHub About/social/support polish and remaining platform settings.
+
+## Install-path proof — 2026-06-24
+
+Verified without publishing a new release:
+
+- Docker Hub repository `retrovault/retrovault` is public and active.
+- Docker Hub tags include `latest`, `v2.1.44`, `2.1.44`, `v2.1.43`, `2.1.43`, `v2.1.42`, `2.1.42`, `v2.1.41`, and `2.1.41`.
+- GHCR manifests for `ghcr.io/theretrovault/retrovault:v2.1.44` and `latest` are public via anonymous token flow.
+- Stable GHCR and Docker Hub `v2.1.44` / `latest` resolve to matching digest `sha256:e8fe85f352c91070d66570cb4c288d13cf5d53d16269ffaee5d4e55426cdc366`.
+- A disposable Docker Hub `retrovault/retrovault:v2.1.44` container started successfully with `RETROVAULT_SCHEDULER_ENABLED=false` and returned `/api/health` with `status: ok`.
+
+Open after proof:
+
+- `ghcr.io/theretrovault/retrovault:nightly` returned `MANIFEST_UNKNOWN`; keep nightly as open until a nightly branch publish proves it.
+- Current published image manifests show `linux/amd64` plus an `unknown` attestation entry; no `linux/arm64` image was observed.
+- GitHub About/social/support/community polish remains a platform/content task, not a registry blocker.

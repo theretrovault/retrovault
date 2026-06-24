@@ -129,6 +129,23 @@ Some of these should stay JSON because they are operator config, caches, or inte
 
 ---
 
+---
+
+## Live deployment inventory — 2026-06-24
+
+Read-only inventory from the Tower deployment at `/mnt/cache/appdata/retrovault/data` showed a much cleaner runtime than the compatibility map alone suggests:
+
+- `retrovault.db` exists and was the only `*.db` / `*.sqlite*` / `*.json` file found under the deployed appdata directory at max depth 3.
+- SQLite tables present include `Game`, `GameCopy`, `PriceHistory`, `Favorite`, `GameTag`, `PlayLogEntry`, `WatchlistItem`, `WishlistItem`, `CollectionGoal`, `Event`, `WhatnotSeller`, `WhatnotStream`, `ValueSnapshot`, and related Prisma migration tables.
+- Verified live counts: `Game=27092`, `GameCopy=254`, `PriceHistory=237`.
+- No live top-level JSON files were observed in the deployed appdata directory during this pass.
+
+Interpretation:
+
+- The current production appdata appears SQLite-only for persisted collection/runtime state at the inspected path.
+- The codebase still contains JSON compatibility surfaces and fixture/sample files, so removing fallback behavior still requires tests and code-path review; do not delete compatibility paths solely because this deployment is clean.
+- Next migration work should focus on proving whether any non-prod/dev appdata, fixtures, or import paths still rely on JSON-only records.
+
 ## Recommended next storage sprint
 
 1. Generate a live inventory of runtime files in `data/prod`, `data/dev`, and deployed appdata.

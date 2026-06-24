@@ -84,12 +84,16 @@ For tagged releases, GitHub Actions now also publishes the container image to:
   - `retrovault/retrovault:X.Y.Z`
   - `retrovault/retrovault:vX.Y.Z`
 
-For the `nightly` lane, GitHub Actions now also publishes:
+For the `nightly` lane, GitHub Actions is intended to publish:
 - `ghcr.io/theretrovault/retrovault:nightly`
+
+As of the 2026-06-24 install proof, stable `v2.1.44` / `latest` tags are live and pullable from both GHCR and Docker Hub with matching digest `sha256:e8fe85f352c91070d66570cb4c288d13cf5d53d16269ffaee5d4e55426cdc366`; `nightly` returned `MANIFEST_UNKNOWN` and must stay an open release-channel verification item until the nightly workflow publishes a manifest.
 
 After tagging or promoting nightly, verify:
 - the expected GHCR image tags are present
 - the expected Docker Hub stable tags are present for release tags
+- stable GHCR and Docker Hub tags resolve to the same digest
+- a disposable container starts and `/api/health` returns `status: ok`
 - `nightly` does not overwrite `latest`
 
 ---

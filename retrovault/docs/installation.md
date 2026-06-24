@@ -8,6 +8,29 @@ RetroVault runs on any modern OS with Node.js 22+ or Docker. Pick the path that 
 
 The simplest way to run RetroVault on any OS. Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/Mac) or Docker Engine (Linux).
 
+### Docker — published image
+
+Use the published stable image when you want the shortest install path:
+
+```bash
+mkdir -p retrovault-data
+docker run -d \
+  --name retrovault \
+  -p 3000:3000 \
+  -e RETROVAULT_SCHEDULER_ENABLED=false \
+  -v "$PWD/retrovault-data:/app/data" \
+  retrovault/retrovault:latest
+
+# Open http://localhost:3000
+# Health check: http://localhost:3000/api/health
+```
+
+Stable release tags are also available as both `vX.Y.Z` and `X.Y.Z`; for example, the 2026-06-24 install proof verified `retrovault/retrovault:v2.1.44` and `retrovault/retrovault:latest`. GHCR carries the same stable digest at `ghcr.io/theretrovault/retrovault:v2.1.44` / `latest`. The `nightly` tag is still a release-channel goal and should not be documented as live until a manifest is published.
+
+### Docker Compose from source
+
+Use the source checkout when developing or when you want to build locally:
+
 ```bash
 git clone https://github.com/theretrovault/retrovault.git
 cd retrovault/retrovault
