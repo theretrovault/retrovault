@@ -209,7 +209,7 @@ export function StandaloneNav({ children }: { children: React.ReactNode }) {
           <span>{appName}</span>
           <span className="flex items-center gap-2 text-zinc-400">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-            ONLINE · Self-hosted · v{pkg.version} · {runtimeTrack}
+            ONLINE · RetroVault self-hosted · v{pkg.version} · {runtimeTrack}
           </span>
         </div>
       </footer>
