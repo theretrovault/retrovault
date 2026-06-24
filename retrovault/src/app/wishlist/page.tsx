@@ -734,7 +734,7 @@ export default function WishlistPage() {
       {/* Add form */}
       {showAdd && (
         <div className="mb-6 p-4 border-2 border-green-700 bg-green-950/20">
-          <h3 className="text-green-400 font-terminal mb-4">// ADD TO WISHLIST</h3>
+          <h3 className="text-green-400 font-terminal mb-4">{"// ADD TO WISHLIST"}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <input
               className={inputCls}

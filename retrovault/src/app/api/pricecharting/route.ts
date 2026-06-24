@@ -402,7 +402,7 @@ export async function GET(request: Request) {
     let newPrice = extractPrice($, 'new_price');
     let gradedPrice = extractPrice($, 'graded_price');
     let matchedTitle = extractPageTitle($);
-    let variantMatches: Array<{ title: string; platform: string; loose: string | null; cib: string | null; new: string | null; graded: string | null }> = [];
+    const variantMatches: Array<{ title: string; platform: string; loose: string | null; cib: string | null; new: string | null; graded: string | null }> = [];
 
     if (!loosePrice) {
       // Search results page — find the best-matching row

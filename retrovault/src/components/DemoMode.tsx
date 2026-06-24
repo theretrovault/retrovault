@@ -272,7 +272,6 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       setIsActive(true);
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ active: true, stepIndex: 0, steps: filtered }));
     } catch { /* ignore */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Persist demo state whenever it changes

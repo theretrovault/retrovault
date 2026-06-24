@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 const RATE_FILE = resolveDataPath('bug-reports.json');
 function getGithubRepo(): string {
   try {
-    const cfg = JSON.parse(require('fs').readFileSync(getConfigPath(), 'utf8'));
+    const cfg = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'));
     return cfg.githubRepo || 'theretrovault/retrovault';
   } catch { return 'theretrovault/retrovault'; }
 }
@@ -235,8 +235,9 @@ export async function POST(req: NextRequest) {
       issueUrl: issue.url,
       message: `Issue #${issue.number} created successfully.`
     });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to create GitHub issue.' }, { status: 500 });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Failed to create GitHub issue.';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

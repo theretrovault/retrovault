@@ -56,6 +56,10 @@ function cadenceLabel(s: Scraper): string {
   return "Custom";
 }
 
+function scheduleNotificationDismiss(setNotifications: React.Dispatch<React.SetStateAction<string[]>>, msg: string) {
+  setTimeout(() => setNotifications(n => n.filter(x => x !== msg)), 8000);
+}
+
 export default function ScrapersPage() {
   const [scrapers, setScrapers] = useState<Scraper[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +95,11 @@ export default function ScrapersPage() {
           prev.forEach(id => {
             if (!stillRunning.has(id)) {
               const s = d.find(s => s.id === id);
-              if (s) notify(`✅ ${s.name} completed`);
+              if (s) {
+                const msg = `✅ ${s.name} completed`;
+                setNotifications(n => [msg, ...n].slice(0, 5));
+                scheduleNotificationDismiss(setNotifications, msg);
+              }
             }
           });
           return stillRunning;
@@ -105,10 +113,10 @@ export default function ScrapersPage() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [logLines]);
 
-  const notify = (msg: string) => {
+  function notify(msg: string) {
     setNotifications(n => [msg, ...n].slice(0, 5));
-    setTimeout(() => setNotifications(n => n.filter(x => x !== msg)), 8000);
-  };
+    scheduleNotificationDismiss(setNotifications, msg);
+  }
 
   const runScraper = async (id: string) => {
     const scraper = scrapers.find(s => s.id === id);
