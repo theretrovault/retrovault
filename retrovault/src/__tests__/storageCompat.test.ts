@@ -39,7 +39,7 @@ describe('storageCompat', () => {
       env: process.env,
       stdio: 'pipe',
     });
-  });
+  }, 30_000);
 
   beforeEach(async () => {
     vi.resetModules();

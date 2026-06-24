@@ -150,8 +150,6 @@ async function run() {
 
   // Merge new streams, keep manually-added ones
   const existingManual = (data.streams || []).filter(s => s.source === 'manual');
-  const existingAutomated = (data.streams || []).filter(s => s.source !== 'manual');
-
   // Remove old automated streams, add new ones
   const newStreams = [...allStreams, ...existingManual];
 

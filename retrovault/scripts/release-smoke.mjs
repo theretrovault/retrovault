@@ -144,7 +144,7 @@ async function verifyHttpModeOnce(baseUrl) {
   const pageAssets = new Map(options.assetPaths.map((assetPath) => [normalizePath(assetPath), 'manual']))
   const authUrl = new URL('/api/auth', baseUrl).toString();
   const configUrl = new URL('/api/config', baseUrl).toString();
-  const { response: authResponse, data: authData } = await fetchJson(authUrl);
+  const { response: authResponse } = await fetchJson(authUrl);
   if (!authResponse.ok) {
     throw new Error(`/api/auth returned ${authResponse.status}`);
   }

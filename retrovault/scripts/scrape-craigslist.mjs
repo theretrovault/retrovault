@@ -19,7 +19,6 @@ const DEALS_FILE = path.join(ROOT, 'data', 'craigslist-deals.json');
 const CONFIG_FILE = path.join(ROOT, 'data', 'app.config.json');
 const WATCHLIST_FILE = path.join(ROOT, 'data', 'watchlist.json');
 const GRAILS_FILE = path.join(ROOT, 'data', 'grails.json');
-const INVENTORY_FILE = path.join(ROOT, 'data', 'inventory.json');
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36',
@@ -27,7 +26,6 @@ const HEADERS = {
   'Accept-Language': 'en-US,en;q=0.5',
 };
 
-const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function loadJson(file, fallback = []) {
   if (!fs.existsSync(file)) return fallback;
@@ -60,11 +58,6 @@ function matchScore(listing, targets) {
   }
 
   return { score: bestScore, target: bestTarget };
-}
-
-function parsePrice(str) {
-  const m = str?.match(/\$?([\d,]+)/);
-  return m ? parseFloat(m[1].replace(',', '')) : null;
 }
 
 async function scrapeCity(citySlug, maxPrice = 500) {
