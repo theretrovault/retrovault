@@ -15,7 +15,7 @@
  * 1. Add an entry to ACHIEVEMENTS with a unique id, category, rarity, and check()
  * 2. If it requires new context data, add the field to AchievementContext
  *    and populate it in the achievement context builder
- * 3. For manual unlocks (check: _ => false), trigger from the relevant UI
+ * 3. For manual unlocks (check: () => false), trigger from the relevant UI
  *    component via POST /api/achievements with action: "unlock_manual"
  *
  * Rarity points: Common=10, Uncommon=25, Rare=50, Epic=100, Legendary=250
@@ -233,9 +233,9 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "d_history365", name: "Year in Review",      icon: "🗓️", category: "grind",      rarity: "legendary", points: 250, condition: "365+ days of price history",        check: c => c.priceHistoryDays >= 365 },
 
   // ─── SECRET / EASTER EGGS ────────────────────────────────────────────────────
-  { id: "x_konami",     name: "↑↑↓↓←→←→BA",        icon: "🎮", category: "secret",     rarity: "rare",      points: 50,  condition: "Secret: discover the Konami code",   check: _ => false, secret: true },
-  { id: "x_midnight",   name: "Night Owl",           icon: "🦉", category: "secret",     rarity: "uncommon",  points: 25,  condition: "Secret achievement",                 check: _ => false, secret: true },
-  { id: "x_first_fail", name: "Try Again",           icon: "💀", category: "secret",     rarity: "common",    points: 10,  condition: "Secret achievement",                 check: _ => false, secret: true },
+  { id: "x_konami",     name: "↑↑↓↓←→←→BA",        icon: "🎮", category: "secret",     rarity: "rare",      points: 50,  condition: "Secret: discover the Konami code",   check: () => false, secret: true },
+  { id: "x_midnight",   name: "Night Owl",           icon: "🦉", category: "secret",     rarity: "uncommon",  points: 25,  condition: "Secret achievement",                 check: () => false, secret: true },
+  { id: "x_first_fail", name: "Try Again",           icon: "💀", category: "secret",     rarity: "common",    points: 10,  condition: "Secret achievement",                 check: () => false, secret: true },
   { id: "x_broke",      name: "The Struggle",        icon: "😅", category: "secret",     rarity: "uncommon",  points: 25,  condition: "Secret: spend more than you've made", check: c => c.totalSpent > 0 && c.totalRevenue < c.totalSpent * 0.5, secret: true },
   { id: "x_hoarder",    name: "Can't Stop Won't Stop",icon: "🤯",category: "secret",     rarity: "rare",      points: 50,  condition: "Secret achievement",                  check: c => c.totalOwned >= 500 && c.totalSales < 5, secret: true },
   { id: "x_collector",  name: "Never For Sale",      icon: "🔒", category: "secret",     rarity: "epic",      points: 100, condition: "Secret: 1000 games, 0 sales",        check: c => c.totalOwned >= 1000 && c.totalSales === 0, secret: true },
@@ -257,10 +257,10 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "sys_scraper20", name: "The Machine",         icon: "⚙️", category: "grind",      rarity: "epic",      points: 100, condition: "Run scrapers 20+ times",                    check: c => c.scraperRuns >= 20 },
 
   // ─── APP MASTERY (manual unlocks) ────────────────────────────────────────────
-  { id: "a_field",      name: "Field Ready",         icon: "🔦", category: "milestone",  rarity: "common",    points: 10,  condition: "Use Field Mode to check a price",    check: _ => false }, // triggered manually
-  { id: "a_negotiator", name: "The Negotiator",      icon: "🤝", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Use the Negotiation Helper",         check: _ => false }, // triggered manually
-  { id: "a_guide",      name: "Student of the Game", icon: "📖", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Read the Field Guide",               check: _ => false }, // triggered manually
-  { id: "a_insurance",  name: "Properly Insured",    icon: "📋", category: "milestone",  rarity: "rare",      points: 50,  condition: "Generate an insurance report",       check: _ => false }, // triggered manually
+  { id: "a_field",      name: "Field Ready",         icon: "🔦", category: "milestone",  rarity: "common",    points: 10,  condition: "Use Field Mode to check a price",    check: () => false }, // triggered manually
+  { id: "a_negotiator", name: "The Negotiator",      icon: "🤝", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Use the Negotiation Helper",         check: () => false }, // triggered manually
+  { id: "a_guide",      name: "Student of the Game", icon: "📖", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Read the Field Guide",               check: () => false }, // triggered manually
+  { id: "a_insurance",  name: "Properly Insured",    icon: "📋", category: "milestone",  rarity: "rare",      points: 50,  condition: "Generate an insurance report",       check: () => false }, // triggered manually
   { id: "a_theme",      name: "Customizer",          icon: "🎨", category: "milestone",  rarity: "common",    points: 10,  condition: "Change the app theme",               check: c => c.themeCustomized },
   { id: "a_auth",       name: "Locked Down",         icon: "🔐", category: "milestone",  rarity: "uncommon",  points: 25,  condition: "Enable app authentication",          check: c => c.authConfigured },
 
@@ -269,7 +269,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "setup_collector",  name: "The Collector",          icon: "🎮",  category: "milestone", rarity: "uncommon",  points: 25,  condition: "Set up RetroVault in Collector mode",                  check: c => c.setupWizardMode === 'collector' },
   { id: "setup_dealer",     name: "The Dealer",             icon: "💰",  category: "milestone", rarity: "uncommon",  points: 25,  condition: "Set up RetroVault in Dealer mode",                     check: c => c.setupWizardMode === 'dealer' },
   { id: "setup_empire",     name: "The Empire Builder",     icon: "🏆",  category: "milestone", rarity: "rare",      points: 50,  condition: "Set up RetroVault in Empire Builder mode",             check: c => c.setupWizardMode === 'empire' },
-  { id: "setup_rerun",      name: "Change of Plans",        icon: "🔄",  category: "secret",    rarity: "uncommon",  points: 25,  condition: "Secret: re-run the Setup Wizard and switch modes",     check: _ => false, secret: true }, // triggered manually
+  { id: "setup_rerun",      name: "Change of Plans",        icon: "🔄",  category: "secret",    rarity: "uncommon",  points: 25,  condition: "Secret: re-run the Setup Wizard and switch modes",     check: () => false, secret: true }, // triggered manually
 
   // ─── WISHLIST ─────────────────────────────────────────────────────────────────
   { id: "wish_first",       name: "Window Shopping",        icon: "🎁",  category: "personal",  rarity: "common",    points: 10,  condition: "Add your first game to the Wishlist",                  check: c => c.wishlistCount >= 1 },
@@ -286,7 +286,7 @@ export const ACHIEVEMENTS: Achievement[] = [
 
 /**
  * Evaluate all auto-checkable achievements against the current collection context.
- * Secret achievements (check: _ => false) are skipped during auto evaluation and
+ * Secret achievements (check: () => false) are skipped during auto evaluation and
  * are instead unlocked explicitly through the manual-achievement API path.
  */
 export function evaluateAchievements(ctx: AchievementContext): Set<string> {
@@ -304,7 +304,7 @@ export function getTotalPoints(unlockedIds: string[]): number {
 
 /**
  * Completion % counts only auto-checkable achievements (not secret, not manual-only).
- * Manual-only achievements (check: _ => false) are excluded so the % isn\'t
+ * Manual-only achievements (check: () => false) are excluded so the % isn\'t
  * artificially inflated by things the user can\'t organically discover.
  */
 export function getCompletionPercent(unlockedIds: string[]): number {

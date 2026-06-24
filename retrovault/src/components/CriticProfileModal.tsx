@@ -19,15 +19,8 @@ type Props = {
   onClose: () => void;
 };
 
-const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
-  1: { label: "HIGH", color: "text-red-400" },
-  2: { label: "MED", color: "text-yellow-400" },
-  3: { label: "LOW", color: "text-zinc-400" },
-};
-
-export function CriticProfileModal({ critic, people, items, favData, regretData, onClose }: Props) {
+export function CriticProfileModal({ critic, items, favData, regretData, onClose }: Props) {
   const [mentions, setMentions] = useState<MentionEntry[]>([]);
-  const [loadingMentions, setLoadingMentions] = useState(true);
 
   const favIds = favData[critic.id] || [];
   const regIds = regretData[critic.id] || [];
@@ -52,7 +45,6 @@ export function CriticProfileModal({ critic, people, items, favData, regretData,
   useEffect(() => {
     fetch('/api/tags').then(r => r.json()).then(d => {
       setMentions((d.mentions || {})[critic.id] || []);
-      setLoadingMentions(false);
     });
   }, [critic.id]);
 

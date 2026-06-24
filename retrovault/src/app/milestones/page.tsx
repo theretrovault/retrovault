@@ -16,12 +16,6 @@ type Milestone = {
   achieved: boolean; achievedValue?: string | number; category: "collection" | "business" | "platform" | "discovery";
 };
 
-const PLATFORM_EMOJIS: Record<string, string> = {
-  "NES": "🎮", "SNES": "🟣", "N64": "🔵", "Gamecube": "🟤",
-  "Sega Genesis": "🔷", "Dreamcast": "🌀", "PS1": "⬜", "PS2": "🟦",
-  "Switch": "🔴", "Xbox": "🟩",
-};
-
 export default function MilestonesPage() {
   const [items, setItems] = useState<GameItem[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -88,13 +82,6 @@ export default function MilestonesPage() {
 
   const achieved = milestones.filter(m => m.achieved);
   const pending = milestones.filter(m => !m.achieved);
-
-  const CATEGORY_COLORS: Record<string, string> = {
-    collection: "border-green-700 text-green-400",
-    business: "border-yellow-700 text-yellow-400",
-    platform: "border-blue-700 text-blue-400",
-    discovery: "border-purple-700 text-purple-400",
-  };
 
   return (
     <div className="w-full bg-black border-4 border-green-500 rounded p-6 shadow-[0_0_15px_rgba(34,197,94,0.3)] min-h-[80vh]">

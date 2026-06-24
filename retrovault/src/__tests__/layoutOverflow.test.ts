@@ -55,10 +55,8 @@ function findUnwrappedButtonRows(src: string, filename: string): string[] {
 
     // Count FULL-SIZE action buttons (px-4 py-2, not small icon buttons) in next 25 lines
     let buttonCount = 0;
-    let depth = 0;
     for (let j = i; j < Math.min(i + 25, lines.length); j++) {
       const l = lines[j];
-      for (const ch of l) { if (ch === '{' || ch === '<') depth++; if (ch === '}' || ch === '>') depth--; }
       // Count buttons that look like main action buttons (have px-4 and py-2)
       if ((l.includes('<button') || l.includes('<Button')) && l.includes('px-4') && l.includes('py-2')) {
         buttonCount++;
@@ -137,7 +135,6 @@ describe('Layout overflow — button rows must use flex-wrap', () => {
   it('Settings SAVE ALL button has whitespace-nowrap and shrink-0', () => {
     const src = readFile(path.join(SRC, 'app/settings/page.tsx'));
     // Find the save button context
-    const btnCtx = src.match(/SAVE ALL[\s\S]{0,200}/)?.[0] ?? '';
     // Walk back to find the button className
     const headerRegion = src.match(/<header[\s\S]*?<\/header>/)?.[0] ?? '';
     expect(headerRegion).toContain('whitespace-nowrap');

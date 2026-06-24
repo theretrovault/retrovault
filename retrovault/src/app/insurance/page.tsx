@@ -10,10 +10,6 @@ type GameItem = {
   purchaseDate?: string; source?: string;
 };
 
-const CONDITION_MULTIPLIER: Record<string, number> = {
-  "Sealed": 2.5, "New": 1.8, "CIB": 1.3, "Excellent": 1.1, "Good": 1.0, "Loose": 1.0, "Fair": 0.75, "Poor": 0.4,
-};
-
 function getItemValue(item: GameItem, copy: GameItem["copies"][0]): number {
   return getCopyMarketValue(item, copy);
 }

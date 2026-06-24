@@ -10,8 +10,6 @@ type GameItem = {
 
 type PlayStatus = { [gameId: string]: string };
 
-const PLATFORMS = ["NES","SNES","N64","Gamecube","Switch","Sega Genesis","Sega CD","Dreamcast","PS1","PS2","PS3","PSP","Xbox","Xbox 360"];
-
 export default function RandomizerPage() {
   const [inventory, setInventory] = useState<GameItem[]>([]);
   const [playlog, setPlaylog] = useState<PlayStatus>({});

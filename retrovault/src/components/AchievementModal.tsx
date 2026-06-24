@@ -1,6 +1,6 @@
 "use client";
 
-import { ACHIEVEMENTS, RARITIES, type Achievement, type AchievementContext, CATEGORY_LABELS } from "@/data/achievements";
+import { RARITIES, type Achievement, type AchievementContext, CATEGORY_LABELS } from "@/data/achievements";
 
 type Props = {
   achievement: Achievement;
@@ -99,7 +99,7 @@ function getProgress(achievement: Achievement, ctx?: AchievementContext): { curr
   return progressMap[id] || null;
 }
 
-export function AchievementModal({ achievement, unlocked, unlockedAt, context, critics, onClose }: Props) {
+export function AchievementModal({ achievement, unlocked, unlockedAt, context, onClose }: Props) {
   const cfg = RARITIES[achievement.rarity];
   const catCfg = CATEGORY_LABELS[achievement.category];
   const progress = getProgress(achievement, context);

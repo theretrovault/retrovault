@@ -29,7 +29,7 @@ function cleanText(value: string | null | undefined): string {
   return (value || '').replace(/\s+/g, ' ').trim();
 }
 
-function extractRowTitle(rowEl: cheerio.Cheerio<any>, $root: cheerio.CheerioAPI): string {
+function extractRowTitle(rowEl: cheerio.Cheerio<any>): string {
   return cleanText(
     rowEl.find('td.title > a').first().text()
     || rowEl.find('td.title a').first().text()
@@ -338,7 +338,7 @@ describe('Known good game → correct URL', () => {
     { title: 'The Elder Scrolls IV Oblivion', platform: 'xbox-360', expectedSlug: 'elder-scrolls-iv-oblivion' },
   ];
 
-  for (const { title, platform, expectedSlug } of KNOWN_GAMES) {
+  for (const { title, expectedSlug } of KNOWN_GAMES) {
     it(`"${title}" produces slug variant "${expectedSlug}"`, () => {
       const variants = getSlugVariants(title);
       expect(variants).toContain(expectedSlug);

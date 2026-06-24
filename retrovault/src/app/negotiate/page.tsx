@@ -42,7 +42,6 @@ export default function NegotiatePage() {
   const anchorRatio = market > 0 && ask > 0 ? ask / market : null;
   const isOverpriced = anchorRatio ? anchorRatio > 1.1 : false;
   const isUnderpriced = anchorRatio ? anchorRatio < 0.85 : false;
-  const isFair = anchorRatio ? anchorRatio >= 0.85 && anchorRatio <= 1.1 : false;
 
   // Condition discount %
   const conditionDiscount: Record<string, number> = {
