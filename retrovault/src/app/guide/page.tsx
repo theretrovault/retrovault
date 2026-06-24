@@ -91,8 +91,6 @@ export default function GuidePage() {
   useEffect(() => {
     void unlockAchievement('a_guide');
   }, []);
-  const [activeSection, setActiveSection] = useState<string | null>(null);
-
   const totalTips = GUIDE_SECTIONS.reduce((s, g) => s + g.tips.length, 0);
 
   const filteredSections = search.trim()

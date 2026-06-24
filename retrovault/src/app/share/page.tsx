@@ -42,7 +42,7 @@ export default function SharePage() {
         const remainingDays = Math.max(0, Math.ceil((expires - now) / 86400000));
         setExpiryDays(remainingDays || 0);
       }
-      setConfig((prev: any) => ({
+      setConfig(() => ({
         ...configData,
         publicTokenExpiresAt: shareData.expiresAt || null,
       }));

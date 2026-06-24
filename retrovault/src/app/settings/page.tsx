@@ -13,7 +13,7 @@ import { COLOR_PALETTES, STYLE_THEMES } from "@/data/themes";
 import { NAV_GROUPS } from "@/data/navConfig";
 import { PLATFORM_GROUPS, RETRO_DEFAULTS, ALL_PLATFORMS } from "@/data/platformGroups";
 import Link from "next/link";
-import { Onboarding, ONBOARDING_KEY } from "@/components/Onboarding";
+import { ONBOARDING_KEY } from "@/components/Onboarding";
 
 type Features = {
   collection: boolean; business: boolean; fieldTools: boolean; windowShop: boolean; system: boolean;
@@ -516,8 +516,6 @@ export default function SettingsPage() {
           <div className="space-y-5">
             {PLATFORM_GROUPS.map(group => {
               const enabledInGroup = group.platforms.filter(p => ((config as any).platforms || RETRO_DEFAULTS).includes(p)).length;
-              const allEnabled = enabledInGroup === group.platforms.length;
-              const noneEnabled = enabledInGroup === 0;
               return (
                 <div key={group.id}>
                   <div className="flex items-center gap-3 mb-2">

@@ -223,7 +223,7 @@ export default function FieldPage() {
     setCaching(true);
     setCacheProgress('Starting...');
     try {
-      const { count, sizeKb } = await buildFieldCache((step, _pct) => setCacheProgress(step));
+      const { count, sizeKb } = await buildFieldCache((step) => setCacheProgress(step));
       const cache = await readFieldCache();
       setFieldCache(cache);
       setCacheMeta(cache ? { cachedAt: cache.cachedAt, count } : null);

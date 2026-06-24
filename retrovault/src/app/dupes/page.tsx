@@ -21,10 +21,6 @@ export default function DupesPage() {
   }, []);
 
   const totalDupes = items.reduce((s, i) => s + (i.copies || []).length - 1, 0);
-  const totalDupeValue = items.reduce((s, i) => {
-    const extra = (i.copies || []).slice(1);
-    return s + extra.reduce((es, c) => es + (parseFloat(c.priceAcquired) || 0), 0);
-  }, 0);
   const marketDupeValue = items.reduce((s, i) => {
     return s + (parseFloat(i.marketLoose || "0") || 0) * ((i.copies || []).length - 1);
   }, 0);

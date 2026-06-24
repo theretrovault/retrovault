@@ -15,12 +15,6 @@ type Deal = {
 
 type DealsData = { craigslist: Deal[]; reddit: Deal[] };
 
-const COMMON_CITIES = [
-  "portland","seattle","chicago","boston","losangeles","newyork","sfbay",
-  "denver","dallas","phoenix","atlanta","miami","detroit","minneapolis",
-  "sandiego","houston","philadelphia","baltimore","cleveland","pittsburgh",
-];
-
 export default function DealsPage() {
   const [data, setData] = useState<DealsData>({ craigslist: [], reddit: [] });
   const [loading, setLoading] = useState(true);

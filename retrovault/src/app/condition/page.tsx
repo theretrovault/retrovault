@@ -123,7 +123,6 @@ function getGrade(score: number) {
 export default function ConditionPage() {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform>(PLATFORMS[0]);
   const [checks, setChecks] = useState<Record<string, boolean | null>>({});
-  const [showResult, setShowResult] = useState(false);
 
   const allChecks = selectedPlatform.categories.flatMap(c => c.checks);
   const gradedChecks = allChecks.filter(c => c.weight > 0);
@@ -135,8 +134,8 @@ export default function ConditionPage() {
   const progress = (answeredGraded.length / gradedChecks.length) * 100;
   const failures = allChecks.filter(c => checks[c.id] === false && c.failNote);
 
-  const reset = () => { setChecks({}); setShowResult(false); };
-  const switchPlatform = (p: Platform) => { setSelectedPlatform(p); setChecks({}); setShowResult(false); };
+  const reset = () => { setChecks({}); };
+  const switchPlatform = (p: Platform) => { setSelectedPlatform(p); setChecks({}); };
 
   return (
     <div className="w-full bg-black border-4 border-green-500 rounded p-6 shadow-[0_0_15px_rgba(34,197,94,0.3)] min-h-[80vh]">

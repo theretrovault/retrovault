@@ -160,7 +160,6 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const game     = searchParams.get('game') || '';
-  const platform = searchParams.get('platform') || '';
 
   if (game === 'all') {
     saveCache({});
