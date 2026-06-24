@@ -70,10 +70,30 @@ type GameItem = {
   priceHistory?: Record<string, PriceHistoryEntry>;
   purchaseDate?: string;
   isDigital?: boolean;
+  personalRating?: number;
   copies: GameCopy[];
   hasVariants?: boolean;
   variantMatches?: { title: string; platform: string; loose: string | null; cib: string | null; new: string | null; graded: string | null }[];
 };
+
+type Person = { id: string; name: string; color?: string | null };
+type Mention = { entityId?: string; message: string; fromPerson: string };
+type TagsData = { gameTags: Record<string, string[]>; mentions: Record<string, Mention[]> };
+type WishlistRestorePayload = {
+  title: string;
+  platform: string;
+  playerId: string | null;
+  priority: number;
+  notes: string | null;
+  marketLoose: string | null;
+  marketCib: string | null;
+  marketNew: string | null;
+  marketGraded: string | null;
+  lastFetched: string | null;
+};
+type WishlistItem = Partial<WishlistRestorePayload> & { id?: string };
+type PriceChartingResponse = { error?: string; loose?: string; cib?: string; new?: string; graded?: string; hasVariants?: boolean };
+type SortValue = string | number;
 
 // Hoisted to module scope — prevents focus loss on re-render
 function SortHeader({
@@ -105,7 +125,7 @@ export default function InventoryPage() {
   const [filterAction, setFilterAction] = useState<string>("owned");
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
-  const [vaultWishlistUndo, setVaultWishlistUndo] = useState<Record<string, any>>({});
+  const [vaultWishlistUndo, setVaultWishlistUndo] = useState<Record<string, WishlistRestorePayload>>({});
 
   // Modal state
   const [priceDetailItem, setPriceDetailItem] = useState<GameItem | null>(null);
@@ -115,7 +135,6 @@ export default function InventoryPage() {
   const [codexTab, setCodexTab] = useState<'player' | 'tech'>('player');
 
   // Favorites state
-  type Person = { id: string; name: string; color?: string | null };
   const [people, setPeople] = useState<Person[]>([]);
   const [favData, setFavData] = useState<Record<string, string[]>>({});
   const [regretData, setRegretData] = useState<Record<string, string[]>>({});
@@ -127,7 +146,7 @@ export default function InventoryPage() {
   const [editingPersonColor, setEditingPersonColor] = useState("");
   const [favPersonFilter, setFavPersonFilter] = useState<string | null>(null);
   const [playerProfile, setPlayerProfile] = useState<Person | null>(null);
-  const [tagsData, setTagsData] = useState<{ gameTags: Record<string, string[]>; mentions: Record<string, any[]> }>({ gameTags: {}, mentions: {} });
+  const [tagsData, setTagsData] = useState<TagsData>({ gameTags: {}, mentions: {} });
   const [tagSearch, setTagSearch] = useState("");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -171,7 +190,7 @@ export default function InventoryPage() {
     fetch("/api/favorites")
       .then(r => r.json())
       .then(d => {
-        const nextPeople = Array.isArray(d.people) ? d.people.filter((person: any) => person?.id && person?.name) : [];
+        const nextPeople = Array.isArray(d.people) ? d.people.filter((person: Person) => person?.id && person?.name) : [];
         setPeople(nextPeople);
         setFavData(d.favorites || {});
         setRegretData(d.regrets || {});
@@ -368,11 +387,11 @@ export default function InventoryPage() {
     else { score += 20; factors++; } // owning at least one copy = baseline
 
     // Factor 3: High personal rating (from Showcase)
-    const rating = (item as any).personalRating;
+    const rating = item.personalRating;
     if (rating) { score += (rating / 5) * 100; factors++; }
 
     // Factor 4: Longevity (older purchase date = held it longer = more sentimental)
-    const pd = (item as any).purchaseDate;
+    const pd = item.purchaseDate;
     if (pd) {
       const daysSince = Math.floor((Date.now() - new Date(pd).getTime()) / 86400000);
       score += Math.min(daysSince / 3, 100); // max 100 at ~300 days
@@ -416,7 +435,7 @@ export default function InventoryPage() {
   const getMentionsForItem = (id: string) => {
     const allMentions: string[] = [];
     Object.entries(tagsData.mentions || {}).forEach(([personId, personMentions]) => {
-      (personMentions as any[]).forEach(m => {
+      personMentions.forEach(m => {
         if (m.entityId === id) {
           allMentions.push(m.message, m.fromPerson);
           const toPerson = people.find(p => p.id === personId);
@@ -458,7 +477,7 @@ export default function InventoryPage() {
       return true;
     })
     .sort((a, b) => {
-      let av: any, bv: any;
+      let av: SortValue, bv: SortValue;
       if (sortField === "qty") { av = (a.copies||[]).length; bv = (b.copies||[]).length; }
       else if (sortField === "totalPaid") { av = totalPaid(a.copies||[]); bv = totalPaid(b.copies||[]); }
       else if (sortField === "totalMarket") { av = totalMarket(a); bv = totalMarket(b); }
@@ -477,8 +496,12 @@ export default function InventoryPage() {
         av = getReleaseYear(a) ? currentYear - getReleaseYear(a)! : -1;
         bv = getReleaseYear(b) ? currentYear - getReleaseYear(b)! : -1;
       }
-      else { av = (a as any)[sortField] ?? ""; bv = (b as any)[sortField] ?? ""; }
-      if (typeof av === "string") return sortOrder === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+      else { av = String(a[sortField as keyof GameItem] ?? ""); bv = String(b[sortField as keyof GameItem] ?? ""); }
+      if (typeof av === "string" || typeof bv === "string") {
+        const avs = String(av);
+        const bvs = String(bv);
+        return sortOrder === "asc" ? avs.localeCompare(bvs) : bvs.localeCompare(avs);
+      }
       return sortOrder === "asc" ? av - bv : bv - av;
     });
 
@@ -493,7 +516,7 @@ export default function InventoryPage() {
     setFetchingRows((p) => new Set(p).add(item.id));
     try {
       const res = await fetch(`/api/pricecharting?q=${encodeURIComponent(`${item.title} ${item.platform}`)}`);
-      const data = await res.json();
+      const data = await res.json() as PriceChartingResponse;
       if (!data.error && (data.loose !== "N/A" || data.cib !== "N/A")) {
         await fetch("/api/inventory", {
           method: "PUT",
@@ -523,7 +546,7 @@ export default function InventoryPage() {
       setFetchProgress({ current: i + 1, total: sortedItems.length });
       try {
         const res = await fetch(`/api/pricecharting?q=${encodeURIComponent(`${item.title} ${item.platform}`)}`);
-        const data = await res.json();
+        const data = await res.json() as PriceChartingResponse;
         if (!data.error && (data.loose !== "N/A" || data.cib !== "N/A")) {
           await fetch("/api/inventory", {
             method: "PUT",
@@ -559,7 +582,7 @@ export default function InventoryPage() {
       });
       setIsModalOpen(false);
       fetchInventory();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: unknown) { alert(e instanceof Error ? e.message : "Failed to save asset"); }
   };
 
   const deleteItem = async (id: string) => {
@@ -612,21 +635,21 @@ export default function InventoryPage() {
       body: JSON.stringify(newItem),
     }).then((r) => r.json());
 
-    let removedWishlistEntry: any = null;
+    let removedWishlistEntry: WishlistRestorePayload | null = null;
     const config = await fetch("/api/config").then((r) => r.json()).catch(() => ({}));
     const autoSatisfyWishlistOnVaultAdd = config?.autoSatisfyWishlistOnVaultAdd !== false;
     if (autoSatisfyWishlistOnVaultAdd) {
       const wishlistPayload = await fetch('/api/wishlist').then((r) => r.json()).catch(() => ({}));
       const match = Array.isArray(wishlistPayload?.items)
-        ? wishlistPayload.items.find((item: any) =>
+        ? (wishlistPayload.items as WishlistItem[]).find((item) =>
             String(item?.title || '').trim().toLowerCase() === data.title.trim().toLowerCase() &&
             String(item?.platform || '').trim().toLowerCase() === data.platform.trim().toLowerCase()
           )
         : null;
       if (match?.id) {
         removedWishlistEntry = {
-          title: match.title,
-          platform: match.platform,
+          title: match.title || data.title,
+          platform: match.platform || data.platform,
           playerId: match.playerId || null,
           priority: match.priority ?? 2,
           notes: match.notes ?? null,
@@ -697,7 +720,7 @@ export default function InventoryPage() {
     setIsPriceFetching(true);
     try {
       const res = await fetch(`/api/pricecharting?q=${encodeURIComponent(`${formData.title} ${formData.platform}`)}`);
-      const data = await res.json();
+      const data = await res.json() as PriceChartingResponse;
       if (!data.error) setFormData((p) => ({ ...p, marketLoose: data.loose, marketCib: data.cib }));
     } catch (e) { console.error(e); }
     finally { setIsPriceFetching(false); }

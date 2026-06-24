@@ -16,7 +16,7 @@ describe('Vault add -> wishlist satisfaction flow', () => {
   });
 
   it('stores a session-only undo payload and renders Put Back on Wishlist affordances', () => {
-    expect(inventorySource).toContain('const [vaultWishlistUndo, setVaultWishlistUndo] = useState<Record<string, any>>({});');
+    expect(inventorySource).toContain('const [vaultWishlistUndo, setVaultWishlistUndo] = useState<Record<string, WishlistRestorePayload>>({});');
     expect(inventorySource).toContain('const handleUndoVaultWishlist = async (gameId: string) =>');
     expect(inventorySource).toContain("await fetch('/api/wishlist', {");
     expect(inventorySource).toContain('↩ PUT BACK ON WISHLIST');
