@@ -15,7 +15,8 @@ Current workflows now do the following:
 - deploy/promotion workflows handle SSH deploys and live smoke validation
 
 What is still missing:
-- Docker Hub mirror workflow
+- live package visibility verification after an actual publish
+- pull/run verification from the published image
 - any additional nightly verification beyond successful Actions publish/logs
 
 ---
@@ -41,15 +42,19 @@ What is still missing:
 ## Recommended workflow shape
 
 ### Stable release workflow
-Add a new workflow or extend `release.yml` to:
-1. checkout repo
-2. set up Docker Buildx
-3. log in to GHCR with GitHub token
-4. compute tags/labels
-5. build image from repo Dockerfile
-6. push image to GHCR
-7. optionally verify a pull of the published tag
-8. create/update GitHub Release
+`release.yml` now:
+1. checks out the repo
+2. installs dependencies
+3. prepares env data and applies Prisma migrations
+4. runs tests, build, and release smoke checks
+5. sets up Docker Buildx
+6. logs in to GHCR with `GITHUB_TOKEN`
+7. logs in to Docker Hub with `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN`
+8. computes `latest`, `X.Y.Z`, and `vX.Y.Z` tags
+9. builds and pushes the image to GHCR and Docker Hub
+10. creates/updates the GitHub Release
+
+The remaining release hardening step is external verification of the pushed image: package visibility, `docker pull`, run/health check, and tag parity.
 
 ### Nightly workflow
 A separate workflow now:
@@ -83,11 +88,13 @@ Image should include standard OCI labels such as:
 
 ### Registry verification
 - confirm package/tag is visible on GHCR
+- confirm matching stable tags are visible on Docker Hub after tagged releases
 - confirm tags match docs/release expectations
 
 ### Pull verification
 ```bash
 docker pull ghcr.io/theretrovault/retrovault:latest
+docker pull retrovault/retrovault:latest
 ```
 
 ### Run verification
@@ -101,4 +108,4 @@ Use documented compose/install path and verify:
 
 ## Recommendation
 
-Keep GHCR as the primary automated registry target and wire Docker Hub only after GHCR publishing is clean. Stable and nightly GHCR lanes are now separated cleanly, which is the right shape. One clean cartridge before a second cartridge, because registry drift is a lousy boss battle.
+Keep GHCR as the primary automated registry target. Docker Hub is now wired as a stable-release mirror, so the next milestone is proof: verify the first published stable tags from both registries and keep nightly GHCR-only unless intentionally expanded later. One clean cartridge before a second cartridge, because registry drift is a lousy boss battle.

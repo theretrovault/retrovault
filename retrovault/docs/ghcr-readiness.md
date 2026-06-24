@@ -41,9 +41,9 @@ Current project context now confirms GHCR is an active stable + nightly release 
 ## Readiness checklist
 
 ### Packaging / image expectations
-- [ ] image pull path is documented in README/install docs
-- [ ] tags are documented (`latest`, `nightly`, semver)
-- [ ] image has clear OCI labels/metadata
+- [x] image pull path is documented in README/release docs
+- [x] tags are documented (`latest`, `nightly`, semver)
+- [x] image has baseline OCI labels/metadata
 - [ ] runtime env vars / volume expectations are documented
 - [ ] image can be verified with a simple pull + compose/up path
 
@@ -54,7 +54,7 @@ Current project context now confirms GHCR is an active stable + nightly release 
 - [x] image publishing success is visible in Actions logs/releases
 
 ### Trust / operator expectations
-- [ ] install docs show GHCR pull examples
+- [ ] install docs show GHCR pull/run examples
 - [ ] upgrade path is documented
 - [ ] backup/restore guidance is linked next to install/deploy guidance
 - [ ] package visibility is public

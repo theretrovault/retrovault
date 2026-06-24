@@ -128,7 +128,7 @@ You know this already. That's why you're here.
 ## Getting started
 
 > **📋 [Installation guide →](docs/installation.md)** — Docker, Debian/Ubuntu, CentOS/RHEL, macOS, Windows, Raspberry Pi
-> **📦 GHCR image target:** `ghcr.io/theretrovault/retrovault` (primary registry surface, publish automation planned)
+> **📦 Container images:** GHCR primary at `ghcr.io/theretrovault/retrovault`; Docker Hub stable mirror at `retrovault/retrovault`
 > **🛠️ [Developer guide →](docs/developer-guide.md)** — Architecture, CI/CD, testing, releases, contributing
 > **🚀 [Product availability docs →](docs/README.md)** — GitHub public-surface, GHCR, Docker Hub, and community rollout planning
 
@@ -302,9 +302,11 @@ Current primary public surfaces:
 - Community/support for Phase 1: GitHub Issues + GitHub Discussions
 
 Important current truth:
-- GHCR is the intended primary registry surface
-- Docker Hub is a later convenience mirror at `theretrovault/retrovault`
-- there is not yet a live GHCR publish workflow in GitHub Actions, so the current docs describe the target state and implementation path rather than pretending the registry automation is already complete
+- GHCR is the primary automated registry surface at `ghcr.io/theretrovault/retrovault`
+- tagged releases publish stable GHCR tags: `latest`, `X.Y.Z`, and `vX.Y.Z`
+- the `nightly` branch publishes `ghcr.io/theretrovault/retrovault:nightly` without touching `latest`
+- Docker Hub is a stable-release convenience mirror at `retrovault/retrovault`
+- before announcing a new public release, verify package visibility, pull/run behavior, and tag parity from the published images
 
 ## Support
 

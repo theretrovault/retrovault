@@ -18,5 +18,7 @@
 | [GHCR Implementation Plan](ghcr-implementation-plan.md) | Concrete plan for adding real GHCR image publish automation |
 | [Docker Hub Readiness](docker-hub-readiness.md) | Docker Hub role, tag model, copy, and publishing checklist |
 | [Docker Hub Publish Requirements](docker-hub-publish-requirements.md) | Concrete requirements and verification steps for Docker Hub publishing |
+| [Storage Hybrid Map](storage-hybrid-map.md) | Current SQLite/JSON split and migration guardrails |
+| [TapeDeck Discovery Spike](tapedeck-discovery-spike.md) | First-pass adjacent product scope for physical media collection tracking |
 | [Discord and Community Recommendation](discord-community-recommendation.md) | Recommended community/support shape for Phase 1 |
 | [Unraid Template](unraid-template.xml) | Template for Unraid Community Applications submission |

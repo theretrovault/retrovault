@@ -17,7 +17,7 @@ Make RetroVault:
 Primary Phase 1 surfaces:
 - GitHub
 - GHCR as the primary public registry
-- Docker Hub as a later convenience mirror
+- Docker Hub as a stable-release convenience mirror
 - docs
 - landing-page messaging assets
 - GitHub-first community/support entrypoints
@@ -44,12 +44,12 @@ Primary Phase 1 surfaces:
 ### A2. GHCR readiness
 - [x] Create GHCR readiness doc
 - [x] Audit current GitHub Actions/release/deploy workflow posture at a planning level
-- [ ] Audit current GitHub Actions workflows for container publish behavior
-- [ ] Document desired image tags:
-  - [ ] `latest`
-  - [ ] `nightly`
-  - [ ] version tags (`vX.Y.Z` and/or `X.Y.Z`)
-- [ ] Document desired image metadata/labels
+- [x] Audit current GitHub Actions workflows for container publish behavior
+- [x] Document desired image tags:
+  - [x] `latest`
+  - [x] `nightly`
+  - [x] version tags (`vX.Y.Z` and `X.Y.Z`)
+- [x] Document desired image metadata/labels
 - [ ] Document pull/run verification steps
 - [ ] Note any multi-arch gaps (`amd64`, `arm64`)
 
@@ -58,8 +58,8 @@ Primary Phase 1 surfaces:
 - [x] Create Docker Hub publish requirements handoff doc
 - [ ] Draft Docker Hub repo description
 - [ ] Draft Docker Hub long description / README copy
-- [ ] Define desired tag mapping vs GHCR
-- [ ] Document CI push requirements and token/secrets needed
+- [x] Define desired tag mapping vs GHCR
+- [x] Document CI push requirements and token/secrets needed
 - [ ] Document post-publish verification steps
 
 ### A4. Docs readiness
@@ -91,7 +91,7 @@ Primary Phase 1 surfaces:
 ## B. Work that needs Alex
 
 ### B1. Platform ownership / decisions
-- [x] Confirm official Docker Hub org/repo target as `theretrovault/retrovault`
+- [x] Confirm official Docker Hub org/repo target as `retrovault/retrovault`
 - [x] Confirm that dedicated landing page/domain is later, not Phase 1
 - [x] Confirm community remains GitHub-first in Phase 1
 - [ ] Confirm official public domain / landing-page domain later when backlog item activates
@@ -101,7 +101,7 @@ Primary Phase 1 surfaces:
 - [ ] Make GHCR package public if still private
 - [ ] Update GitHub About section / website / social preview
 - [x] Decide that GitHub Discussions should be enabled and public-facing
-- [ ] Provide Docker Hub token/secrets later when automated publishing is activated
+- [ ] Confirm Docker Hub secrets are present and valid for the first tagged release
 
 ### B3. Public-facing assets / approval
 - [x] Approve tagline direction as "A self-hosted command center for retro game collectors."
@@ -122,13 +122,13 @@ Primary Phase 1 surfaces:
 
 ### Wave 2: Alex unblockers
 1. GHCR visibility + GitHub About/discussions settings
-2. Docker Hub token when the mirror is activated
+2. Docker Hub credentials/secret validation when the first stable mirror release is published
 3. landing domain decision later from backlog
 4. screenshots/public media in Phase 2
 
 ### Wave 3: go live
-1. enable/publish GHCR cleanly
-2. publish Docker Hub mirror
+1. publish/verify GHCR cleanly
+2. publish/verify Docker Hub stable mirror
 3. update GitHub public surface
 4. publish docs/support/community links
 5. verify discoverability/install path end-to-end
@@ -144,3 +144,21 @@ Phase 1 is complete when:
 - [ ] docs support install, upgrade, backup/restore, and release-channel questions
 - [ ] community entrypoint is defined
 - [ ] remaining user-dependent steps are explicit, small, and actionable
+
+---
+
+## Current codebase audit — 2026-06-23
+
+Current repository workflows show that container publishing is now implemented, not merely planned:
+
+- `.github/workflows/release.yml` publishes stable tagged releases to GHCR and Docker Hub.
+- `.github/workflows/publish-nightly-image.yml` publishes `ghcr.io/theretrovault/retrovault:nightly` from the `nightly` branch.
+- Stable tags are `latest`, `X.Y.Z`, and `vX.Y.Z`.
+- Docker Hub stable mirror target is `retrovault/retrovault`.
+
+Still open before declaring Phase 1 complete:
+
+- verify GHCR package visibility and pull/run behavior from an actually published tag;
+- verify Docker Hub credentials and tag parity during the first stable mirror release;
+- keep README/install/release docs aligned with the registry truth;
+- complete GitHub About/social/support polish and remaining platform settings.
