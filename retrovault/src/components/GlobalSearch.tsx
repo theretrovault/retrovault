@@ -7,6 +7,11 @@ type SearchResult = {
   id: string; title: string; subtitle: string; href: string; icon: string; category: string;
 };
 
+type InventoryItem = { id: string; title?: string; platform?: string; copies?: unknown[] };
+type GrailItem = { id: string; title?: string; platform?: string; acquiredAt?: string | null };
+type WatchlistItem = { id: string; title?: string; alertPrice?: string | number | null };
+type EventItem = { id: string; title?: string; location?: string | null };
+
 const STATIC_PAGES: SearchResult[] = [
   { id: "p-inventory", title: "Vault", subtitle: "Your game collection", href: "/inventory", icon: "🕹️", category: "page" },
   { id: "p-field", title: "Field Mode", subtitle: "Quick price check & dupe alert", href: "/field", icon: "🔦", category: "page" },
@@ -46,10 +51,10 @@ type Props = { open: boolean; onClose: () => void };
 
 export function GlobalSearch({ open, onClose }: Props) {
   const [query, setQuery] = useState("");
-  const [inventory, setInventory] = useState<any[]>([]);
-  const [grails, setGrails] = useState<any[]>([]);
-  const [watchlist, setWatchlist] = useState<any[]>([]);
-  const [events, setEvents] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [grails, setGrails] = useState<GrailItem[]>([]);
+  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
+  const [events, setEvents] = useState<EventItem[]>([]);
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -64,17 +69,17 @@ export function GlobalSearch({ open, onClose }: Props) {
   useEffect(() => {
     if (inventory.length > 0) return; // already loaded
     Promise.all([
-      fetch("/api/inventory").then(r => r.json()).catch(() => []),
-      fetch("/api/grails").then(r => r.json()).catch(() => []),
-      fetch("/api/watchlist").then(r => r.json()).catch(() => []),
-      fetch("/api/events").then(r => r.json()).catch(() => []),
+      fetch("/api/inventory").then(r => r.json() as Promise<InventoryItem[]>).catch(() => []),
+      fetch("/api/grails").then(r => r.json() as Promise<GrailItem[]>).catch(() => []),
+      fetch("/api/watchlist").then(r => r.json() as Promise<WatchlistItem[]>).catch(() => []),
+      fetch("/api/events").then(r => r.json() as Promise<EventItem[]>).catch(() => []),
     ]).then(([inv, gr, wl, ev]) => {
       setInventory(inv);
       setGrails(gr);
       setWatchlist(wl);
       setEvents(ev);
     });
-  }, [open]);
+  }, [inventory.length]);
 
   const q = query.toLowerCase().trim();
 
@@ -83,24 +88,24 @@ export function GlobalSearch({ open, onClose }: Props) {
     ...STATIC_PAGES.filter(p => p.title.toLowerCase().includes(q) || p.subtitle.toLowerCase().includes(q)),
     // Games
     ...inventory
-      .filter((i: any) => i.title?.toLowerCase().includes(q) && (i.copies || []).length > 0)
+      .filter((i) => i.title?.toLowerCase().includes(q) && (i.copies || []).length > 0)
       .slice(0, 5)
-      .map((i: any) => ({ id: `game-${i.id}`, title: i.title, subtitle: `${i.platform} · ${(i.copies||[]).length} cop${(i.copies||[]).length === 1 ? 'y' : 'ies'}`, href: "/inventory", icon: "🕹️", category: "game" })),
+      .map((i) => ({ id: `game-${i.id}`, title: i.title || "Untitled", subtitle: `${i.platform || "Unknown"} · ${(i.copies||[]).length} cop${(i.copies||[]).length === 1 ? 'y' : 'ies'}`, href: "/inventory", icon: "🕹️", category: "game" })),
     // Grails
     ...grails
-      .filter((g: any) => g.title?.toLowerCase().includes(q) && !g.acquiredAt)
+      .filter((g) => g.title?.toLowerCase().includes(q) && !g.acquiredAt)
       .slice(0, 3)
-      .map((g: any) => ({ id: `grail-${g.id}`, title: g.title, subtitle: `Grail · ${g.platform || "Any"}`, href: "/grails", icon: "🏴‍☠️", category: "grail" })),
+      .map((g) => ({ id: `grail-${g.id}`, title: g.title || "Untitled", subtitle: `Grail · ${g.platform || "Any"}`, href: "/grails", icon: "🏴‍☠️", category: "grail" })),
     // Watchlist
     ...watchlist
-      .filter((w: any) => w.title?.toLowerCase().includes(q))
+      .filter((w) => w.title?.toLowerCase().includes(q))
       .slice(0, 3)
-      .map((w: any) => ({ id: `wl-${w.id}`, title: w.title, subtitle: `Watchlist · target $${w.alertPrice}`, href: "/watchlist", icon: "🎯", category: "watchlist" })),
+      .map((w) => ({ id: `wl-${w.id}`, title: w.title || "Untitled", subtitle: `Watchlist · target $${w.alertPrice ?? ""}`, href: "/watchlist", icon: "🎯", category: "watchlist" })),
     // Events
     ...events
-      .filter((e: any) => e.title?.toLowerCase().includes(q))
+      .filter((e) => e.title?.toLowerCase().includes(q))
       .slice(0, 3)
-      .map((e: any) => ({ id: `ev-${e.id}`, title: e.title, subtitle: `Event · ${e.location || ""}`, href: "/events", icon: "🎪", category: "event" })),
+      .map((e) => ({ id: `ev-${e.id}`, title: e.title || "Untitled", subtitle: `Event · ${e.location || ""}`, href: "/events", icon: "🎪", category: "event" })),
   ].slice(0, 12);
 
   const navigate = useCallback((href: string) => {
