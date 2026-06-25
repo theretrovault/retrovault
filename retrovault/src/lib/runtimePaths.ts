@@ -1,21 +1,17 @@
 import path from 'path';
 
-function getProjectRoot() {
+export function getProjectRootPath() {
   return process.cwd();
 }
 
-export function getProjectRootPath() {
-  return getProjectRoot();
-}
-
 export function getLogsDir() {
-  return path.join(getProjectRoot(), 'logs');
+  return path.join(/*turbopackIgnore: true*/ process.cwd(), 'logs');
 }
 
 export function resolveLogPath(logPath: string) {
-  return path.isAbsolute(logPath) ? logPath : path.join(getProjectRoot(), logPath);
+  return path.isAbsolute(logPath) ? logPath : path.join(/*turbopackIgnore: true*/ process.cwd(), logPath);
 }
 
 export function resolveProjectPath(relativePath: string) {
-  return path.isAbsolute(relativePath) ? relativePath : path.join(getProjectRoot(), relativePath);
+  return path.isAbsolute(relativePath) ? relativePath : path.join(/*turbopackIgnore: true*/ process.cwd(), relativePath);
 }

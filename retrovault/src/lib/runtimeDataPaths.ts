@@ -1,15 +1,13 @@
 import path from 'path';
 
-function getProjectRoot() {
-  return process.cwd();
-}
-
 export function getDataDir() {
-  return process.env.RETROVAULT_DATA_DIR || path.join(getProjectRoot(), 'data');
+  return process.env.RETROVAULT_DATA_DIR || path.join(/*turbopackIgnore: true*/ process.cwd(), 'data');
 }
 
 export function resolveDataPath(filename: string) {
-  return path.join(getDataDir(), filename);
+  return process.env.RETROVAULT_DATA_DIR
+    ? path.join(process.env.RETROVAULT_DATA_DIR, filename)
+    : path.join(/*turbopackIgnore: true*/ process.cwd(), 'data', filename);
 }
 
 export function getDatabasePath() {
