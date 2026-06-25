@@ -36,7 +36,7 @@ describe('/api/v1/achievements', () => {
     const response = await GET({
       nextUrl: { origin: 'https://retrovault.peschpit.com' },
     } as never);
-    const body = response as { summary: { unlocked: number; total: number; completionPercent: number } };
+    const body = response as unknown as { summary: { unlocked: number; total: number; completionPercent: number } };
 
     expect(body.summary.unlocked).toBe(3);
     expect(body.summary.total).toBeGreaterThan(3);

@@ -255,7 +255,7 @@ describe('HTML title cleanup', () => {
         </td>
       </tr></tbody></table>
     `);
-    expect(extractRowTitle($('tr').first(), $)).toBe('Legend of Zelda');
+    expect(extractRowTitle($('tr').first())).toBe('Legend of Zelda');
   });
 
   it('extracts a clean page title without duplicated nested text', () => {

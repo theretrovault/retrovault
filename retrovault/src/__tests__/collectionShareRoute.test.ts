@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
 
 const store = {
   share: null as null | { token: string; label: string; expiresAt: Date | null; createdAt?: Date },
@@ -13,7 +14,7 @@ vi.mock('@/lib/prisma', () => ({
         store.share = {
           token: data.token || 'generated-collection-token',
           label: data.label || 'My Collection',
-          expiresAt: data.expiresAt ?? null,
+          expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
           createdAt: new Date('2026-04-20T18:00:00.000Z'),
         };
         return store.share;
@@ -44,7 +45,7 @@ describe('collection share route', () => {
 
   it('saves explicit token and expiry on POST', async () => {
     const { POST } = await import('@/app/api/collection-share/route');
-    const response = await POST(new Request('http://localhost/api/collection-share', {
+    const response = await POST(new NextRequest('http://localhost/api/collection-share', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -52,7 +53,7 @@ describe('collection share route', () => {
         label: 'Alex Collection',
         expiresAt: '2026-05-01T00:00:00.000Z',
       }),
-    }) as unknown as Request);
+    }));
     const body = await response.json();
 
     expect(response.status).toBe(200);
