@@ -24,6 +24,8 @@ Kalamazoo · Expo Center
     const { isRelevantEvent } = await import(scriptUrl('scrape-events.mjs'));
     expect(isRelevantEvent({ title: 'Free Tabletop Gaming Convention', description: 'Board games and RPGs' })).toBe(false);
     expect(isRelevantEvent({ title: 'Trading Card Show & Video Game Tournament', description: '' })).toBe(true);
+    expect(isRelevantEvent({ title: 'Video Games Live', description: '' })).toBe(true);
+    expect(isRelevantEvent({ title: 'Retro Gaming Night', description: '' })).toBe(true);
   });
 
   it('uses stable IDs for the same source event', async () => {
