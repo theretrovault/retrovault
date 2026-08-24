@@ -1,228 +1,153 @@
-/**
- * RetroVault Event Scraper
- * Scrapes retro gaming events from Eventbrite (no API key needed)
- * Writes to data/events.json
- * 
- * Run: node scripts/scrape-events.mjs
- * Or schedule via cron: 0 6 * * 1  (Monday 6am)
- */
-
-import fs from 'fs';
+/** RetroVault Eventbrite scraper with stable IDs and canonical Prisma persistence. */
+import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EVENTS_FILE = path.join(__dirname, '..', 'data', 'events.json');
+import { createScraperStore } from './lib/scraper-store.mjs';
 
 const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
+  Accept: 'text/html,application/xhtml+xml,*/*;q=0.8',
   'Accept-Language': 'en-US,en;q=0.5',
 };
+const DELAY_MS = Number.parseInt(process.env.EVENT_SCRAPER_DELAY_MS || '3000', 10);
+const DEFAULT_QUERIES = ['retro-gaming', 'video-game-expo', 'game-swap', 'gaming-convention', 'retro-games'];
+const RELEVANT = /\b(retro\s*(?:video\s*)?gam|video\s*gam|game\s*(?:swap|expo|convention|tournament)|gaming\s*(?:expo|convention|tournament)|nintendo|sega|playstation|xbox|pinball|streetpass)\b/i;
+const PRICE = /^(?:from\s+)?\$\s*[\d,.]+/i;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const DELAY_MS = 3000;
-
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-function loadEvents() {
-  if (!fs.existsSync(EVENTS_FILE)) return [];
-  try { return JSON.parse(fs.readFileSync(EVENTS_FILE, 'utf8')); }
-  catch { return []; }
+export function isRelevantEvent(event) {
+  const text = `${event.title || ''} ${event.description || ''}`;
+  const tabletopOnly = /\b(tabletop|board\s*games?|role[ -]?playing|rpgs?|trading card)\b/i.test(text)
+    && !/\b(retro\s*(?:video\s*)?gam|video\s*games?|playstation|nintendo|sega|xbox|atari|game\s*boy|dreamcast|streetpass)\b/i.test(text);
+  return !tabletopOnly && RELEVANT.test(text);
 }
 
-function saveEvents(events) {
-  fs.writeFileSync(EVENTS_FILE, JSON.stringify(events, null, 2));
+export function stableEventId(event) {
+  const key = [event.source || 'eventbrite', event.url || '', event.title || '', event.dateRaw || event.date || '', event.location || '']
+    .join('|').toLowerCase().replace(/\s+/g, ' ').trim();
+  return `eb-${crypto.createHash('sha256').update(key).digest('hex').slice(0, 16)}`;
 }
 
-function dedup(events) {
+function normalizeEvent(event) {
+  const normalized = {
+    ...event,
+    source: 'eventbrite',
+    location: PRICE.test(event.location || '') ? '' : (event.location || ''),
+    venue: PRICE.test(event.venue || '') ? '' : (event.venue || ''),
+    scrapedAt: new Date().toISOString(),
+  };
+  normalized.id = stableEventId(normalized);
+  return normalized;
+}
+
+export function parseEventbriteText(text, url) {
+  const events = [];
+  const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
+  const datePattern = /^((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|Today|Tomorrow|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)[,\s].+?\d{1,2}:\d{2}\s*(?:AM|PM))/i;
+  const locationPattern = /^(.+?)\s*·\s*(.+)$/;
+
+  for (let i = 0; i < lines.length;) {
+    const title = lines[i];
+    const dateRaw = lines[i + 1] || '';
+    const detail = lines[i + 2] || '';
+    if (!datePattern.test(dateRaw)) { i += 1; continue; }
+    let location = '';
+    let venue = '';
+    if (!PRICE.test(detail)) {
+      const match = detail.match(locationPattern);
+      if (match) [location, venue] = [match[1], match[2]];
+      else if (detail && !datePattern.test(detail)) location = detail;
+    }
+    const event = normalizeEvent({ title, dateRaw, location, venue, url, description: '' });
+    if (isRelevantEvent(event)) events.push(event);
+    i += detail ? 3 : 2;
+  }
+  return dedupeEvents(events);
+}
+
+function eventFromJsonLd(event, fallbackUrl) {
+  const location = event.location?.address?.addressLocality || event.location?.name || '';
+  const normalized = normalizeEvent({
+    title: event.name || 'Unknown Event',
+    dateRaw: event.startDate || '',
+    date: event.startDate ? event.startDate.split('T')[0] : null,
+    location,
+    venue: event.location?.name || '',
+    url: event.url || fallbackUrl,
+    description: typeof event.description === 'string' ? event.description.slice(0, 500) : '',
+  });
+  return isRelevantEvent(normalized) ? normalized : null;
+}
+
+function collectJsonLd(value, fallbackUrl, output) {
+  if (Array.isArray(value)) return value.forEach((item) => collectJsonLd(item, fallbackUrl, output));
+  if (!value || typeof value !== 'object') return;
+  if (value['@type'] === 'Event') {
+    const event = eventFromJsonLd(value, fallbackUrl);
+    if (event) output.push(event);
+  }
+  for (const key of ['@graph', 'itemListElement', 'item']) {
+    if (value[key]) collectJsonLd(value[key], fallbackUrl, output);
+  }
+}
+
+export function parseEventbriteHtml(html, url) {
+  const events = [];
+  for (const match of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try { collectJsonLd(JSON.parse(match[1]), url, events); } catch { /* ignore malformed embedded JSON */ }
+  }
+  if (events.length) return dedupeEvents(events);
+  const text = html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, '\n')
+    .replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n');
+  return parseEventbriteText(text, url);
+}
+
+export function dedupeEvents(events) {
   const seen = new Set();
-  return events.filter(e => {
-    const key = `${e.title}-${e.date}-${e.location}`.toLowerCase().replace(/\s+/g, '-');
-    if (seen.has(key)) return false;
-    seen.add(key);
+  return events.filter((event) => {
+    if (seen.has(event.id)) return false;
+    seen.add(event.id);
     return true;
   });
 }
 
-/**
- * Parse Eventbrite text output into structured events
- * The readability extractor gives us flat text like:
- * "Event Title\nDate at Time\nCity · Venue\n"
- */
-function parseEventbriteText(text, url) {
-  const events = [];
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-  // Pattern: title line, then "Day, Mon DD, HH:MM AM/PM" or "Today/Tomorrow at HH:MM"
-  const datePattern = /^((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|Today|Tomorrow|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)[,\s].+?\d{1,2}:\d{2}\s*(?:AM|PM))/i;
-  const locationPattern = /^(.+?)\s*·\s*(.+)$/;
-
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    // Skip lines that look like navigation, promoted labels, or prices
-    if (['Promoted', 'Free', 'Filters', 'Date', 'Category'].includes(line)) { i++; continue; }
-    if (line.startsWith('From $') || line.match(/^\$[\d.]+$/)) { i++; continue; }
-
-    // Check if next line is a date
-    const nextLine = lines[i + 1] || '';
-    const nextNextLine = lines[i + 2] || '';
-
-    if (datePattern.test(nextLine)) {
-      const title = line;
-      const dateStr = nextLine;
-      let location = '';
-      let venue = '';
-
-      // Check for location on the line after date
-      const locMatch = nextNextLine.match(locationPattern);
-      if (locMatch) {
-        location = locMatch[1];
-        venue = locMatch[2];
-        i += 3;
-      } else if (nextNextLine && !datePattern.test(nextNextLine)) {
-        location = nextNextLine;
-        i += 3;
-      } else {
-        i += 2;
-      }
-
-      // Skip duplicates (Eventbrite dupes each event)
-      const lastEvent = events[events.length - 1];
-      if (lastEvent && lastEvent.title === title && lastEvent.dateRaw === dateStr) {
-        continue;
-      }
-
-      events.push({
-        id: `eb-${Date.now()}-${events.length}`,
-        title,
-        dateRaw: dateStr,
-        location,
-        venue,
-        url: url,
-        source: 'eventbrite',
-        type: 'gaming',
-        scrapedAt: new Date().toISOString(),
-        attending: false,
-        interested: false,
-      });
-    } else {
-      i++;
-    }
-  }
-
-  return events;
+export async function scrapeEventbrite(query, { fetchImpl = fetch } = {}) {
+  const url = `https://www.eventbrite.com/d/united-states/${encodeURIComponent(query)}/`;
+  const response = await fetchImpl(url, { headers: HEADERS, signal: AbortSignal.timeout(20_000) });
+  if (!response.ok) throw new Error(`Eventbrite HTTP ${response.status} for ${query}`);
+  return parseEventbriteHtml(await response.text(), url);
 }
 
-async function scrapeEventbrite(query, location = 'united-states') {
-  const url = `https://www.eventbrite.com/d/${location}/${encodeURIComponent(query)}/`;
-  console.log(`  Fetching: ${url}`);
-
+export async function run({ store = createScraperStore(), fetchImpl = fetch, queries = DEFAULT_QUERIES } = {}) {
   try {
-    const res = await fetch(url, { headers: HEADERS });
-    if (!res.ok) { console.log(`  HTTP ${res.status}`); return []; }
-    const html = await res.text();
-
-    // Extract the JSON-LD structured data if available
-    const jsonLdMatches = html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi);
-    const events = [];
-
-    for (const match of jsonLdMatches) {
+    const all = [];
+    const errors = [];
+    for (let i = 0; i < queries.length; i += 1) {
       try {
-        const data = JSON.parse(match[1]);
-        if (data['@type'] === 'Event' || (Array.isArray(data) && data[0]?.['@type'] === 'Event')) {
-          const arr = Array.isArray(data) ? data : [data];
-          for (const ev of arr) {
-            if (ev['@type'] !== 'Event') continue;
-            events.push({
-              id: `eb-${Date.now()}-${events.length}`,
-              title: ev.name || 'Unknown Event',
-              dateRaw: ev.startDate || '',
-              date: ev.startDate ? ev.startDate.split('T')[0] : '',
-              location: ev.location?.address?.addressLocality || ev.location?.name || '',
-              venue: ev.location?.name || '',
-              url: ev.url || url,
-              source: 'eventbrite',
-              type: 'gaming',
-              description: ev.description?.slice(0, 200) || '',
-              scrapedAt: new Date().toISOString(),
-              attending: false,
-              interested: false,
-            });
-          }
-        }
-      } catch { continue; }
+        const events = await scrapeEventbrite(queries[i], { fetchImpl });
+        console.log(`[events] ${queries[i]}: ${events.length} relevant events`);
+        all.push(...events);
+      } catch (error) {
+        errors.push(error.message);
+        console.error(`[events] ${error.message}`);
+      }
+      if (i + 1 < queries.length && DELAY_MS > 0) await sleep(DELAY_MS);
     }
-
-    if (events.length > 0) {
-      console.log(`  Found ${events.length} events via JSON-LD`);
-      return events;
-    }
-
-    // Fallback: parse the readability text
-    // Extract text content from HTML roughly
-    const textContent = html
-      .replace(/<script[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[\s\S]*?<\/style>/gi, '')
-      .replace(/<[^>]+>/g, '\n')
-      .replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"')
-      .replace(/\n{3,}/g, '\n\n');
-
-    const parsed = parseEventbriteText(textContent, url);
-    console.log(`  Found ${parsed.length} events via text parsing`);
-    return parsed;
-
-  } catch (e) {
-    console.error(`  Error: ${e.message}`);
-    return [];
+    const events = dedupeEvents(all);
+    if (!events.length) throw new Error(`No relevant events parsed; upstream errors: ${errors.join('; ') || 'none'}`);
+    if (errors.length) throw new Error(`Eventbrite incomplete: ${errors.join('; ')}`);
+    await store.upsertScrapedEvents(events);
+    console.log(`[events] Upserted ${events.length} canonical events`);
+    return { events: events.length, errors };
+  } finally {
+    await store.disconnect?.();
   }
 }
 
-async function scrapeAll() {
-  console.log('🎮 RetroVault Event Scraper starting...\n');
-
-  const existing = loadEvents();
-  const newEvents = [];
-
-  const queries = [
-    'retro-gaming',
-    'video-game-expo',
-    'game-swap',
-    'gaming-convention',
-    'retro-games',
-  ];
-
-  for (const query of queries) {
-    console.log(`Scraping Eventbrite: "${query}"`);
-    const found = await scrapeEventbrite(query);
-    newEvents.push(...found);
-    await sleep(DELAY_MS);
-  }
-
-  // Merge with existing, preserving user's attending/interested flags
-  const existingMap = Object.fromEntries(existing.map(e => [`${e.title}-${e.dateRaw}`, e]));
-  const merged = newEvents.map(e => {
-    const key = `${e.title}-${e.dateRaw}`;
-    const existing = existingMap[key];
-    if (existing) {
-      return { ...e, attending: existing.attending, interested: existing.interested, notes: existing.notes };
-    }
-    return e;
-  });
-
-  // Also keep manually-added events (source: 'manual')
-  const manual = existing.filter(e => e.source === 'manual');
-  const all = dedup([...merged, ...manual]);
-
-  // Sort by date
-  all.sort((a, b) => {
-    const da = new Date(a.date || a.dateRaw || '');
-    const db = new Date(b.date || b.dateRaw || '');
-    return da.getTime() - db.getTime();
-  });
-
-  saveEvents(all);
-  console.log(`\n✅ Saved ${all.length} events (${newEvents.length} scraped, ${manual.length} manual)`);
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  run().catch((error) => { console.error('[events] Fatal:', error.message || error); process.exitCode = 1; });
 }
-
-scrapeAll().catch(console.error);
