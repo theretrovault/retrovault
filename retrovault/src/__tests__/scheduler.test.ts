@@ -246,3 +246,37 @@ describe('reloadSchedules', () => {
     expect(() => reloadSchedules()).not.toThrow();
   });
 });
+
+describe('scheduler run locking', () => {
+  it('suppresses overlapping scheduled or manual runs for the same scraper', async () => {
+    const { claimScraperRun, releaseScraperRun } = await import('@/lib/scheduler');
+    const id = `lock-${Date.now()}`;
+    expect(claimScraperRun(id)).toBe(true);
+    expect(claimScraperRun(id)).toBe(false);
+    releaseScraperRun(id);
+    expect(claimScraperRun(id)).toBe(true);
+    releaseScraperRun(id);
+  });
+});
+
+
+describe('scheduler durable logging', () => {
+  it('creates the log parent and opens an append stream before spawning', async () => {
+    const { openSchedulerLog } = await import('@/lib/scheduler');
+    const os = await import('os');
+    const path = await import('path');
+    const fs = await import('fs');
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rv-scheduler-log-'));
+    const target = path.join(root, 'nested', 'job.log');
+    const stream = openSchedulerLog(target);
+    const finished = new Promise<void>((resolve) => stream.on('finish', () => resolve()));
+    stream.end('evidence\n');
+    await finished;
+    expect(fs.readFileSync(target, 'utf8')).toBe('evidence\n');
+  });
+
+  it('fails explicitly when the configured log path is not writable', async () => {
+    const { openSchedulerLog } = await import('@/lib/scheduler');
+    expect(() => openSchedulerLog('/sys/kernel/retrovault/job.log')).toThrow(/Unable to open scraper log/);
+  });
+});
