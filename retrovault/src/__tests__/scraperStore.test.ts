@@ -166,7 +166,7 @@ describe('price fetch job', () => {
     expect(store.updateGamePrice).toHaveBeenCalledTimes(1);
   });
 
-  it('fails instead of reporting success when no prices can be updated', async () => {
+  it('records a no-match attempt without reporting a price update', async () => {
     const { run } = await import(pathToFileURL(path.join(process.cwd(), 'scripts/bg-fetch.mjs')).href);
     const store = {
       listOwnedPhysicalGames: async () => [{ id: 'game-1', title: 'Missing', platform: 'SNES', lastFetched: null }],
@@ -175,6 +175,12 @@ describe('price fetch job', () => {
     };
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ loose: 'N/A', cib: 'N/A', new: 'N/A', graded: 'N/A' }), { status: 200 }));
     await expect(run({ store, fetchImpl })).rejects.toThrow('No prices updated');
-    expect(store.updateGamePrice).not.toHaveBeenCalled();
+    expect(store.updateGamePrice).toHaveBeenCalledWith('game-1', expect.objectContaining({
+      loose: null,
+      cib: null,
+      newPrice: null,
+      graded: null,
+      fetchedAt: expect.any(String),
+    }));
   });
 });

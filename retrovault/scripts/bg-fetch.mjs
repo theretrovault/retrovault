@@ -72,11 +72,12 @@ export async function run({ store = createScraperStore(), fetchImpl = fetch, lim
       const item = toFetch[i];
       try {
         const prices = await getPrice(item.title, item.platform, fetchImpl);
+        const fetchedAt = new Date().toISOString();
         if ([prices.loose, prices.cib, prices.newPrice, prices.graded].every((value) => value == null)) {
+          await store.updateGamePrice(item.id, { ...prices, fetchedAt });
           noData += 1;
           console.warn(`[${i + 1}/${toFetch.length}] No confident price match: ${item.title} (${item.platform})`);
         } else {
-          const fetchedAt = new Date().toISOString();
           await store.updateGamePrice(item.id, { ...prices, fetchedAt });
           updated += 1;
           console.log(`[${i + 1}/${toFetch.length}] Updated ${item.title} (${item.platform})`);
