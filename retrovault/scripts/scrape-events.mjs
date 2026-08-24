@@ -11,14 +11,14 @@ const HEADERS = {
 };
 const DELAY_MS = Number.parseInt(process.env.EVENT_SCRAPER_DELAY_MS || '3000', 10);
 const DEFAULT_QUERIES = ['retro-gaming', 'video-game-expo', 'game-swap', 'gaming-convention', 'retro-games'];
-const RELEVANT = /\b(retro\s*(?:video\s*)?gam|video\s*gam|game\s*(?:swap|expo|convention|tournament)|gaming\s*(?:expo|convention|tournament)|nintendo|sega|playstation|xbox|pinball|streetpass)\b/i;
+const RELEVANT = /\b(retro\s*(?:video\s*)?(?:games?|gaming)|video\s*games?|game\s*(?:swap|expo|convention|tournament)|gaming\s*(?:expo|convention|tournament)|nintendo|sega|playstation|xbox|pinball|streetpass)\b/i;
 const PRICE = /^(?:from\s+)?\$\s*[\d,.]+/i;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function isRelevantEvent(event) {
   const text = `${event.title || ''} ${event.description || ''}`;
   const tabletopOnly = /\b(tabletop|board\s*games?|role[ -]?playing|rpgs?|trading card)\b/i.test(text)
-    && !/\b(retro\s*(?:video\s*)?gam|video\s*games?|playstation|nintendo|sega|xbox|atari|game\s*boy|dreamcast|streetpass)\b/i.test(text);
+    && !/\b(retro\s*(?:video\s*)?(?:games?|gaming)|video\s*games?|playstation|nintendo|sega|xbox|atari|game\s*boy|dreamcast|streetpass)\b/i.test(text);
   return !tabletopOnly && RELEVANT.test(text);
 }
 
