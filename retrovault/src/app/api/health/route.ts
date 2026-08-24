@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import { getDatabasePath, resolveDataPath } from '@/lib/runtimeDataPaths';
 import { resolveLogPath } from '@/lib/runtimePaths';
-import { readInventoryCompat } from '@/lib/storageCompat';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +45,15 @@ export function calculateInventoryStats(inv: HealthInventoryItem[]) {
 
 async function getInventoryStats() {
   try {
-    return calculateInventoryStats(await readInventoryCompat() as HealthInventoryItem[]);
+    const staleBefore = new Date(Date.now() - 30 * 86400000);
+    const [total, owned, withPrices, stale30, neverFetched] = await Promise.all([
+      prisma.game.count(),
+      prisma.game.count({ where: { copies: { some: {} } } }),
+      prisma.game.count({ where: { marketLoose: { gt: 0 } } }),
+      prisma.game.count({ where: { copies: { some: {} }, OR: [{ lastFetched: null }, { lastFetched: { lt: staleBefore } }] } }),
+      prisma.game.count({ where: { copies: { some: {} }, lastFetched: null } }),
+    ]);
+    return { total, owned, withPrices, stale30, neverFetched };
   } catch { return null; }
 }
 
