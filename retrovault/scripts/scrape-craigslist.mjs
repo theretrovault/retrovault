@@ -1,210 +1,86 @@
-/**
- * RetroVault Craigslist Local Deals Scraper
- * Scrapes Craigslist video games section for your configured city
- * No API key needed — uses public search pages
- * Writes to data/craigslist-deals.json
- *
- * Configure city in Settings → Scrapers → Craigslist City
- * Common city slugs: portland, seattle, chicago, boston, losangeles, nyc,
- *   sfbay, denver, dallas, phoenix, atlanta, miami, detroit, minneapolis
- */
-
+/** RetroVault Craigslist deal matcher using current static result markup. */
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import * as cheerio from 'cheerio';
 import { fileURLToPath } from 'url';
+import { createScraperStore } from './lib/scraper-store.mjs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.join(__dirname, '..');
-const DEALS_FILE = path.join(ROOT, 'data', 'craigslist-deals.json');
-const CONFIG_FILE = path.join(ROOT, 'data', 'app.config.json');
-const WATCHLIST_FILE = path.join(ROOT, 'data', 'watchlist.json');
-const GRAILS_FILE = path.join(ROOT, 'data', 'grails.json');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const DATA_DIR = process.env.RETROVAULT_DATA_DIR || path.join(ROOT, 'data');
+const DEALS_FILE = path.join(DATA_DIR, 'craigslist-deals.json');
+const CONFIG_FILE = path.join(DATA_DIR, 'app.config.json');
+const HEADERS = { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36', Accept: 'text/html,*/*;q=0.8' };
 
-const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36',
-  'Accept': 'text/html,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.5',
-};
+function readJson(file, fallback) { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; } }
+function tokenize(value) { return String(value || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((token) => token.length > 2); }
+function stableId(url) { return `cl-${crypto.createHash('sha256').update(url).digest('hex').slice(0, 16)}`; }
 
-
-function loadJson(file, fallback = []) {
-  if (!fs.existsSync(file)) return fallback;
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
+export function parseCraigslistHtml(html, citySlug) {
+  const $ = cheerio.load(html);
+  const nodes = $('.cl-static-search-result');
+  const recognized = nodes.length > 0 || /class=["'](?:cl-search-results|no-results)/i.test(html);
+  const listings = nodes.map((_, node) => {
+    const link = $(node).find('a[href]').first();
+    const url = link.attr('href');
+    const title = $(node).find('.title').first().text().trim();
+    const priceText = $(node).find('.price').first().text();
+    const price = Number.parseFloat(priceText.replace(/[^0-9.]/g, ''));
+    if (!url || !title) return null;
+    return {
+      id: stableId(url), title, price: Number.isFinite(price) ? price : null,
+      location: $(node).find('.location').first().text().trim() || citySlug,
+      url, citySlug, scrapedAt: new Date().toISOString(),
+    };
+  }).get().filter(Boolean);
+  return { listings, recognized };
 }
 
-function saveJson(file, data) {
-  fs.writeFileSync(file, JSON.stringify(data, null, 2));
-}
-
-function getCitySlug() {
-  const config = loadJson(CONFIG_FILE, {});
-  return config?.scrapers?.craigslistCity || 'portland';
-}
-
-function tokenize(str) {
-  return str.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length > 2);
-}
-
-function matchScore(listing, targets) {
+export function matchScore(listing, targets) {
   const listingTokens = tokenize(listing.title);
-  let bestScore = 0;
-  let bestTarget = null;
-
+  let result = { score: 0, target: null };
   for (const target of targets) {
-    const targetTokens = tokenize(target.title);
-    const matches = targetTokens.filter(t => listingTokens.includes(t));
-    const score = matches.length / targetTokens.length;
-    if (score > bestScore) { bestScore = score; bestTarget = target; }
+    const tokens = tokenize(target.title);
+    if (!tokens.length) continue;
+    const score = tokens.filter((token) => listingTokens.includes(token)).length / tokens.length;
+    if (score > result.score) result = { score, target };
   }
-
-  return { score: bestScore, target: bestTarget };
+  return result;
 }
 
-async function scrapeCity(citySlug, maxPrice = 500) {
-  const url = `https://${citySlug}.craigslist.org/search/vga?sort=date&max_price=${maxPrice}&postedToday=0`;
-  console.log(`Scraping ${url}...`);
+export async function scrapeCity(citySlug, { fetchImpl = fetch } = {}) {
+  const url = `https://${citySlug}.craigslist.org/search/vga?sort=date&max_price=500`;
+  const response = await fetchImpl(url, { headers: HEADERS, redirect: 'follow', signal: AbortSignal.timeout(20_000) });
+  if (!response.ok) throw new Error(`Craigslist HTTP ${response.status} for ${citySlug}`);
+  const parsed = parseCraigslistHtml(await response.text(), citySlug);
+  if (!parsed.recognized) throw new Error('Craigslist response did not contain recognized result markup');
+  return parsed.listings;
+}
 
+export async function run({ store = createScraperStore(), fetchImpl = fetch } = {}) {
   try {
-    const res = await fetch(url, { headers: HEADERS });
-    if (!res.ok) { console.error(`HTTP ${res.status} for ${citySlug}`); return []; }
-    const html = await res.text();
-
-    const listings = [];
-
-    // Parse listing items - Craigslist uses a consistent structure
-    // Match: title, price, location from the search results
-    const itemPattern = /<li[^>]*class="[^"]*cl-search-result[^"]*"[\s\S]*?(?=<li[^>]*class="[^"]*cl-search-result|<\/ul>)/gi;
-    const items = html.match(itemPattern) || [];
-
-    if (items.length === 0) {
-      // Fallback: parse the simpler text format
-      const linePattern = /\n([^\n$]{5,80})\n\s*\$(\d+)\n\s*([^\n]{2,50})\n/g;
-      let match;
-      while ((match = linePattern.exec(html)) !== null) {
-        const [, title, price, location] = match;
-        if (title.trim().length < 4) continue;
-        listings.push({
-          id: `cl-${citySlug}-${listings.length}-${Date.now()}`,
-          title: title.trim(),
-          price: parseFloat(price),
-          location: location.trim(),
-          url: `https://${citySlug}.craigslist.org/search/vga`,
-          citySlug,
-          scrapedAt: new Date().toISOString(),
-        });
-      }
-    } else {
-      for (const item of items) {
-        const titleMatch = item.match(/class="[^"]*posting-title[^"]*"[^>]*>[\s\S]*?<span[^>]*class="[^"]*label[^"]*"[^>]*>([^<]+)<\/span>/i)
-          || item.match(/data-title="([^"]+)"/i)
-          || item.match(/<a[^>]*href="[^"]*\/\d+\.html"[^>]*>([^<]+)<\/a>/i);
-
-        const priceMatch = item.match(/class="[^"]*price[^"]*"[^>]*>\$?([\d,]+)/i);
-        const locationMatch = item.match(/class="[^"]*meta[^"]*"[^>]*>[\s\S]*?<span[^>]*>([^<]{3,40})<\/span>/i);
-        const linkMatch = item.match(/href="(https?:\/\/[^"]*craigslist[^"]*\/\d+\.html)"/i);
-
-        if (titleMatch) {
-          listings.push({
-            id: `cl-${citySlug}-${listings.length}-${Date.now()}`,
-            title: titleMatch[1].trim(),
-            price: priceMatch ? parseFloat(priceMatch[1].replace(',', '')) : null,
-            location: locationMatch ? locationMatch[1].trim() : citySlug,
-            url: linkMatch ? linkMatch[1] : `https://${citySlug}.craigslist.org/search/vga`,
-            citySlug,
-            scrapedAt: new Date().toISOString(),
-          });
-        }
-      }
-    }
-
-    // If still nothing, do simple text extraction
-    if (listings.length === 0) {
-      const titlePricePattern = /\n\s*([A-Z][^\n]{4,80})\n\s*\$(\d[\d,]*)\n\s*([^\n]{3,50})/g;
-      let m;
-      while ((m = titlePricePattern.exec(html)) !== null) {
-        listings.push({
-          id: `cl-${citySlug}-${listings.length}-${Date.now()}`,
-          title: m[1].trim(),
-          price: parseFloat(m[2].replace(',', '')),
-          location: m[3].trim(),
-          url: `https://${citySlug}.craigslist.org/search/vga`,
-          citySlug,
-          scrapedAt: new Date().toISOString(),
-        });
-      }
-    }
-
-    console.log(`  Parsed ${listings.length} listings`);
-    return listings;
-  } catch (e) {
-    console.error(`  Error: ${e.message}`);
-    return [];
-  }
-}
-
-async function run() {
-  console.log('🏠 RetroVault Craigslist Scraper starting...\n');
-
-  const citySlug = getCitySlug();
-  console.log(`City: ${citySlug}\n`);
-
-  // Load targets (watchlist + grails)
-  const watchlist = loadJson(WATCHLIST_FILE);
-  const grails = loadJson(GRAILS_FILE).filter(g => !g.acquiredAt);
-  const targets = [
-    ...watchlist.map(w => ({ title: w.title, platform: w.platform, alertPrice: parseFloat(w.alertPrice) || null, source: 'watchlist' })),
-    ...grails.map(g => ({ title: g.title, platform: g.platform, alertPrice: null, source: 'grail' })),
-  ];
-
-  const listings = await scrapeCity(citySlug);
-
-  if (listings.length === 0) {
-    console.log('No listings found. Check city slug or try again later.');
-    return;
-  }
-
-  // Score each listing against targets
-  const existing = loadJson(DEALS_FILE);
-  const existingIds = new Set(existing.map(d => d.id));
-
-  const scored = listings
-    .filter(l => !existingIds.has(l.id) && l.title && l.price !== null)
-    .map(listing => {
+    const config = readJson(CONFIG_FILE, {});
+    const citySlug = process.env.CRAIGSLIST_CITY || config?.scrapers?.craigslistCity || 'kalamazoo';
+    const [targets, listings] = await Promise.all([store.listDealTargets(), scrapeCity(citySlug, { fetchImpl })]);
+    const previous = readJson(DEALS_FILE, []);
+    const previousById = new Map(previous.map((deal) => [deal.id, deal]));
+    const scored = listings.map((listing) => {
       const { score, target } = matchScore(listing, targets);
-      const isWatchlistMatch = score >= 0.6 && target;
-      const isRetroKeyword = /\b(nes|snes|n64|genesis|sega|atari|gameboy|game boy|dreamcast|ps1|ps2|psx|gamecube|super nintendo|nintendo 64|game cube)\b/i.test(listing.title);
-
-      return {
-        ...listing,
-        matchScore: score,
-        matchTarget: target ? target.title : null,
-        matchSource: target ? target.source : null,
-        alertPrice: target?.alertPrice || null,
-        isWatchlistMatch,
-        isRetroKeyword,
-        isGoodDeal: isWatchlistMatch || isRetroKeyword,
-        dismissed: false,
-      };
-    })
-    .filter(l => l.isGoodDeal)
-    .sort((a, b) => b.matchScore - a.matchScore);
-
-  console.log(`\nFound ${scored.length} relevant listings (${scored.filter(l => l.isWatchlistMatch).length} watchlist matches)`);
-
-  // Merge with existing (keep dismissed state, limit to 500)
-  const all = [...scored, ...existing.filter(e => !scored.find(s => s.title === e.title))].slice(0, 500);
-  saveJson(DEALS_FILE, all);
-
-  // Print top matches
-  if (scored.length > 0) {
-    console.log('\nTop matches:');
-    scored.slice(0, 5).forEach(l => {
-      const tag = l.isWatchlistMatch ? `[WATCHLIST: ${l.matchTarget}]` : '[RETRO]';
-      console.log(`  ${tag} ${l.title} — $${l.price} — ${l.location}`);
-    });
-  }
-
-  console.log(`\n✅ Done. Saved ${all.length} total deals.`);
+      const isWatchlistMatch = Boolean(target && score >= 0.6);
+      const isRetroKeyword = /\b(nes|snes|n64|genesis|sega|atari|game\s?boy|dreamcast|ps1|ps2|psx|game\s?cube|super nintendo|nintendo 64|xbox 360)\b/i.test(listing.title);
+      return { ...listing, matchScore: score, matchTarget: target?.title || null, matchSource: target?.source || null, alertPrice: target?.alertPrice || null, isWatchlistMatch, isRetroKeyword, isGoodDeal: isWatchlistMatch || isRetroKeyword, dismissed: previousById.get(listing.id)?.dismissed || false };
+    }).filter((listing) => listing.isGoodDeal);
+    const currentIds = new Set(scored.map((deal) => deal.id));
+    const merged = [...scored, ...previous.filter((deal) => !currentIds.has(deal.id))].slice(0, 500);
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    const temp = `${DEALS_FILE}.tmp-${process.pid}`;
+    fs.writeFileSync(temp, JSON.stringify(merged, null, 2));
+    fs.renameSync(temp, DEALS_FILE);
+    console.log(`[craigslist] ${listings.length} listings, ${scored.length} relevant, ${targets.length} canonical targets`);
+    return { listings: listings.length, relevant: scored.length };
+  } finally { await store.disconnect?.(); }
 }
 
-run().catch(console.error);
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  run().catch((error) => { console.error('[craigslist] Fatal:', error.message || error); process.exitCode = 1; });
+}

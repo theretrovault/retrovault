@@ -14,6 +14,7 @@
 // Node.js built-ins only — no npm packages
 import { spawn } from 'child_process';
 import fs from 'fs';
+import path from 'path';
 import { getScrapersPath } from './runtimeDataPaths';
 import { getLogsDir, resolveLogPath, resolveProjectPath } from './runtimePaths';
 
@@ -88,18 +89,30 @@ export function getCronExpression(scraper: Scraper): string | null {
   }
 }
 
+export function openSchedulerLog(logPath: string): fs.WriteStream {
+  try {
+    fs.mkdirSync(path.dirname(logPath), { recursive: true });
+    const fd = fs.openSync(logPath, 'a');
+    return fs.createWriteStream(logPath, { fd, flags: 'a', autoClose: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Unable to open scraper log ${logPath}: ${message}`);
+  }
+}
+
 export async function runScript(scraper: Scraper): Promise<void> {
   if (!scraper.script) return;
 
   const scriptPath = resolveProjectPath(scraper.script);
   if (!fs.existsSync(scriptPath)) {
-    console.log(`[Scheduler] Script not found: ${scraper.script}`);
+    const message = `Script not found: ${scraper.script}`;
+    updateScraperStatus(scraper.id, { status: 'error', lastRun: new Date().toISOString(), lastRunStatus: 'error' });
+    console.error(`[Scheduler] ${message}`);
     return;
   }
 
   const logsDir = getLogsDir();
-  if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
-  const logPath = resolveLogPath(scraper.logFile);
+  const logPath = resolveLogPath(scraper.logFile || path.join(logsDir, `${scraper.id}.log`));
 
   console.log(`[Scheduler] Starting ${scraper.name}...`);
   updateScraperStatus(scraper.id, {
@@ -107,8 +120,16 @@ export async function runScript(scraper: Scraper): Promise<void> {
     lastRun: new Date().toISOString(),
   });
 
+  let logStream: fs.WriteStream;
+  try {
+    logStream = openSchedulerLog(logPath);
+  } catch (error) {
+    updateScraperStatus(scraper.id, { status: 'error', lastRunStatus: 'error' });
+    console.error(`[Scheduler] ${scraper.name} logging error:`, error);
+    return;
+  }
+
   return new Promise((resolve) => {
-    const logStream = fs.createWriteStream(logPath, { flags: 'a' });
     logStream.write(`\n[${new Date().toISOString()}] Scheduled run started\n`);
 
     const child = spawn(process.execPath, [scriptPath], {
@@ -119,11 +140,14 @@ export async function runScript(scraper: Scraper): Promise<void> {
     child.stdout?.pipe(logStream, { end: false });
     child.stderr?.pipe(logStream, { end: false });
 
+    let settled = false;
     child.on('close', (code) => {
+      if (settled) return;
+      settled = true;
       logStream.write(`\n[${new Date().toISOString()}] Completed with exit code ${code}\n`);
       logStream.end();
       updateScraperStatus(scraper.id, {
-        status: 'idle',
+        status: code === 0 ? 'idle' : 'error',
         lastRunStatus: code === 0 ? 'success' : 'error',
       });
       console.log(`[Scheduler] ${scraper.name} finished (exit ${code})`);
@@ -131,7 +155,9 @@ export async function runScript(scraper: Scraper): Promise<void> {
     });
 
     child.on('error', (err) => {
-      logStream.end();
+      if (settled) return;
+      settled = true;
+      logStream.end(`\n[${new Date().toISOString()}] Spawn error: ${err.message}\n`);
       updateScraperStatus(scraper.id, { status: 'error', lastRunStatus: 'error' });
       console.error(`[Scheduler] ${scraper.name} error:`, err.message);
       resolve();
@@ -144,16 +170,24 @@ export async function runScript(scraper: Scraper): Promise<void> {
 let tickInterval: ReturnType<typeof setInterval> | null = null;
 const runningScrapers = new Set<string>(); // Prevent double-runs
 
+export function claimScraperRun(id: string): boolean {
+  if (runningScrapers.has(id)) return false;
+  runningScrapers.add(id);
+  return true;
+}
+
+export function releaseScraperRun(id: string): void {
+  runningScrapers.delete(id);
+}
+
 function tick() {
   const now = new Date();
   const scrapers = loadScrapers();
 
   for (const scraper of scrapers) {
-    if (runningScrapers.has(scraper.id)) continue; // Skip if already running
-    if (shouldRunNow(scraper, now)) {
-      runningScrapers.add(scraper.id);
+    if (shouldRunNow(scraper, now) && claimScraperRun(scraper.id)) {
       runScript(scraper)
-        .finally(() => runningScrapers.delete(scraper.id));
+        .finally(() => releaseScraperRun(scraper.id));
     }
   }
 }
@@ -183,7 +217,8 @@ function logScheduledScrapers() {
 export function runNow(scraperId: string): Promise<void> {
   const scraper = loadScrapers().find(s => s.id === scraperId);
   if (!scraper) return Promise.reject(new Error(`Scraper not found: ${scraperId}`));
-  return runScript(scraper);
+  if (!claimScraperRun(scraperId)) return Promise.reject(new Error(`Scraper already running: ${scraperId}`));
+  return runScript(scraper).finally(() => releaseScraperRun(scraperId));
 }
 
 export function getSchedulerStatus(): Record<string, { scheduled: boolean; cronExpr: string | null; nextRun?: string }> {

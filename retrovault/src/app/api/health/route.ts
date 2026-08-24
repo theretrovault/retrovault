@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import { resolveDataPath } from '@/lib/runtimeDataPaths';
+import { getDatabasePath, resolveDataPath } from '@/lib/runtimeDataPaths';
 import { resolveLogPath } from '@/lib/runtimePaths';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,24 +31,35 @@ function getScraperStatus() {
   } catch { return []; }
 }
 
-function getInventoryStats() {
+export function calculateInventoryStats(inv: HealthInventoryItem[]) {
+  const owned = inv.filter((i) => (i.copies || []).length > 0).length;
+  const withPrices = inv.filter((i) => i.marketLoose && parseFloat(String(i.marketLoose)) > 0).length;
+  const stale30 = inv.filter((i) => {
+    if (!i.lastFetched) return (i.copies || []).length > 0;
+    const days = (Date.now() - new Date(i.lastFetched).getTime()) / 86400000;
+    return days > 30 && (i.copies || []).length > 0;
+  }).length;
+  const neverFetched = inv.filter((i) => !i.lastFetched && (i.copies || []).length > 0).length;
+  return { total: inv.length, owned, withPrices, stale30, neverFetched };
+}
+
+async function getInventoryStats() {
   try {
-    const inv = JSON.parse(fs.readFileSync(resolveDataPath('inventory.json'), 'utf8')) as HealthInventoryItem[];
-    const owned = inv.filter((i) => (i.copies || []).length > 0).length;
-    const withPrices = inv.filter((i) => i.marketLoose && parseFloat(String(i.marketLoose)) > 0).length;
-    const stale30 = inv.filter((i) => {
-      if (!i.lastFetched) return (i.copies || []).length > 0;
-      const days = (Date.now() - new Date(i.lastFetched).getTime()) / 86400000;
-      return days > 30 && (i.copies || []).length > 0;
-    }).length;
-    const neverFetched = inv.filter((i) => !i.lastFetched && (i.copies || []).length > 0).length;
-    return { total: inv.length, owned, withPrices, stale30, neverFetched };
+    const staleBefore = new Date(Date.now() - 30 * 86400000);
+    const [total, owned, withPrices, stale30, neverFetched] = await Promise.all([
+      prisma.game.count(),
+      prisma.game.count({ where: { copies: { some: {} } } }),
+      prisma.game.count({ where: { marketLoose: { gt: 0 } } }),
+      prisma.game.count({ where: { copies: { some: {} }, OR: [{ lastFetched: null }, { lastFetched: { lt: staleBefore } }] } }),
+      prisma.game.count({ where: { copies: { some: {} }, lastFetched: null } }),
+    ]);
+    return { total, owned, withPrices, stale30, neverFetched };
   } catch { return null; }
 }
 
 function getDiskUsage() {
   const files = ['inventory.json', 'favorites.json', 'sales.json', 'tags.json', 'value-history.json'];
-  let totalBytes = 0;
+  let totalBytes = fileSize(getDatabasePath());
   for (const f of files) {
     totalBytes += fileSize(resolveDataPath(f));
   }
@@ -73,7 +85,7 @@ function getUptime(): string {
 
 export async function GET() {
   const scrapers = getScraperStatus() as ScraperStatus[];
-  const inventory = getInventoryStats();
+  const inventory = await getInventoryStats();
   const diskUsage = getDiskUsage();
 
   return NextResponse.json({

@@ -54,9 +54,17 @@ jobs:
         working-directory: retrovault
         run: npm run prisma:generate
 
+      - name: Run lint
+        working-directory: retrovault
+        run: npm run lint
+
       - name: Run tests
         working-directory: retrovault
         run: npm test
+
+      - name: Typecheck
+        working-directory: retrovault
+        run: npx tsc --noEmit
 
       - name: Run build
         working-directory: retrovault
