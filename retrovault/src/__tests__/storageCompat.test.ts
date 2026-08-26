@@ -132,6 +132,45 @@ describe('storageCompat', () => {
     expect(vpRows[0].copies).toHaveLength(2);
   });
 
+  it('merges into the Prisma row when a legacy JSON duplicate has a different id', async () => {
+    const { createInventoryCompat, readInventoryCompat } = await import('@/lib/storageCompat');
+    const prismaId = 'genesis-battletoads-8fcf10f184';
+    const legacyId = 'sega-genesis-battletoads';
+
+    await createInventoryCompat({
+      id: prismaId,
+      title: 'Battletoads',
+      platform: 'Sega Genesis',
+      status: 'No',
+      copies: [],
+    });
+
+    const { writeDataFile } = await import('@/lib/data');
+    writeDataFile('inventory.json', [{
+      id: legacyId,
+      title: 'Battletoads',
+      platform: 'Sega Genesis',
+      status: 'No',
+      copies: [],
+    }]);
+
+    const merged = await createInventoryCompat({
+      id: uniqueId('incoming-battletoads'),
+      title: 'Battletoads',
+      platform: 'Sega Genesis',
+      status: 'Yes',
+      copies: [{ id: uniqueId('copy'), condition: 'Loose', priceAcquired: '15.00' }],
+    });
+
+    expect(merged.id).toBe(prismaId);
+    expect(merged.status).toBe('Yes');
+    expect(merged.copies).toHaveLength(1);
+
+    const inventory = await readInventoryCompat();
+    expect(inventory.find((entry) => entry.id === prismaId)?.copies).toHaveLength(1);
+    expect(inventory.find((entry) => entry.id === legacyId)).toBeTruthy();
+  });
+
   it('preserves JSON-only inventory rows during the hybrid migration window', async () => {
     const { createInventoryCompat, readInventoryCompat } = await import('@/lib/storageCompat');
     const prismaId = uniqueId('catalog');

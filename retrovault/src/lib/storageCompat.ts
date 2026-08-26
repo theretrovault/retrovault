@@ -307,10 +307,17 @@ export async function createInventoryCompat(item: LegacyInventoryItem): Promise<
   const normalizedTitle = normalizeInventoryKeyPart(item.title);
   const normalizedPlatform = normalizeInventoryKeyPart(item.platform);
   const existingItems = await readInventoryCompat();
-  const matchingExisting = existingItems.find((entry) =>
+  const matchingCandidates = existingItems.filter((entry) =>
     normalizeInventoryKeyPart(entry.title) === normalizedTitle &&
     normalizeInventoryKeyPart(entry.platform) === normalizedPlatform
   );
+  const persistedCandidateIds = new Set(
+    (await prisma.game.findMany({
+      where: { id: { in: matchingCandidates.map((entry) => entry.id) } },
+      select: { id: true },
+    })).map((entry) => entry.id)
+  );
+  const matchingExisting = matchingCandidates.find((entry) => persistedCandidateIds.has(entry.id));
 
   if (matchingExisting) {
     const existingCopies = matchingExisting.copies || [];
