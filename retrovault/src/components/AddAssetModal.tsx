@@ -88,6 +88,7 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
   const [notes, setNotes] = useState(initialData?.notes || "");
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const inventoryRef = useRef<{ title: string; platform: string }[]>([]);
   const availablePlatformsRef = useRef<string[]>(STATIC_PLATFORM_NAMES);
@@ -229,23 +230,29 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
   const handleSave = async () => {
     if (!validate()) return;
     setSaving(true);
+    setSaveError(null);
     saveRecentPlatform(platform);
     const nextRecentPlatforms = getRecentPlatforms();
     recentRef.current = nextRecentPlatforms;
     setRecentPlatforms(nextRecentPlatforms);
-    await onSave({
-      title: titleInput.trim(),
-      platform,
-      condition,
-      hasBox,
-      hasManual,
-      priceAcquired: isDigital ? "0" : price,
-      purchaseDate,
-      source,
-      notes,
-      isDigital,
-    });
-    setSaving(false);
+    try {
+      await onSave({
+        title: titleInput.trim(),
+        platform,
+        condition,
+        hasBox,
+        hasManual,
+        priceAcquired: isDigital ? "0" : price,
+        purchaseDate,
+        source,
+        notes,
+        isDigital,
+      });
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Failed to add game. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const inputCls = (err?: string) =>
@@ -420,6 +427,12 @@ export function AddAssetModal({ onClose, onSave, initialData, title = "ADD ASSET
             </div>
           )}
         </div>
+
+        {saveError && (
+          <div role="alert" className="mt-4 border-2 border-red-700 bg-red-950/40 px-4 py-3 font-terminal text-red-300">
+            {saveError}
+          </div>
+        )}
 
         <div className="mt-6 pt-4 border-t-2 border-green-900 flex justify-between items-center">
           <div className="text-zinc-600 font-terminal text-sm">* Required fields</div>
