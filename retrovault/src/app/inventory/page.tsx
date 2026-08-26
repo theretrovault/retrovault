@@ -28,6 +28,7 @@ import { useAppConfig } from "@/components/AppConfig";
 import { Tip } from "@/components/Tooltip";
 import { getCopyMarketValue } from "@/lib/copyCondition";
 import { addPurchaseToActiveConventionSession } from "@/lib/conventionSession";
+import { createInventoryAsset, enablePlatformAfterAdd } from "@/lib/inventoryAddFlow";
 import { getPriceTrend, getTotalMarketValue, getTotalPaid } from "@/lib/marketUtils";
 
 type GameCopy = {
@@ -629,11 +630,7 @@ export default function InventoryPage() {
         condition: data.condition,
       }]
     };
-    const created = await fetch("/api/inventory", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newItem),
-    }).then((r) => r.json());
+    const created = await createInventoryAsset(newItem);
 
     let removedWishlistEntry: WishlistRestorePayload | null = null;
     const config = await fetch("/api/config").then((r) => r.json()).catch(() => ({}));
@@ -673,26 +670,6 @@ export default function InventoryPage() {
       source: data.source || 'Vault',
     });
 
-    // Auto-enable platform if it's not currently enabled in config.
-    if (data.platform) {
-      const enabledPlatforms = Array.isArray(config?.platforms) ? config.platforms : [];
-      if (!enabledPlatforms.includes(data.platform)) {
-        const syncRes = await fetch("/api/platforms/sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ platform: data.platform, enabled: true, autoPopulate: true })
-        }).then(r => r.json()).catch(() => ({}));
-        const added = syncRes?.sync?.populated?.added || 0;
-        const toast = document.createElement('div');
-        toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[500] bg-yellow-950 border-2 border-yellow-600 px-6 py-3 font-terminal text-yellow-300 text-sm shadow-lg';
-        toast.textContent = added > 0
-          ? `📺 Platform enabled: ${data.platform} — added ${added.toLocaleString()} catalog games for this system.`
-          : `📺 Platform enabled: ${data.platform} — catalog sync ${syncRes?.sync?.catalogFound === false ? 'is not available for this system yet' : 'found no new games to add'}.`;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 5000);
-      }
-    }
-
     mergeItemIntoInventory(created);
     if (removedWishlistEntry?.title) {
       setVaultWishlistUndo((prev) => ({ ...prev, [created.id]: removedWishlistEntry }));
@@ -702,6 +679,21 @@ export default function InventoryPage() {
     setFilterAction("owned");
     setShowAddModal(false);
     fetchInventory();
+
+    // The game is already committed. Platform enablement must never hold the modal open
+    // or depend on the external catalog scraper completing.
+    const enabledPlatforms = Array.isArray(config?.platforms) ? config.platforms : [];
+    if (data.platform && !enabledPlatforms.includes(data.platform)) {
+      void enablePlatformAfterAdd(data.platform).then((result) => {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[500] bg-yellow-950 border-2 border-yellow-600 px-6 py-3 font-terminal text-yellow-300 text-sm shadow-lg';
+        toast.textContent = result.ok
+          ? `📺 Platform enabled: ${data.platform}.`
+          : `⚠️ Game added, but ${data.platform} could not be enabled: ${result.error}`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 5000);
+      });
+    }
   };
 
   const openNew = () => {
