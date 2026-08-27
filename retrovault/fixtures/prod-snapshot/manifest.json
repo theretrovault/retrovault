@@ -1,0 +1,6 @@
+{
+  "source": "Tower /mnt/user/appdata/retrovault/data",
+  "fetchedAt": "2026-08-27T17:46:36.242Z",
+  "keepNotes": false,
+  "notes": "Read-only production snapshot used by src/__tests__/prodSnapshotAddFlow.test.ts. Refresh with: node scripts/refresh-prod-fixture.mjs"
+}
