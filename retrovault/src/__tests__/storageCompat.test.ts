@@ -171,6 +171,25 @@ describe('storageCompat', () => {
     expect(inventory.find((entry) => entry.id === legacyId)).toBeTruthy();
   });
 
+  it('accepts a numeric copy count on add instead of crashing', async () => {
+    const { createInventoryCompat, readInventoryCompat } = await import('@/lib/storageCompat');
+
+    const created = await createInventoryCompat({
+      id: uniqueId('numeric-copies-game'),
+      title: 'Road Rash',
+      platform: 'Sega Genesis',
+      status: 'Yes',
+      copies: 2,
+    } as never);
+
+    expect(created.id).toBeTruthy();
+    expect(created.copies).toHaveLength(2);
+    expect(created.copies?.[0]?.id).toBeTruthy();
+
+    const inventory = await readInventoryCompat();
+    expect(inventory.find((entry) => entry.id === created.id)?.copies).toHaveLength(2);
+  });
+
   it('preserves JSON-only inventory rows during the hybrid migration window', async () => {
     const { createInventoryCompat, readInventoryCompat } = await import('@/lib/storageCompat');
     const prismaId = uniqueId('catalog');
