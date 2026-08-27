@@ -171,6 +171,37 @@ describe('storageCompat', () => {
     expect(inventory.find((entry) => entry.id === legacyId)).toBeTruthy();
   });
 
+  it('preserves existing price history when merging a duplicate add', async () => {
+    const { createInventoryCompat, readInventoryCompat } = await import('@/lib/storageCompat')
+
+    await createInventoryCompat({
+      id: uniqueId('ph'),
+      title: 'Golden Axe',
+      platform: 'Sega Genesis',
+      status: 'No',
+      copies: [],
+      priceHistory: { '2026-04-20': { loose: 18.25, cib: 24.5 } },
+    })
+
+    const merged = await createInventoryCompat({
+      id: uniqueId('ph'),
+      title: 'Golden Axe',
+      platform: 'Sega Genesis',
+      status: 'Yes',
+      copies: [{ id: uniqueId('copy'), condition: 'Loose', priceAcquired: '10.00' }],
+      priceHistory: { '2026-05-01': { loose: 16.0 } },
+    })
+
+    // The pre-existing date must survive the merge, and the incoming date must be added.
+    expect(merged.priceHistory?.['2026-04-20']?.loose).toBe(18.25)
+    expect(merged.priceHistory?.['2026-05-01']?.loose).toBe(16.0)
+
+    const inventory = await readInventoryCompat()
+    const row = inventory.find((entry) => entry.title === 'Golden Axe' && entry.platform === 'Sega Genesis')
+    expect(row?.priceHistory?.['2026-04-20']?.loose).toBe(18.25)
+    expect(row?.priceHistory?.['2026-05-01']?.loose).toBe(16.0)
+  })
+
   it('accepts a numeric copy count on add instead of crashing', async () => {
     const { createInventoryCompat, readInventoryCompat } = await import('@/lib/storageCompat');
 

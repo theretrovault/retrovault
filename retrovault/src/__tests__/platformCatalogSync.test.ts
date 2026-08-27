@@ -21,6 +21,29 @@ describe('platformCatalogSync', () => {
     vi.clearAllMocks()
   })
 
+  it('fails fast instead of looping when the catalog page returns an HTTP error', async () => {
+    readDataFile.mockImplementation((filename: string) => {
+      if (filename === 'inventory.json') return []
+      return []
+    })
+    findMany.mockResolvedValue([])
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () => '404 page not found',
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { syncPlatformCatalog } = await import('@/lib/platformCatalogSync')
+    const result = await syncPlatformCatalog({ platform: 'Wii', enabledPlatforms: ['Wii'], autoPopulate: true })
+
+    // A 404 console page must not be followed as a multi-page crawl, and the
+    // empty catalog must not wipe existing inventory for that platform.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(result.populated.added).toBe(0)
+    expect(writeDataFile).not.toHaveBeenCalled()
+  })
+
   it('adds missing catalog titles when enabling a platform', async () => {
     readDataFile.mockImplementation((filename: string) => {
       if (filename === 'inventory.json') {
