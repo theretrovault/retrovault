@@ -29,6 +29,7 @@ import { Tip } from "@/components/Tooltip";
 import { getCopyMarketValue } from "@/lib/copyCondition";
 import { addPurchaseToActiveConventionSession } from "@/lib/conventionSession";
 import { createInventoryAsset, enablePlatformAfterAdd } from "@/lib/inventoryAddFlow";
+import { buildEditPayload } from "@/lib/inventoryEditPayload";
 import { getPriceTrend, getTotalMarketValue, getTotalPaid } from "@/lib/marketUtils";
 
 type GameCopy = {
@@ -579,7 +580,7 @@ export default function InventoryPage() {
       await fetch("/api/inventory", {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, copies: formCopies }),
+        body: JSON.stringify(buildEditPayload(formData, formCopies)),
       });
       setIsModalOpen(false);
       fetchInventory();
@@ -1563,6 +1564,12 @@ export default function InventoryPage() {
                   <input type="text" className="w-full bg-black border-2 border-green-800 p-2 focus:outline-none focus:border-green-400 text-green-300" value={formData.platform || ""} onChange={(e) => setFormData({ ...formData, platform: e.target.value })} />
                 </div>
               </div>
+              {editingItem && (
+                <div>
+                  <label className="block mb-1 text-sm text-zinc-400">NOTES</label>
+                  <textarea className="w-full bg-black border-2 border-green-800 p-2 focus:outline-none focus:border-green-400 text-green-300 h-24 resize-y" placeholder="Optional notes — condition quirks, grading, provenance, what you're tracking..." value={formData.notes || ""} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} />
+                </div>
+              )}
               <div>
                 <label className="block mb-1 text-sm text-zinc-400">PURCHASE DATE</label>
                 <input type="date" className="w-full bg-black border-2 border-green-800 p-2 focus:outline-none focus:border-green-400 text-green-300 font-terminal text-xl" value={formData.purchaseDate || ""} onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })} />

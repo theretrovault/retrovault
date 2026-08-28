@@ -101,6 +101,44 @@ describe('storageCompat', () => {
     expect((await readInventoryCompat()).find((item) => item.id === id)).toBeUndefined();
   });
 
+  it('round-trips a game notes value through the Prisma update path (edit modal persistence)', async () => {
+    const { createInventoryCompat, updateInventoryCompat, readInventoryCompat } = await import('@/lib/storageCompat');
+    const id = uniqueId('notes');
+
+    // Start with no notes; the create path should normalize to an empty string.
+    await createInventoryCompat({ id, title: 'Battletoads', platform: 'Sega Genesis', copies: [] });
+    let current = (await readInventoryCompat()).find((item) => item.id === id);
+    expect(current?.notes ?? '').toBe('');
+
+    // Edit: add a notes value (mirrors what the edit modal now sends).
+    let updated = await updateInventoryCompat({
+      id,
+      title: 'Battletoads',
+      platform: 'Sega Genesis',
+      status: 'Yes',
+      notes: 'First copy is CIB, second is loose',
+      copies: [{ condition: 'CIB', hasBox: true, hasManual: true, priceAcquired: '15.00' }],
+    });
+    expect(updated?.notes).toBe('First copy is CIB, second is loose');
+
+    // Confirm it persisted to the DB, not just the in-memory response.
+    current = (await readInventoryCompat()).find((item) => item.id === id);
+    expect(current?.notes).toBe('First copy is CIB, second is loose');
+
+    // Edit again: clear the notes back to empty (user deleted the text).
+    updated = await updateInventoryCompat({
+      id,
+      title: 'Battletoads',
+      platform: 'Sega Genesis',
+      status: 'Yes',
+      notes: '',
+      copies: [{ condition: 'CIB', hasBox: true, hasManual: true, priceAcquired: '15.00' }],
+    });
+    expect(updated?.notes).toBe('');
+    current = (await readInventoryCompat()).find((item) => item.id === id);
+    expect(current?.notes ?? '').toBe('');
+  });
+
   it('merges create requests that match an existing title/platform even when the incoming id is different', async () => {
     const { createInventoryCompat, readInventoryCompat } = await import('@/lib/storageCompat');
 
