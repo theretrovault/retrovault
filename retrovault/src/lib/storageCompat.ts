@@ -207,6 +207,51 @@ function safeIso(value: unknown): string | null {
   const parsed = new Date(stringValue);
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
+/**
+ * Normalize incoming copies into a well-formed array. The add flow sends a
+ * proper array, but external/manual API callers may send a numeric copy count
+ * or omit the field entirely. Spreading a number throws a TypeError, so
+ * coerce defensively instead of failing the whole add.
+ */
+interface NormalizedCopy {
+  id?: string;
+  condition?: string;
+  hasBox?: boolean;
+  hasManual?: boolean;
+  priceAcquired?: string | number;
+  purchaseDate?: string | null;
+  source?: string | null;
+}
+
+function toCopiesArray(value: unknown): NormalizedCopy[] {
+  if (Array.isArray(value)) {
+    return value.filter((entry): entry is NormalizedCopy => Boolean(entry) && typeof entry === 'object');
+  }
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Array.from({ length: Math.floor(value) }, () => ({ id: '' }));
+  }
+  return [];
+}
+
+/**
+ * Normalize incoming price history into the legacy shape: a record of
+ * ISO date -> price bundle. Some callers send an array of entries or an
+ * empty string; coerce those instead of crashing on Object.entries.
+ */
+function toPriceHistoryRecord(value: unknown): Record<string, Record<string, unknown>> {
+  if (Array.isArray(value)) {
+    const record: Record<string, Record<string, unknown>> = {};
+    for (const entry of value) {
+      if (entry && typeof entry === 'object' && typeof (entry as Record<string, unknown>).date === 'string') {
+        record[(entry as Record<string, unknown>).date as string] = entry as Record<string, unknown>;
+      }
+    }
+    return record;
+  }
+  if (value && typeof value === 'object') return value as Record<string, Record<string, unknown>>;
+  return {};
+}
+
 
 type InventoryGameRecord = {
   id: string;
@@ -307,14 +352,21 @@ export async function createInventoryCompat(item: LegacyInventoryItem): Promise<
   const normalizedTitle = normalizeInventoryKeyPart(item.title);
   const normalizedPlatform = normalizeInventoryKeyPart(item.platform);
   const existingItems = await readInventoryCompat();
-  const matchingExisting = existingItems.find((entry) =>
+  const matchingCandidates = existingItems.filter((entry) =>
     normalizeInventoryKeyPart(entry.title) === normalizedTitle &&
     normalizeInventoryKeyPart(entry.platform) === normalizedPlatform
   );
+  const persistedCandidateIds = new Set(
+    (await prisma.game.findMany({
+      where: { id: { in: matchingCandidates.map((entry) => entry.id) } },
+      select: { id: true },
+    })).map((entry) => entry.id)
+  );
+  const matchingExisting = matchingCandidates.find((entry) => persistedCandidateIds.has(entry.id));
 
   if (matchingExisting) {
     const existingCopies = matchingExisting.copies || [];
-    const incomingCopies = item.copies || [];
+    const incomingCopies = toCopiesArray(item.copies);
     const mergedCopies = [...existingCopies, ...incomingCopies].map((copy, index) => ({
       ...copy,
       id: copy.id || `${matchingExisting.id}-copy-${index + 1}`,
@@ -322,7 +374,7 @@ export async function createInventoryCompat(item: LegacyInventoryItem): Promise<
 
     const mergedPriceHistory = {
       ...(matchingExisting.priceHistory || {}),
-      ...(item.priceHistory || {}),
+      ...toPriceHistoryRecord(item.priceHistory),
     };
 
     const updated = await updateInventoryCompat({
@@ -361,8 +413,8 @@ export async function createInventoryCompat(item: LegacyInventoryItem): Promise<
       marketNew: toNullableNumber(item.marketNew),
       marketGraded: toNullableNumber(item.marketGraded),
       copies: {
-        create: (item.copies || []).map((copy) => ({
-          id: copy.id,
+        create: toCopiesArray(item.copies).map((copy, index) => ({
+          id: copy.id || `${item.id}-copy-${index + 1}`,
           condition: copy.condition || 'Loose',
           hasBox: Boolean(copy.hasBox),
           hasManual: Boolean(copy.hasManual),
@@ -372,7 +424,7 @@ export async function createInventoryCompat(item: LegacyInventoryItem): Promise<
         })),
       },
       priceHistory: {
-        create: Object.entries(item.priceHistory || {}).map(([date, prices]) => ({
+        create: Object.entries(toPriceHistoryRecord(item.priceHistory)).map(([date, prices]) => ({
           date,
           loose: toNullableNumber(prices?.loose),
           cib: toNullableNumber(prices?.cib),
@@ -445,10 +497,11 @@ export async function updateInventoryCompat(item: LegacyInventoryItem): Promise<
     });
 
     await tx.gameCopy.deleteMany({ where: { gameId: item.id } });
-    if ((item.copies || []).length > 0) {
+    const normalizedCopies = toCopiesArray(item.copies);
+    if (normalizedCopies.length > 0) {
       await tx.gameCopy.createMany({
-        data: (item.copies || []).map((copy) => ({
-          id: copy.id,
+        data: normalizedCopies.map((copy, index) => ({
+          id: copy.id || `${item.id}-copy-${index + 1}`,
           gameId: item.id,
           condition: copy.condition || 'Loose',
           hasBox: Boolean(copy.hasBox),
@@ -461,7 +514,7 @@ export async function updateInventoryCompat(item: LegacyInventoryItem): Promise<
     }
 
     await tx.priceHistory.deleteMany({ where: { gameId: item.id } });
-    const priceEntries = Object.entries(item.priceHistory || {});
+    const priceEntries = Object.entries(toPriceHistoryRecord(item.priceHistory));
     if (priceEntries.length > 0) {
       await tx.priceHistory.createMany({
         data: priceEntries.map(([date, prices]) => ({

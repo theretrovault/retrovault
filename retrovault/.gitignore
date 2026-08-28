@@ -51,6 +51,12 @@ data/overwrite.json
 data/test.json
 coverage/
 fixtures/
+# Committed prod-snapshot fixture (used by prodSnapshotAddFlow CI replay test)
+# Re-include the dir, then the specific files it needs.
+!fixtures/prod-snapshot/
+!fixtures/prod-snapshot/retrovault.db
+!fixtures/prod-snapshot/inventory.json
+!fixtures/prod-snapshot/manifest.json
 AGENTS.md
 CLAUDE.md
 SOUL.md
