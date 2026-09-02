@@ -19,6 +19,7 @@ import {
   getMatchConfidence,
 } from "@/lib/fieldMode";
 import { addPurchaseToActiveConventionSession } from "@/lib/conventionSession";
+import { getExistingRecordNotice } from "@/lib/fieldPurchaseFlow";
 
 type PriceVariantMatch = {
   title: string;
@@ -167,6 +168,8 @@ export default function FieldPage() {
   const [wishlistPlayerId, setWishlistPlayerId] = useState('');
   const [fieldCondition, setFieldCondition] = useState<CopyCondition>("Loose");
   const [purchaseQuantity, setPurchaseQuantity] = useState("1");
+  const [pendingPurchase, setPendingPurchase] = useState<PriceResult | null>(null);
+  const [paidPrice, setPaidPrice] = useState("");
   const [lastSearchIssue, setLastSearchIssue] = useState<{ isOffline: boolean; hadTimeout: boolean } | null>(null);
   const [needsCacheRefresh, setNeedsCacheRefresh] = useState(false);
   const [suggestions, setSuggestions] = useState<{ title: string; platform: string }[]>([]);
@@ -644,8 +647,10 @@ export default function FieldPage() {
       );
       setNeedsCacheRefresh(!!cacheMeta);
       await refreshFieldData();
+      return true;
     } catch (e: unknown) {
       setSaveStatus(`Error: ${getErrorMessage(e, 'Could not save to inventory')}`);
+      return false;
     } finally {
       setSavingKey('');
     }
@@ -1007,6 +1012,7 @@ export default function FieldPage() {
         const matchingWishlistItems = wishlistItems.filter((item) => normalizeFieldKey(item.title, item.platform) === normalizeFieldKey(r.title, r.platform));
         const selectedWishlistItem = matchingWishlistItems.find((item) => (item.playerId || '') === wishlistPlayerId) || null;
         const otherWishlistItems = matchingWishlistItems.filter((item) => (item.playerId || '') !== wishlistPlayerId);
+        const existing = findInventoryMatch(inventory, r.title, r.platform);
 
         return (
           <div key={i} className={`bg-zinc-950 border-2 mb-4 p-5 space-y-4 ${
@@ -1122,9 +1128,9 @@ export default function FieldPage() {
                     </div>
                   )}
 
-                  {findInventoryMatch(inventory, r.title, r.platform) && (
+                  {existing && (
                     <div className="border border-blue-800 bg-blue-950/20 px-4 py-2 font-terminal text-sm text-blue-300">
-                      📦 You already have this game record. Bought It will add a new copy to it instead of creating a duplicate.
+                      📦 {getExistingRecordNotice(existing.copies?.length || 0)}
                     </div>
                   )}
 
@@ -1150,11 +1156,10 @@ export default function FieldPage() {
                             : '🎁 Add to Wishlist'}
                     </button>
                     <button
-                      onClick={() => saveToInventory(r, {
-                        condition: fieldCondition,
-                        priceAcquired: askPrice || '0.00',
-                        quantity: Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1),
-                      })}
+                      onClick={() => {
+                        setPaidPrice(askPrice);
+                        setPendingPurchase(r);
+                      }}
                       disabled={savingKey === `purchase:${r.title}:${r.platform}`}
                       className="px-3 py-2 font-terminal text-sm border border-emerald-700 text-emerald-300 hover:bg-emerald-950/30 disabled:opacity-50 transition-colors"
                     >
@@ -1162,22 +1167,6 @@ export default function FieldPage() {
                     </button>
                   </div>
 
-                  <div className="flex flex-wrap items-end gap-3">
-                    <label className="font-terminal text-xs text-zinc-500 uppercase tracking-wider">
-                      Qty
-                      <input
-                        type="number"
-                        min="1"
-                        inputMode="numeric"
-                        value={purchaseQuantity}
-                        onChange={(e) => setPurchaseQuantity(e.target.value.replace(/[^0-9]/g, '') || '1')}
-                        className="mt-1 w-20 bg-black border border-zinc-700 px-2 py-2 text-sm text-green-300 focus:border-green-500 focus:outline-none"
-                      />
-                    </label>
-                    <div className="font-terminal text-xs text-zinc-600">
-                      Multi-copy buys will add one inventory copy and one acquisition log per unit.
-                    </div>
-                  </div>
 
                   {r.wishlistNotes && (
                     <div className="font-terminal text-xs text-zinc-500">
@@ -1219,11 +1208,6 @@ export default function FieldPage() {
                     );
                   })()}
 
-                  {askPrice && (
-                    <div className="font-terminal text-xs text-zinc-500">
-                      Bought It will save <span className="text-yellow-400">{Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1)}</span> {Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1) === 1 ? 'copy' : 'copies'} at <span className="text-yellow-400">${parseFloat(askPrice || '0').toFixed(2)}</span> each with condition <span className="text-blue-400">{fieldCondition}</span>.
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -1297,6 +1281,63 @@ export default function FieldPage() {
             isOffline: lastSearchIssue?.isOffline || false,
             hadTimeout: lastSearchIssue?.hadTimeout || false,
           })}
+        </div>
+      )}
+
+
+      {pendingPurchase && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-3" onClick={() => setPendingPurchase(null)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="purchase-title" className="w-full max-w-md bg-zinc-950 border-2 border-emerald-700 p-5 shadow-[0_0_30px_rgba(16,185,129,0.25)]" onClick={(event) => event.stopPropagation()}>
+            <h2 id="purchase-title" className="font-terminal text-2xl text-emerald-300 uppercase">Record Purchase</h2>
+            <p className="mt-1 font-terminal text-sm text-zinc-400">{pendingPurchase.title} · {pendingPurchase.platform}</p>
+
+            <div className="mt-5 space-y-4">
+              <label className="block font-terminal text-sm text-zinc-400 uppercase">
+                PRICE PAID ($)
+                <input
+                  autoFocus
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={paidPrice}
+                  onChange={(event) => setPaidPrice(event.target.value)}
+                  placeholder="0.00"
+                  className="mt-1 w-full bg-black border-2 border-emerald-800 p-3 text-xl text-emerald-300 focus:border-emerald-400 focus:outline-none"
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="font-terminal text-sm text-zinc-400 uppercase">
+                  Quantity
+                  <input type="number" min="1" inputMode="numeric" value={purchaseQuantity} onChange={(event) => setPurchaseQuantity(event.target.value.replace(/[^0-9]/g, '') || '1')} className="mt-1 w-full bg-black border border-zinc-700 p-3 text-green-300 focus:outline-none" />
+                </label>
+                <label className="font-terminal text-sm text-zinc-400 uppercase">
+                  Condition
+                  <select value={fieldCondition} onChange={(event) => setFieldCondition(event.target.value as CopyCondition)} className="mt-1 w-full bg-black border border-zinc-700 p-3 text-blue-300 focus:outline-none">
+                    {CONDITION_OPTIONS.map((condition) => <option key={condition} value={condition}>{condition}</option>)}
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button onClick={() => setPendingPurchase(null)} className="flex-1 border border-zinc-700 px-4 py-3 font-terminal text-zinc-400">CANCEL</button>
+              <button
+                onClick={async () => {
+                  const saved = await saveToInventory(pendingPurchase, {
+                    condition: fieldCondition,
+                    priceAcquired: paidPrice,
+                    quantity: Math.max(1, parseInt(purchaseQuantity || '1', 10) || 1),
+                  });
+                  if (saved) setPendingPurchase(null);
+                }}
+                disabled={paidPrice.trim() === '' || savingKey === `purchase:${pendingPurchase.title}:${pendingPurchase.platform}`}
+                className="flex-1 bg-emerald-600 px-4 py-3 font-terminal font-bold text-black disabled:opacity-40"
+              >
+                {savingKey === `purchase:${pendingPurchase.title}:${pendingPurchase.platform}` ? 'SAVING...' : 'CONFIRM PURCHASE'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

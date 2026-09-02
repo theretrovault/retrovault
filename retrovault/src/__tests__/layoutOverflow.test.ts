@@ -143,10 +143,13 @@ describe('Layout overflow — button rows must use flex-wrap', () => {
 
   it('Inventory action dropdown is viewport-safe for longer player lists', () => {
     const src = readFile(path.join(SRC, 'app/inventory/page.tsx'));
-    const dropdownCtx = src.match(/<div className="absolute right-0 top-full mt-1 z-20[^"]*" data-menu>/)?.[0] ?? '';
-    expect(dropdownCtx).toContain('w-64');
-    expect(dropdownCtx).toContain('max-w-[calc(100vw-2rem)]');
-    expect(dropdownCtx).toContain('max-h-[70vh]');
+    const dropdownCtx = src.match(/<div className="[^"]*" role="menu" aria-label=\{`Actions for \$\{item\.title\}`\} data-menu>/)?.[0] ?? '';
+    expect(dropdownCtx).toContain('fixed inset-x-4 bottom-4');
+    expect(dropdownCtx).toContain('max-h-[calc(100dvh-2rem)]');
+    expect(dropdownCtx).toContain('sm:absolute');
+    expect(dropdownCtx).toContain('sm:w-64');
+    expect(dropdownCtx).toContain('sm:max-w-[calc(100vw-2rem)]');
+    expect(dropdownCtx).toContain('sm:max-h-[70vh]');
     expect(dropdownCtx).toContain('overflow-y-auto');
     expect(dropdownCtx).toContain('overflow-x-hidden');
   });

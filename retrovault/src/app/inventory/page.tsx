@@ -577,11 +577,15 @@ export default function InventoryPage() {
   const saveItem = async () => {
     const method = editingItem ? "PUT" : "POST";
     try {
-      await fetch("/api/inventory", {
+      const response = await fetch("/api/inventory", {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(buildEditPayload(formData, formCopies)),
       });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error || "Failed to save asset");
+      }
       setIsModalOpen(false);
       fetchInventory();
     } catch (e: unknown) { alert(e instanceof Error ? e.message : "Failed to save asset"); }
@@ -967,14 +971,17 @@ export default function InventoryPage() {
                     <td className="p-3 text-center relative" data-menu>
                       <button
                         onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
-                        className="text-zinc-400 hover:text-green-400 font-terminal text-2xl leading-none px-3 py-1 rounded hover:bg-green-900/30 transition-colors"
+                        className="min-h-11 min-w-11 text-zinc-400 hover:text-green-400 font-terminal text-2xl leading-none px-3 py-2 rounded hover:bg-green-900/30 transition-colors"
                         title="Actions"
+                        aria-label={`Actions for ${item.title}`}
+                        aria-haspopup="menu"
+                        aria-expanded={openMenuId === item.id}
                         data-menu
                       >
                         ⋯
                       </button>
                       {openMenuId === item.id && (
-                        <div className="absolute right-0 top-full mt-1 z-20 bg-zinc-900 border-2 border-green-800 rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.5)] w-64 max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto overflow-x-hidden text-left" data-menu>
+                        <div className="fixed inset-x-4 bottom-4 z-[100] bg-zinc-900 border-2 border-green-800 rounded-sm shadow-[0_0_25px_rgba(0,0,0,0.8)] max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden text-left sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-1 sm:z-20 sm:w-64 sm:max-w-[calc(100vw-2rem)] sm:max-h-[70vh]" role="menu" aria-label={`Actions for ${item.title}`} data-menu>
                           <Tip text="Pull a fresh live market lookup for this title and save the latest PriceCharting data into the vault.">
                             <button
                               onClick={() => { fetchRow(item); setOpenMenuId(null); }}
@@ -1547,8 +1554,8 @@ export default function InventoryPage() {
 
       {/* CRUD Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 backdrop-blur-sm overflow-y-auto py-10">
-          <div className="bg-zinc-950 border-4 border-green-500 p-6 rounded-sm w-full max-w-3xl shadow-[0_0_30px_rgba(34,197,94,0.4)] my-auto">
+        <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 backdrop-blur-sm overflow-y-auto px-2 py-2 sm:py-10">
+          <div className="bg-zinc-950 border-4 border-green-500 p-3 sm:p-6 rounded-sm w-full max-w-3xl shadow-[0_0_30px_rgba(34,197,94,0.4)] my-auto">
             <h3 className="text-2xl text-green-400 font-terminal uppercase mb-6 tracking-widest border-b-2 border-green-900 pb-2">
               {editingItem ? "MANAGE ASSET & COPIES" : "NEW ASSET CATALOG ENTRY"}
             </h3>
@@ -1601,7 +1608,7 @@ export default function InventoryPage() {
                 </div>
                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
                   {formCopies.map((copy, idx) => (
-                    <div key={copy.id} className="bg-black border border-green-800 p-4 flex flex-col md:flex-row gap-4 items-end relative">
+                    <div key={copy.id} className="bg-black border border-green-800 p-4 flex flex-col md:flex-row gap-4 items-stretch md:items-end relative">
                       <span className="absolute top-2 right-2 text-zinc-500 text-sm">#{idx + 1}</span>
                       <div className="flex gap-4 items-center">
                         <label className="flex items-center gap-2 cursor-pointer">
@@ -1611,11 +1618,11 @@ export default function InventoryPage() {
                           <input type="checkbox" className="w-5 h-5 accent-green-600" checked={copy.hasManual} onChange={(e) => updateCopy(copy.id, { hasManual: e.target.checked })} /> MANUAL
                         </label>
                       </div>
-                      <div className="w-[100px]">
+                      <div className="w-full sm:w-[100px]">
                         <label className="block mb-1 text-sm text-zinc-400">COST ($)</label>
-                        <input type="number" step="0.01" className="w-full bg-black border-2 border-green-800 p-2 text-green-300 focus:outline-none" value={copy.priceAcquired} onChange={(e) => updateCopy(copy.id, { priceAcquired: e.target.value })} />
+                        <input type="number" min="0" step="0.01" inputMode="decimal" className="w-full bg-black border-2 border-green-800 p-3 sm:p-2 text-green-300 focus:outline-none" value={copy.priceAcquired} onChange={(e) => updateCopy(copy.id, { priceAcquired: e.target.value })} />
                       </div>
-                      <div className="w-[150px]">
+                      <div className="w-full sm:w-[150px]">
                         <label className="block mb-1 text-sm text-zinc-400">CONDITION</label>
                         <select className="w-full bg-black border-2 border-green-800 p-2 text-green-300 uppercase" value={copy.condition} onChange={(e) => updateCopy(copy.id, { condition: e.target.value })}>
                           <option value="Mint">MINT</option>
@@ -1634,7 +1641,7 @@ export default function InventoryPage() {
               </div>
             </div>
 
-            <div className="mt-8 pt-4 border-t-2 border-green-900 flex justify-between items-center">
+            <div className="sticky bottom-0 z-10 -mx-3 sm:-mx-6 mt-8 px-3 sm:px-6 py-4 border-t-2 border-green-900 bg-zinc-950 flex flex-col sm:flex-row gap-3 justify-between sm:items-center">
               <span className="text-zinc-500 font-terminal">Total Paid: ${totalPaid(formCopies).toFixed(2)}</span>
               <div className="flex gap-4">
                 <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 font-terminal text-xl text-zinc-400 hover:text-white">CANCEL</button>
