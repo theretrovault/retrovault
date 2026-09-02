@@ -30,6 +30,10 @@ describe('Field page actions', () => {
     expect(source).toContain('nextWishlist.forEach');
     expect(source).toContain("That player'} already has this on their wishlist");
     expect(source).toContain("'🛒 Bought It'");
+    expect(source).toContain('setPendingPurchase(r)');
+    expect(source).toContain('PRICE PAID ($)');
+    expect(source).toContain('CONFIRM PURCHASE');
+    expect(source).toContain('getExistingRecordNotice(existing.copies?.length || 0)');
     expect(source).toContain("On ${selectedWishlistItem.player?.name || 'selected'}'s Wishlist");
     expect(source).toContain("/api/field/identify");
     expect(source).toContain('📸 Photo Lookup');
